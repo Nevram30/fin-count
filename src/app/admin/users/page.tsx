@@ -55,8 +55,8 @@ const AddUserPage: React.FC = () => {
     return (
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
-            <div className="grid grid-cols-6">
-                <main className="h-screen col-start-2 col-span-6 p-8">
+            <div className="grid grid-cols-6 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
+                <main className="col-start-2 col-span-6 p-8">
                     <div className="max-w-4xl mx-auto">
                         <div className="flex items-center justify-between mb-8">
                             <h1 className="text-3xl font-bold text-gray-800">Add New User</h1>
@@ -67,7 +67,7 @@ const AddUserPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white overflow-hidden">
+                        <div className="overflow-hidden">
                             <div className="p-6 border-b border-gray-100">
                                 <h2 className="text-lg font-semibold text-gray-700">
                                     User Selection

@@ -152,7 +152,7 @@ const AdminRegistration: React.FC<AdminRegistrationProps> = (props) => {
     }
 
     return (
-        <div className="bg-white">
+        <div>
             <div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
