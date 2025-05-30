@@ -1,3 +1,4 @@
+import AdminProfile from "./admin.profile";
 import { sequelize, Sequelize } from "./db";
 import StaffProfile from "./staff.profile";
 import User from "./user";
@@ -12,4 +13,5 @@ export default {
   Sequelize,
   User,
   StaffProfile,
+  AdminProfile,
 };
