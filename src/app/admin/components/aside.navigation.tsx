@@ -9,6 +9,10 @@ import {
     Users,
     Settings,
     LogOut,
+    ClipboardList,
+    LayoutPanelLeft,
+    UserRoundPlus,
+    ChartColumnStacked,
 } from "lucide-react";
 import { useLogout } from "@/app/context/logout";
 
@@ -24,7 +28,7 @@ type AsideNavigationProps = {
 const AsideNavigation: React.FC<AsideNavigationProps> = ({
     onLogout,
     userName = "Jhon Doe",
-    userRole = "Registrar",
+    userRole = "Administrator",
     userAvatar = "",
     unreadNotificationCount
 }) => {
@@ -76,7 +80,7 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                 </div>
 
                 {/* Main Navigation */}
-                <div className="mb-4">
+                <div className="mb-2">
                     <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                         Main Menu
                     </p>
@@ -92,10 +96,58 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                                     : "text-gray-600 hover:bg-gray-50"
                                     }`}
                             >
-                                <Briefcase className="h-5 w-5" />
+                                <LayoutPanelLeft className="h-5 w-5" />
                                 <span>Dashboard</span>
                             </Link>
                         </li>
+                        <li>
+                            <Link
+                                href="/admin/reports"
+                                className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/reports")
+                                    ? "bg-blue-50 text-blue-700 font-medium"
+                                    : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                <ClipboardList className="h-5 w-5" />
+                                <span>Reports</span>
+                            </Link>
+                        </li>
+                    </ul>
+                </nav>
+
+                {/* Analytics Navigation */}
+                <div className="mt-6">
+                    <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                        Analytics
+                    </p>
+                </div>
+
+                <nav className="bg-white flex-1">
+                    <ul className="space-y-1">
+                        <li>
+                            <Link
+                                href="/admin/visualization"
+                                className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/visualization")
+                                    ? "bg-blue-50 text-blue-700 font-medium"
+                                    : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                <ChartColumnStacked className="h-5 w-5" />
+                                <span>Data Visualization</span>
+                            </Link>
+                        </li>
+                    </ul>
+                </nav>
+
+                {/* User Management Navigation */}
+                <div>
+                    <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                        User Management
+                    </p>
+                </div>
+
+                <nav className="bg-white flex-1">
+                    <ul className="space-y-1">
                         <li>
                             <Link
                                 href="/admin/users"
@@ -104,8 +156,8 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                                     : "text-gray-600 hover:bg-gray-50"
                                     }`}
                             >
-                                <Users className="h-5 w-5" />
-                                <span>User Management</span>
+                                <UserRoundPlus className="h-5 w-5" />
+                                <span>Add Users</span>
                             </Link>
                         </li>
                     </ul>
