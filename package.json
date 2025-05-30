@@ -25,6 +25,7 @@
     "react-dom": "^18",
     "react-hot-toast": "^2.5.2",
     "react-query": "^3.39.3",
+    "recharts": "^2.15.3",
     "sequelize": "^6.37.7",
     "yup": "^1.6.1"
   },
