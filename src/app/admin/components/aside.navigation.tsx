@@ -86,7 +86,7 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                     </p>
                 </div>
 
-                <nav className="bg-white flex-1">
+                <nav className="bg-white">
                     <ul className="space-y-1">
                         <li>
                             <Link
@@ -122,8 +122,20 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                     </p>
                 </div>
 
-                <nav className="bg-white flex-1">
+                <nav className="bg-white flex-1 mb-4">
                     <ul className="space-y-1">
+                        <li>
+                            <Link
+                                href="/admin/forecasting"
+                                className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/forecasting")
+                                    ? "bg-blue-50 text-blue-700 font-medium"
+                                    : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                <ChartColumnStacked className="h-5 w-5" />
+                                <span>Forecasting</span>
+                            </Link>
+                        </li>
                         <li>
                             <Link
                                 href="/admin/visualization"
@@ -134,6 +146,18 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                             >
                                 <ChartColumnStacked className="h-5 w-5" />
                                 <span>Data Visualization</span>
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/admin/distribution"
+                                className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/distribution")
+                                    ? "bg-blue-50 text-blue-700 font-medium"
+                                    : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                <ChartColumnStacked className="h-5 w-5" />
+                                <span>New Distribution</span>
                             </Link>
                         </li>
                     </ul>
@@ -164,14 +188,14 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                 </nav>
 
                 {/* System Categories */}
-                <div className="mb-4 mt-6">
+                <div className="mb-2 mt-6">
                     <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                         System
                     </p>
                 </div>
 
                 {/* Profile Section */}
-                <div className="mt-auto pt-6 border-t border-gray-100">
+                <div className="mt-auto pt-3 border-t border-gray-100">
                     <Link
                         href="/admin/notifications"
                         className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 relative ${pathname.startsWith("/admin/notifications")
