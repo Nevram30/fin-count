@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_BASEURL ?? "http://localhost:3000"),
-  title: 'EduPortal - User Registration',
-  description: 'Registration portal for students, teachers, and guidance counselors',
+  title: 'FinCount',
+  description: ' Your Automated fingerling Counting with Descriptive and Predictive Analytics',
   icons: {
     icon: "/favicon.ico",
   },
