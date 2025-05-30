@@ -289,16 +289,6 @@ const LoginPage: React.FC = () => {
                             )}
                         </button>
                     </form>
-
-                    <div className="mt-8 flex justify-center space-x-4">
-                        <a href="#" className="text-gray-500 hover:text-gray-700">
-                            Terms of Service
-                        </a>
-                        <span className="text-gray-400">•</span>
-                        <a href="#" className="text-gray-500 hover:text-gray-700">
-                            Privacy Policy
-                        </a>
-                    </div>
                 </div>
             </div>
 

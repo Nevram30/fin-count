@@ -67,7 +67,7 @@ const AddUserPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div className="bg-white overflow-hidden">
                             <div className="p-6 border-b border-gray-100">
                                 <h2 className="text-lg font-semibold text-gray-700">
                                     User Selection

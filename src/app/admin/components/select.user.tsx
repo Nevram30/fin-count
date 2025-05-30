@@ -2,8 +2,9 @@
 
 import React, { useState, ChangeEvent } from "react";
 
-import StaffRegisterPage from "@/app/components/staff.registration";
+
 import AdminRegistration from "./admin.registration";
+import StaffRegisterPage from "./staff.registration";
 
 const UserSelectPage = () => {
     const [selectedUserType, setSelectedUserType] = useState<string>("");

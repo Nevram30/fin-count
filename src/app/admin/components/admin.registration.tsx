@@ -73,7 +73,7 @@ const AdminRegistration: React.FC<AdminRegistrationProps> = (props) => {
 
                 if (response.data.success) {
                     toast.dismiss(loadingToastId);
-                    toast.success("Registration successful! Redirecting to login...", {
+                    toast.success("Registration successful!", {
                         duration: 4000,
                         style: {
                             background: "#4CAF50",
@@ -83,10 +83,6 @@ const AdminRegistration: React.FC<AdminRegistrationProps> = (props) => {
                     });
 
                     setFormData(initialState);
-
-                    setTimeout(() => {
-                        router.push("/signin");
-                    }, 3000);
                 } else {
                     throw new Error(response.data.error || "Registration failed");
                 }
@@ -156,11 +152,7 @@ const AdminRegistration: React.FC<AdminRegistrationProps> = (props) => {
     }
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mt-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                Admin Registration
-            </h2>
-
+        <div className="bg-white">
             <div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
@@ -348,40 +340,10 @@ const AdminRegistration: React.FC<AdminRegistrationProps> = (props) => {
                         </p>
                     )}
                 </div>
-
-                <div className="mb-6">
-                    <div className="flex items-start">
-                        <input
-                            type="checkbox"
-                            id="agreeToTerms"
-                            name="agreeToTerms"
-                            checked={formData.agreeToTerms}
-                            onChange={handleChange}
-                            className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                        />
-                        <label
-                            htmlFor="agreeToTerms"
-                            className="ml-2 block text-sm text-gray-700"
-                        >
-                            I agree to the{" "}
-                            <span className="text-blue-600 hover:underline cursor-pointer">
-                                Terms and Conditions
-                            </span>{" "}
-                            and{" "}
-                            <span className="text-blue-600 hover:underline cursor-pointer">
-                                Privacy Policy
-                            </span>
-                        </label>
-                    </div>
-                    {errors.agreeToTerms && (
-                        <p className="mt-1 text-xs text-red-500">{errors.agreeToTerms}</p>
-                    )}
-                </div>
-
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                    className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""
                         }`}
                 >
                     {isSubmitting ? (
@@ -412,15 +374,6 @@ const AdminRegistration: React.FC<AdminRegistrationProps> = (props) => {
                         "Create Account"
                     )}
                 </button>
-
-                <div className="text-center mt-4">
-                    <p className="text-sm text-gray-600">
-                        Already have an account?{" "}
-                        <span className="text-blue-600 hover:underline cursor-pointer">
-                            <Link href="/signin">Sign in</Link>
-                        </span>
-                    </p>
-                </div>
             </div>
         </div>
     );

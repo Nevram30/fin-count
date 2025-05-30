@@ -16,7 +16,7 @@ interface StaffRegisterPageProps {
     userType: string
 }
 
-const GuidanceRegisterPage: React.FC<StaffRegisterPageProps> = (props) => {
+const StaffRegisterPage: React.FC<StaffRegisterPageProps> = (props) => {
     const router = useRouter()
     const [formData, setFormData] = useState<StaffRegistrationForm>(InitialStaffFormState);
     const [errors, setErrors] = useState<StaffFormErrors>({});
@@ -186,13 +186,8 @@ const GuidanceRegisterPage: React.FC<StaffRegisterPageProps> = (props) => {
     return (
         <div className="flex flex-col min-h-screen">
             {/* Main Content */}
-            <main className="flex-grow flex items-center justify-center p-4">
+            <main className="flex-grow flex items-center justify-center">
                 <div className="w-full">
-                    <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Guidance Counselor Registration</h2>
-                    <p className="text-gray-600 text-center mb-6">
-                        Complete the form below to register as a guidance counselor
-                    </p>
-
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
@@ -339,7 +334,7 @@ const GuidanceRegisterPage: React.FC<StaffRegisterPageProps> = (props) => {
                                         </svg>
                                         Registering...
                                     </>
-                                ) : "Register as Guidance Counselor"}
+                                ) : "Create Account"}
                             </button>
                         </div>
                     </form>
@@ -349,4 +344,4 @@ const GuidanceRegisterPage: React.FC<StaffRegisterPageProps> = (props) => {
     )
 }
 
-export default GuidanceRegisterPage
+export default StaffRegisterPage
