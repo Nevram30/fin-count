@@ -47,7 +47,7 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
 
 
     return (
-        <aside className="w-64 fixed h-full bg-white shadow-sm">
+        <aside className="w-64 fixed h-full bg-white border shadow-lg">
             <div className="p-4 flex flex-col h-full">
                 {/* Admin Brand and User Profile */}
                 <div className="mb-6">
