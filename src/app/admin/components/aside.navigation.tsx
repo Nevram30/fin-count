@@ -187,14 +187,14 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                         <ul className="space-y-1">
                             <li>
                                 <Link
-                                    href="/admin/forecasting"
-                                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/forecasting")
+                                    href="/admin/distribution"
+                                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/distribution")
                                         ? "bg-blue-50 text-blue-700 font-medium"
                                         : "text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
-                                    <ChartNoAxesCombined className="h-5 w-5 flex-shrink-0" />
-                                    <span className="truncate">Forecasting</span>
+                                    <Building2 className="h-5 w-5 flex-shrink-0" />
+                                    <span className="truncate">Distribution</span>
                                 </Link>
                             </li>
                             <li>
@@ -211,14 +211,14 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                             </li>
                             <li>
                                 <Link
-                                    href="/admin/distribution"
-                                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/distribution")
+                                    href="/admin/forecasting"
+                                    className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/forecasting")
                                         ? "bg-blue-50 text-blue-700 font-medium"
                                         : "text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
-                                    <Building2 className="h-5 w-5 flex-shrink-0" />
-                                    <span className="truncate">Distribution</span>
+                                    <ChartNoAxesCombined className="h-5 w-5 flex-shrink-0" />
+                                    <span className="truncate">Forecasting</span>
                                 </Link>
                             </li>
                         </ul>
