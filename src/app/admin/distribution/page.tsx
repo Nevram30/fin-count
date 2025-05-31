@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash } from "lucide-react";
+import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash, ChevronDown, ChevronUp } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -127,12 +127,82 @@ const davaoRegionLocations = {
     }
 };
 
+// Mobile Card Component for Distribution
+const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: () => void }> = ({
+    distribution,
+    onViewDetails
+}) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm">
+            <div className="flex justify-between items-start mb-3">
+                <div>
+                    <h3 className="font-semibold text-gray-900 text-lg">{distribution.beneficiary}</h3>
+                    <p className="text-sm font-mono text-blue-600">{distribution.batchId}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={onViewDetails}
+                        className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
+                        title="View Details"
+                    >
+                        <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-lg transition-colors"
+                        title={isExpanded ? "Show Less" : "Show More"}
+                    >
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <span className="text-gray-500">Fingerlings:</span>
+                    <p className="font-medium text-gray-900">{distribution.fingerlingsCount.toLocaleString()}</p>
+                </div>
+                <div>
+                    <span className="text-gray-500">Facility:</span>
+                    <p className="font-medium text-gray-900">{distribution.facilityType}</p>
+                </div>
+                <div>
+                    <span className="text-gray-500">Date:</span>
+                    <p className="font-medium text-gray-900">{distribution.date}</p>
+                </div>
+                <div>
+                    <span className="text-gray-500">Harvest:</span>
+                    <p className="font-medium text-green-600">{distribution.harvestDate}</p>
+                </div>
+            </div>
+
+            {isExpanded && (
+                <div className="mt-4 pt-3 border-t border-gray-200">
+                    <div className="space-y-2 text-sm">
+                        <div>
+                            <span className="text-gray-500">Location:</span>
+                            <p className="font-medium text-gray-900 mt-1">{distribution.location}</p>
+                        </div>
+                        <div>
+                            <span className="text-gray-500">Forecast Date:</span>
+                            <p className="font-medium text-amber-600">{distribution.forecast}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const DistributionForm: React.FC = () => {
     const { unreadCount } = useNotification();
     const { isLoading, isAuthenticated, logout } = withAuth({
         userType: "admin",
         redirectTo: "/signin",
     });
+
     // Form state
     const [formData, setFormData] = useState<DistributionForm>({
         firstname: '',
@@ -197,7 +267,6 @@ const DistributionForm: React.FC = () => {
         const province = formData.province as keyof typeof davaoRegionLocations;
         return Object.keys(davaoRegionLocations[province]);
     };
-
 
     // Get available barangays based on selected city
     const getAvailableBarangays = () => {
@@ -341,15 +410,12 @@ const DistributionForm: React.FC = () => {
         setShowModal(true);
     };
 
-    // bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen
-
-
     return (
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
             <div className="grid grid-cols-6 place-items-center p-5 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
                 <div className="col-start-1 sm:col-start-1 md:col-start-1 lg:col-start-2 xl:col-start-2 col-span-6 overflow-y-auto px-0 pt-14 pb-8 sm:px-6 sm:py-8">
-                    <div className="bg-white max-w-7xl rounded-xl shadow-lg border border-gray-200">
+                    <div className="bg-white max-w-full rounded-xl shadow-lg border border-gray-200">
                         {/* Success Message */}
                         {showSuccess && (
                             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
@@ -662,15 +728,17 @@ const DistributionForm: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Distribution Table */}
+                    {/* Distribution Display - Responsive */}
                     {distributions.length > 0 && (
-                        <div className="bg-white max-w-7xl rounded-xl shadow-lg border border-gray-200">
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 mt-8">
                             <div className="p-6">
                                 <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                                     <Fish className="h-6 w-6" />
                                     Fingerling Distributions
                                 </h2>
-                                <div className="overflow-x-auto">
+
+                                {/* Desktop Table - Hidden on mobile */}
+                                <div className="hidden lg:block overflow-x-auto">
                                     <table className="w-full table-auto">
                                         <thead>
                                             <tr className="bg-gray-50">
@@ -711,6 +779,55 @@ const DistributionForm: React.FC = () => {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+
+                                {/* Tablet Table - Condensed version */}
+                                <div className="hidden md:block lg:hidden overflow-x-auto">
+                                    <table className="w-full table-auto">
+                                        <thead>
+                                            <tr className="bg-gray-50">
+                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Beneficiary</th>
+                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Batch</th>
+                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Count</th>
+                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
+                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
+                                                <th className="px-3 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {distributions.map((dist) => (
+                                                <tr key={dist.id} className="hover:bg-gray-50">
+                                                    <td className="px-3 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
+                                                    <td className="px-3 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
+                                                    <td className="px-3 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
+                                                    <td className="px-3 py-3 text-sm text-gray-900">{dist.facilityType}</td>
+                                                    <td className="px-3 py-3 text-sm text-gray-900">{dist.date}</td>
+                                                    <td className="px-3 py-3 text-sm text-green-600">{dist.harvestDate}</td>
+                                                    <td className="px-3 py-3 text-center">
+                                                        <button
+                                                            onClick={() => openModal(dist)}
+                                                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile Cards - Shown only on mobile */}
+                                <div className="block md:hidden">
+                                    {distributions.map((dist) => (
+                                        <DistributionCard
+                                            key={dist.id}
+                                            distribution={dist}
+                                            onViewDetails={() => openModal(dist)}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -785,4 +902,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
