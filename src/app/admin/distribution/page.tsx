@@ -341,21 +341,22 @@ const DistributionForm: React.FC = () => {
         setShowModal(true);
     };
 
+    // bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen
+
+
     return (
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
             <div className="grid grid-cols-6 place-items-center p-5 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
-                <div className="col-start-2 col-span-5 overflow-y-auto">
-                    {/* Success Message */}
-                    {showSuccess && (
-                        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                            <p className="text-green-800 font-medium">Distribution saved successfully!</p>
-                        </div>
-                    )}
-
-                    {/* New Distribution Form */}
-                    <div className="bg-white max-w-7xl rounded-xl shadow-lg border border-gray-200 mb-5">
+                <div className="col-start-1 sm:col-start-1 md:col-start-1 lg:col-start-2 xl:col-start-2 col-span-6 overflow-y-auto px-0 pt-14 pb-8 sm:px-6 sm:py-8">
+                    <div className="bg-white max-w-7xl rounded-xl shadow-lg border border-gray-200">
+                        {/* Success Message */}
+                        {showSuccess && (
+                            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <p className="text-green-800 font-medium">Distribution saved successfully!</p>
+                            </div>
+                        )}
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
