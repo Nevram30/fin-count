@@ -52,11 +52,18 @@ interface FormErrors {
     [key: string]: string;
 }
 
-// Mock data for batches
+// Mock data for batches with more sample data
 const mockBatches: Batch[] = [
     { id: "BATCH-001", name: "Tilapia Batch Jan 2024", totalFingerlings: 5000, remainingFingerlings: 3500 },
     { id: "BATCH-002", name: "Bangus Batch Feb 2024", totalFingerlings: 3000, remainingFingerlings: 2800 },
     { id: "BATCH-003", name: "Carp Batch Mar 2024", totalFingerlings: 4000, remainingFingerlings: 4000 },
+    { id: "BATCH-004", name: "Goldfish Batch Apr 2024", totalFingerlings: 2500, remainingFingerlings: 1850 },
+    { id: "BATCH-005", name: "Catfish Batch May 2024", totalFingerlings: 6000, remainingFingerlings: 5200 },
+    { id: "BATCH-006", name: "Trout Batch Jun 2024", totalFingerlings: 1800, remainingFingerlings: 1800 },
+    { id: "BATCH-007", name: "Salmon Batch Jul 2024", totalFingerlings: 3500, remainingFingerlings: 2950 },
+    { id: "BATCH-008", name: "Bass Batch Aug 2024", totalFingerlings: 2200, remainingFingerlings: 1100 },
+    { id: "BATCH-009", name: "Tuna Batch Sep 2024", totalFingerlings: 1500, remainingFingerlings: 1500 },
+    { id: "BATCH-010", name: "Mackerel Batch Oct 2024", totalFingerlings: 4500, remainingFingerlings: 3200 },
 ];
 
 // Define type for locations
@@ -114,7 +121,6 @@ const DistributionForm: React.FC = () => {
     const [distributions, setDistributions] = useState<Distribution[]>([]);
     const [showModal, setShowModal] = useState(false);
     const [selectedDistribution, setSelectedDistribution] = useState<Distribution | null>(null);
-
 
     if (isLoading) {
         return (
@@ -194,6 +200,13 @@ const DistributionForm: React.FC = () => {
         const batch = mockBatches.find(b => b.id === batchId);
         setSelectedBatch(batch || null);
         handleInputChange('batchId', batchId);
+
+        // Automatically set fingerlings count to remaining fingerlings in the batch
+        if (batch) {
+            handleInputChange('fingerlingsCount', batch.remainingFingerlings);
+        } else {
+            handleInputChange('fingerlingsCount', 0);
+        }
     };
 
     // Form validation
@@ -211,10 +224,7 @@ const DistributionForm: React.FC = () => {
         if (!formData.details.trim()) newErrors.details = 'Details are required';
         if (!formData.batchId) newErrors.batchId = 'Batch ID is required';
         if (!formData.fingerlingsCount || formData.fingerlingsCount <= 0) {
-            newErrors.fingerlingsCount = 'Valid fingerlings count is required';
-        }
-        if (selectedBatch && formData.fingerlingsCount > selectedBatch.remainingFingerlings) {
-            newErrors.fingerlingsCount = `Cannot exceed remaining fingerlings (${selectedBatch.remainingFingerlings})`;
+            newErrors.fingerlingsCount = 'Please select a valid batch to auto-assign fingerlings';
         }
 
         setErrors(newErrors);
@@ -351,29 +361,32 @@ const DistributionForm: React.FC = () => {
                                         <div>
                                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                                 <Fish className="h-4 w-4" />
-                                                Fingerlings Count
+                                                Fingerlings Count (Auto-filled)
                                             </label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max={selectedBatch?.remainingFingerlings || 0}
-                                                value={formData.fingerlingsCount || ''}
-                                                onChange={(e) => handleInputChange('fingerlingsCount', parseInt(e.target.value) || 0)}
-                                                placeholder="Enter fingerlings count"
-                                                disabled={!selectedBatch}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.fingerlingsCount ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    } ${!selectedBatch ? 'bg-gray-100' : ''}`}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={formData.fingerlingsCount || ''}
+                                                    readOnly
+                                                    placeholder="Will be auto-filled when batch is selected"
+                                                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                                />
+                                                {selectedBatch && (
+                                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                                    </div>
+                                                )}
+                                            </div>
                                             {selectedBatch && (
-                                                <p className="text-sm text-gray-600 mt-1">
-                                                    Available: {selectedBatch.remainingFingerlings} fingerlings
+                                                <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                                                    <CheckCircle className="h-4 w-4" />
+                                                    Automatically assigned: {selectedBatch.remainingFingerlings} fingerlings
                                                 </p>
                                             )}
-                                            {errors.fingerlingsCount && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.fingerlingsCount}</span>
-                                                </div>
+                                            {!selectedBatch && (
+                                                <p className="text-sm text-gray-500 mt-1">
+                                                    Select a batch to automatically fill fingerlings count
+                                                </p>
                                             )}
                                         </div>
                                     </div>
