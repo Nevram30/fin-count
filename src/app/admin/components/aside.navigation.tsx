@@ -13,6 +13,8 @@ import {
     ChartColumnStacked,
     Menu,
     X,
+    Building2,
+    ChartNoAxesCombined,
 } from "lucide-react";
 import { useLogout } from "@/app/context/logout";
 
@@ -191,7 +193,7 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                                         : "text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
-                                    <ChartColumnStacked className="h-5 w-5 flex-shrink-0" />
+                                    <ChartNoAxesCombined className="h-5 w-5 flex-shrink-0" />
                                     <span className="truncate">Forecasting</span>
                                 </Link>
                             </li>
@@ -215,8 +217,8 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                                         : "text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
-                                    <ChartColumnStacked className="h-5 w-5 flex-shrink-0" />
-                                    <span className="truncate">New Distribution</span>
+                                    <Building2 className="h-5 w-5 flex-shrink-0" />
+                                    <span className="truncate">Distribution</span>
                                 </Link>
                             </li>
                         </ul>
