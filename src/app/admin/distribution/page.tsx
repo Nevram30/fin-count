@@ -73,22 +73,65 @@ type LocationData = {
     };
 };
 
-// Philippine locations data
-const philippineLocations: LocationData = {
-    "Metro Manila": {
-        "Manila": ["Binondo", "Ermita", "Intramuros", "Malate", "Paco", "Pandacan"],
-        "Quezon City": ["Bagumbayan", "Batasan Hills", "Commonwealth", "Cubao", "Diliman"],
-        "Makati": ["Bel-Air", "Forbes Park", "Legazpi Village", "Poblacion", "Salcedo Village"]
+// Davao Region locations data
+const davaoRegionLocations = {
+    "Davao del Norte": {
+        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village"],
+        "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
+        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Peñaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
+        "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
+        "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
+        "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
+        "Kapalong": ["Gupitan", "Kauswagan", "Lacson", "Maduao", "New Katipunan", "Poblacion", "San Isidro", "Santo Niño", "Tampa"],
+        "New Corella": ["Canaan", "Central", "Dacudao", "Don Marcelino", "Jose Rizal", "Kipalili", "Macopa", "Malinao", "Mesalay", "New Bohol", "New Leyte", "New Visayas", "Poblacion", "San Roque"],
+        "San Isidro": ["Dalisay", "Dapco", "Kauswagan", "Kipalili", "Lumayag", "New Katipunan", "New Panay", "Poblacion", "San Juan", "Santo Niño"],
+        "Santo Tomas": ["Bobongon", "Casoon", "Esperanza", "Kinamayan", "Magwawa", "Magugpo", "New Carmen", "New Oregon", "Pangi", "Poblacion", "Salvacion", "Tibanban"],
+        "Talaingod": ["Dagohoy", "Datu Salumay", "Datu Taghoy", "Datu Davao", "Palma Gil", "Poblacion", "Santo Niño"]
     },
-    "Cebu": {
-        "Cebu City": ["Lahug", "Capitol Site", "Kamputhaw", "Mabolo", "Talamban"],
-        "Mandaue City": ["Alang-alang", "Banilad", "Centro", "Looc", "Tingub"],
-        "Lapu-Lapu City": ["Agus", "Babag", "Basak", "Buaya", "Canjulao"]
+    "Davao del Sur": {
+        "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
+        "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
+        "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
+        "Hagonoy": ["Balutakay", "Clib", "Guihing", "Hagonoy", "Kiagot", "La Union", "Leling", "Mabini", "Mahayag", "Paligue", "Poblacion", "Sacub", "San Guillermo", "San Isidro", "Sinawilan", "Tologan"],
+        "Kiblawan": ["Abnayan", "Basiawan", "Datu Davao", "Datu Dani", "Datu Dinggay", "Datu Kali", "Datu Ladayon", "Datu Mandac", "Datu Matumtum", "Datu Sharif", "Mabuhay", "Poblacion"],
+        "Magsaysay": ["Buca", "Dolo", "Kisante", "Mabini", "Maharlika", "Malawanit", "New Katipunan", "New Lebanon", "Pisan", "Poblacion", "Riverside", "San Miguel", "Tacul"],
+        "Malalag": ["Buas", "Datu Hamaw", "Kibuaya", "Loma", "Mabini", "Malalag", "Malalag Cogon", "New Iloilo", "New Opon", "Piao", "Poblacion", "San Agustin", "Tubalan"],
+        "Matanao": ["Asbang", "Asinan", "Biao", "Colonsabak", "Kisante", "La Suerte", "Managa", "New Panay", "Patpat", "Poblacion", "Sagangon", "Sinawilan", "Tanama"],
+        "Padada": ["Almendras", "Cebolin", "Dacudao", "Danlugan", "Don Marcelino", "Kiblagan", "Lalayag", "Lanuro", "Lower Katipunan", "Mabini", "Magsaysay", "Matiao", "New Cebu", "New Leyte", "Panalum", "Poblacion", "Tamayong", "Tulogan", "Upper Katipunan"],
+        "Santa Cruz": ["Astorga", "Bato", "Bololmala", "Colorado", "Coronon", "Darong", "Inawayan", "Matutum", "Poblacion", "Sibulan", "Talagutong", "Tibolo"],
+        "Sulop": ["Bolitoc", "Bugac", "Camanchiles", "Dasay", "Kauswagan", "Luma", "Mabuhay", "Malonoy", "Poblacion", "Kamanga", "Katipunan"]
     },
-    "Davao": {
-        "Davao City": ["Agdao", "Buhangin", "Bunawan", "Calinan", "Marilog"],
-        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo", "Mankilam"],
-        "Panabo City": ["Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Nanyo"]
+    "Davao de Oro": {
+        "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
+        "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
+        "Laak": ["Kapatagan", "Laak", "Magsaysay", "Malamodao", "Poblacion", "San Vicente", "Sua-on"],
+        "Mabini": ["Anitapan", "Cadunan", "Kahayag", "Mabini", "Pindasan", "Poblacion", "Sawangan"],
+        "Maco": ["Binuangan", "Elizalde", "Gubatan", "Kinuban", "Maco", "Masara", "New Bataan", "Pamintaran", "Poblacion"],
+        "Maragusan": ["Bagong Silang", "Coronobe", "Lahi", "Magcagong", "Malatagao", "Maragusan", "New Albay", "Paligue", "Poblacion", "Tagbaobo"],
+        "Mawab": ["Bawani", "Concepcion", "Hubang", "Kapisanan", "Mabuhay", "Mawab", "Nueva Visayas", "Poblacion", "Salvacion"],
+        "Monkayo": ["Awao", "Banlag", "Casoon", "Manat", "Monkayo", "Mount Diwata", "Naboc", "New Visayas", "Poblacion", "San Vicente", "Tubo-tubo"],
+        "Montevista": ["Banlag", "Linoan", "Macopa", "Montevista", "New Katipunan", "New Sibonga", "Palma Gil", "Poblacion"],
+        "New Bataan": ["Andap", "Cabinuangan", "Fatima", "Kapatagan", "Katipunan", "New Bataan", "Poblacion", "Siocon"],
+        "Pantukan": ["Bongabong", "Las Arenas", "Magnaga", "Napnapan", "Pantukan", "Poblacion", "Tambongon", "Tibagon"]
+    },
+    "Davao Oriental": {
+        "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
+        "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
+        "Banaybanay": ["Cabangcalan", "Caganganan", "Calubcub", "Causwagan", "Mahayag", "Maputi", "Mogbongcogon", "Pindasan", "Poblacion", "San Vicente", "Sua-on"],
+        "Boston": ["Caatuan", "Poblacion", "Salamague"],
+        "Caraga": ["Caraga", "Pichon", "Poblacion", "Santiago", "Sobrecarey", "Sunrise Village"],
+        "Cateel": ["Aliwagwag", "Bagumbayan", "Dapnan", "Hermosa", "Poblacion", "Taocanga"],
+        "Governor Generoso": ["Bislig", "Jovellar", "Malita", "Poblacion", "Sigaboy", "Tibanban"],
+        "Lupon": ["Baracatan", "Guhian", "Libudon", "Mahan-ub", "Poblacion", "San Isidro", "San Roque", "Tagugpo"],
+        "Manay": ["Behia", "Lambajon", "Libjo", "Poblacion", "Sendangan", "Taocanga"],
+        "San Isidro": ["Batawan", "Bobon", "Cagdianao", "Dapnan", "Isidro", "Poblacion"],
+        "Tarragona": ["Casoon", "Jovellar", "Kabuaya", "Limot", "Maganda", "Poblacion", "Tandawan"]
+    },
+    "Davao Occidental": {
+        "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
+        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
+        "Jose Abad Santos": ["Caburan", "Katipunan", "Linao", "Poblacion", "Sarangani"],
+        "Santa Maria": ["Basiawan", "Kibleg", "Lalab", "New Dumanjug", "Poblacion", "Tuyan"]
     }
 };
 
@@ -158,15 +201,17 @@ const DistributionForm: React.FC = () => {
 
     // Get available cities based on selected province
     const getAvailableCities = () => {
-        if (!formData.province || !philippineLocations[formData.province]) return [];
-        return Object.keys(philippineLocations[formData.province]);
+        if (!formData.province || !(formData.province in davaoRegionLocations)) return [];
+        const province = formData.province as keyof typeof davaoRegionLocations;
+        return Object.keys(davaoRegionLocations[province]);
     };
+
 
     // Get available barangays based on selected city
     const getAvailableBarangays = () => {
         if (!formData.province || !formData.city) return [];
-        const province = philippineLocations[formData.province];
-        return province && province[formData.city] ? province[formData.city] : [];
+        const province = davaoRegionLocations[formData.province as keyof typeof davaoRegionLocations];
+        return province && formData.city in province ? province[formData.city as keyof typeof province] : [];
     };
 
     // Handle input changes
@@ -452,7 +497,7 @@ const DistributionForm: React.FC = () => {
                                                     }`}
                                             >
                                                 <option value="">Select province</option>
-                                                {Object.keys(philippineLocations).map(province => (
+                                                {Object.keys(davaoRegionLocations).map(province => (
                                                     <option key={province} value={province}>{province}</option>
                                                 ))}
                                             </select>
@@ -735,7 +780,6 @@ const DistributionForm: React.FC = () => {
         </>
     );
 };
-
 
 // Main App Component with LogoutProvider wrapper
 const App: React.FC = () => {
