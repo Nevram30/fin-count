@@ -50,7 +50,6 @@ interface Distribution {
     expectedHarvestDate?: string;
     actualHarvestDate?: string;
     actualHarvestKilos?: number;
-    actualHarvestCount?: number;
 }
 
 interface FormErrors {
@@ -714,8 +713,7 @@ const DetailModal: React.FC<{
     const [editData, setEditData] = useState({
         expectedHarvestDate: distribution.expectedHarvestDate || '',
         actualHarvestDate: distribution.actualHarvestDate || '',
-        actualHarvestKilos: distribution.actualHarvestKilos || 0,
-        actualHarvestCount: distribution.actualHarvestCount || 0
+        actualHarvestKilos: distribution.actualHarvestKilos || 0
     });
 
     const handleSaveChanges = async () => {
@@ -729,8 +727,7 @@ const DetailModal: React.FC<{
                 ...distribution,
                 expectedHarvestDate: editData.expectedHarvestDate,
                 actualHarvestDate: editData.actualHarvestDate,
-                actualHarvestKilos: editData.actualHarvestKilos,
-                actualHarvestCount: editData.actualHarvestCount
+                actualHarvestKilos: editData.actualHarvestKilos
             };
 
             onUpdate(updatedDistribution);
@@ -746,8 +743,7 @@ const DetailModal: React.FC<{
         setEditData({
             expectedHarvestDate: distribution.expectedHarvestDate || '',
             actualHarvestDate: distribution.actualHarvestDate || '',
-            actualHarvestKilos: distribution.actualHarvestKilos || 0,
-            actualHarvestCount: distribution.actualHarvestCount || 0
+            actualHarvestKilos: distribution.actualHarvestKilos || 0
         });
         setIsEditing(false);
     };
@@ -877,15 +873,6 @@ const DetailModal: React.FC<{
                                                 }
                                             </p>
                                         </div>
-                                        <div>
-                                            <span className="text-purple-600 font-medium">Harvested Fish Count:</span>
-                                            <p className="text-purple-800 text-lg font-semibold">
-                                                {distribution.actualHarvestCount ?
-                                                    distribution.actualHarvestCount.toLocaleString() :
-                                                    'Not recorded'
-                                                }
-                                            </p>
-                                        </div>
                                     </div>
                                 </div>
                             ) : (
@@ -914,7 +901,7 @@ const DetailModal: React.FC<{
                                                 className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                             />
                                         </div>
-                                        <div>
+                                        <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-purple-700 mb-2">
                                                 Harvested Weight (kg)
                                             </label>
@@ -925,19 +912,6 @@ const DetailModal: React.FC<{
                                                 value={editData.actualHarvestKilos || ''}
                                                 onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestKilos: parseFloat(e.target.value) || 0 }))}
                                                 placeholder="Enter harvested weight in kg"
-                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-purple-700 mb-2">
-                                                Total Harvested Fish Count
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={editData.actualHarvestCount || ''}
-                                                onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestCount: parseInt(e.target.value) || 0 }))}
-                                                placeholder="Enter total fish count"
                                                 className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                             />
                                         </div>
