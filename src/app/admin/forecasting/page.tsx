@@ -70,7 +70,9 @@ const HarvestForecast: React.FC = () => {
 
     // Forecast data state
     const [forecastData, setForecastData] = useState<ForecastData[]>([]);
-    const [trendData, setTrendData] = useState<TrendData[]>([]);
+    const [provinceTrendData, setProvinceTrendData] = useState<TrendData[]>([]);
+    const [cityTrendData, setCityTrendData] = useState<TrendData[]>([]);
+    const [barangayTrendData, setBarangayTrendData] = useState<TrendData[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [showResults, setShowResults] = useState(false);
 
@@ -178,10 +180,17 @@ const HarvestForecast: React.FC = () => {
         return data;
     };
 
-    // Generate trend data based on selected parameters
-    const generateTrendData = (): TrendData[] => {
+    // Generate trend data for specific geographic level
+    const generateTrendDataForLevel = (level: 'province' | 'city' | 'barangay'): TrendData[] => {
         const dates = getDateRange(formData.dateFrom, formData.dateTo);
         const data: TrendData[] = [];
+
+        // Different base multipliers for different levels
+        const levelMultipliers = {
+            province: 3.5, // Highest level, aggregated data
+            city: 2.0,     // Mid level
+            barangay: 1.0  // Specific location level
+        };
 
         dates.forEach((date, index) => {
             const dateObj = new Date(date);
@@ -195,14 +204,25 @@ const HarvestForecast: React.FC = () => {
                 formData.facilityType === "RAS (Recirculating Aquaculture System)" ? 1.3 :
                     formData.facilityType === "Pond System" ? 0.9 : 1.0;
 
-            const value = Math.round(1000 * seasonalFactor * growthFactor * facilityFactor * randomVariation);
+            // Level-specific variation
+            const levelFactor = levelMultipliers[level];
+            const levelVariation = level === 'province' ? 0.95 + Math.random() * 0.1 :
+                level === 'city' ? 0.9 + Math.random() * 0.2 :
+                    0.85 + Math.random() * 0.3;
+
+            const value = Math.round(1000 * seasonalFactor * growthFactor * facilityFactor * levelFactor * levelVariation);
+
+            // Location string based on level
+            const locationString = level === 'province' ? formData.province :
+                level === 'city' ? `${formData.city}, ${formData.province}` :
+                    `${formData.barangay}, ${formData.city}, ${formData.province}`;
 
             data.push({
                 month: dateObj.toLocaleDateString('en-US', { month: 'short' }),
                 date,
                 value,
                 species: formData.species,
-                location: `${formData.province}, ${formData.city}`
+                location: locationString
             });
         });
 
@@ -217,10 +237,14 @@ const HarvestForecast: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         const forecastResults = generateForecastData();
-        const trendResults = generateTrendData();
+        const provinceTrend = generateTrendDataForLevel('province');
+        const cityTrend = generateTrendDataForLevel('city');
+        const barangayTrend = generateTrendDataForLevel('barangay');
 
         setForecastData(forecastResults);
-        setTrendData(trendResults);
+        setProvinceTrendData(provinceTrend);
+        setCityTrendData(cityTrend);
+        setBarangayTrendData(barangayTrend);
         setShowResults(true);
         setIsGenerating(false);
     };
@@ -522,43 +546,110 @@ const HarvestForecast: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Trend Analysis Section */}
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <BarChart3 className="h-5 w-5 text-purple-600" />
-                                            <h3 className="text-lg font-semibold text-gray-900">Trend Analysis</h3>
-                                        </div>
-                                        <p className="text-sm text-gray-600 mb-6">{getParameterBasedTitle()}</p>
+                                {/* Trend Analysis Section - Three Separate Charts */}
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <BarChart3 className="h-5 w-5 text-purple-600" />
+                                        <h3 className="text-xl font-semibold text-gray-900">Geographic Trend Analysis</h3>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-6">Compare harvest trends across different geographic levels for {formData.species}</p>
 
-                                        {/* Trend Chart */}
-                                        <div className="h-96">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <AreaChart data={trendData}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="month" />
-                                                    <YAxis />
-                                                    <Tooltip
-                                                        formatter={(value) => [
-                                                            value?.toLocaleString(),
-                                                            'Harvest Volume'
-                                                        ]}
-                                                        labelFormatter={(label) => `Month: ${label}`}
-                                                    />
-                                                    <Area
-                                                        type="monotone"
-                                                        dataKey="value"
-                                                        stroke="#8B5CF6"
-                                                        fill="#8B5CF6"
-                                                        fillOpacity={0.3}
-                                                        strokeWidth={2}
-                                                    />
-                                                </AreaChart>
-                                            </ResponsiveContainer>
+                                    {/* Province Level Trend */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                                        <div className="p-6">
+                                            <h4 className="text-lg font-semibold text-gray-900 mb-2">Province Level Trend</h4>
+                                            <p className="text-sm text-gray-600 mb-4">{formData.province} - Aggregated Provincial Data</p>
+                                            <div className="h-80">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={provinceTrendData}>
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis dataKey="month" />
+                                                        <YAxis />
+                                                        <Tooltip
+                                                            formatter={(value) => [
+                                                                value?.toLocaleString(),
+                                                                'Harvest Volume (kg)'
+                                                            ]}
+                                                            labelFormatter={(label) => `Month: ${label}`}
+                                                        />
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="value"
+                                                            stroke="#8B5CF6"
+                                                            fill="#8B5CF6"
+                                                            fillOpacity={0.3}
+                                                            strokeWidth={2}
+                                                        />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* City Level Trend */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                                        <div className="p-6">
+                                            <h4 className="text-lg font-semibold text-gray-900 mb-2">City/Municipality Level Trend</h4>
+                                            <p className="text-sm text-gray-600 mb-4">{formData.city}, {formData.province} - City-Level Data</p>
+                                            <div className="h-80">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={cityTrendData}>
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis dataKey="month" />
+                                                        <YAxis />
+                                                        <Tooltip
+                                                            formatter={(value) => [
+                                                                value?.toLocaleString(),
+                                                                'Harvest Volume (kg)'
+                                                            ]}
+                                                            labelFormatter={(label) => `Month: ${label}`}
+                                                        />
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="value"
+                                                            stroke="#06B6D4"
+                                                            fill="#06B6D4"
+                                                            fillOpacity={0.3}
+                                                            strokeWidth={2}
+                                                        />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Barangay Level Trend */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                                        <div className="p-6">
+                                            <h4 className="text-lg font-semibold text-gray-900 mb-2">Barangay Level Trend</h4>
+                                            <p className="text-sm text-gray-600 mb-4">{formData.barangay}, {formData.city}, {formData.province} - Barangay-Specific Data</p>
+                                            <div className="h-80">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={barangayTrendData}>
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis dataKey="month" />
+                                                        <YAxis />
+                                                        <Tooltip
+                                                            formatter={(value) => [
+                                                                value?.toLocaleString(),
+                                                                'Harvest Volume (kg)'
+                                                            ]}
+                                                            labelFormatter={(label) => `Month: ${label}`}
+                                                        />
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="value"
+                                                            stroke="#10B981"
+                                                            fill="#10B981"
+                                                            fillOpacity={0.3}
+                                                            strokeWidth={2}
+                                                        />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-
                             </>
                         )}
                     </div>
