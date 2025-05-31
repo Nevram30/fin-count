@@ -655,7 +655,7 @@ const DistributionFormModal: React.FC<{
                             )}
                         </div>
 
-                        <div className="flex justify-center gap-4 pt-4">
+                        <div className="flex justify-end gap-4 pt-4">
                             <button
                                 onClick={onClose}
                                 className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg transition-colors font-medium"
