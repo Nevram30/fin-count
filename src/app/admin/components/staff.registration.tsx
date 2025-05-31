@@ -186,7 +186,7 @@ const StaffRegisterPage: React.FC<StaffRegisterPageProps> = (props) => {
     return (
         <div className="flex flex-col min-h-screen">
             {/* Main Content */}
-            <main className="flex-grow flex items-center justify-center">
+            <main className="flex-grow flex justify-center">
                 <div className="w-full">
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
