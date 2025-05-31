@@ -7,8 +7,9 @@ import {
 } from "sequelize";
 import { sequelize } from "./db";
 import StaffProfile from "./staff.profile";
+import AdminProfile from "./admin.profile";
 
-const roles = ["admin", "student", "teacher", "guidance"] as const;
+const roles = ["admin", "staff"] as const;
 
 export enum Role {
   admin = "admin",
@@ -34,7 +35,8 @@ class User extends Model<InferAttributes<User>, UserCreationAttributes> {
   declare readonly updatedAt: CreationOptional<Date>;
 
   // association methods
-  declare getTeacherProfile: () => Promise<StaffProfile | null>;
+  declare getStaffProfile: () => Promise<StaffProfile | null>;
+  declare getAdminProfile: () => Promise<AdminProfile | null>;
 }
 
 User.init(

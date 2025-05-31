@@ -5,6 +5,10 @@ class StaffProfile extends Model {
   declare id: CreationOptional<number>;
 
   declare userId: number;
+  declare username: string;
+  declare fullName: string;
+  declare phoneNumber: string;
+  declare profilePhoto: CreationOptional<string | null>;
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
 }

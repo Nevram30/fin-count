@@ -20,7 +20,7 @@ module.exports = {
       },
       userType: {
         allowNull: false,
-        type: Sequelize.ENUM("student", "teacher", "guidance", "admin"),
+        type: Sequelize.ENUM("admin", "staff"),
       },
       createdAt: {
         type: Sequelize.DATE,
