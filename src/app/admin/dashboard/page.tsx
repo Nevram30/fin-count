@@ -293,6 +293,9 @@ const AdminDashboard: React.FC = () => {
                         {/* Statistics Overview */}
                         <StatisticsOverview />
 
+                        {/* Statistics Cards */}
+                        <DataVisualizationStats />
+
                         {/* Additional Dashboard Content */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Recent Activity Card */}
@@ -343,9 +346,6 @@ const AdminDashboard: React.FC = () => {
                                 Comprehensive insights and analytics for your fingerling production data
                             </p>
                         </div>
-
-                        {/* Statistics Cards */}
-                        <DataVisualizationStats />
 
                         {/* Chart Section */}
                         <div className="space-y-8">

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Users, Download, Filter, Calendar, ChevronDown, ChevronUp, RotateCcw, FileText } from "lucide-react";
+import { Users, Download, Filter, Calendar, ChevronDown, ChevronUp, RotateCcw, FileText, MapPin, AlertTriangle } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 
 import { LogoutModal } from "@/app/components/logout.modal";
@@ -14,6 +14,9 @@ interface ReportFilters {
     species: string;
     startDate: string;
     endDate: string;
+    province?: string;
+    city?: string;
+    barangay?: string;
 }
 
 interface ReportData {
@@ -25,20 +28,71 @@ interface ReportData {
     status: string;
 }
 
+interface BatchData {
+    id: string;
+    batchNumber: string;
+    species: string;
+    quantity: number;
+    dateCreated: string;
+    expectedDistribution: string;
+    status: string;
+}
+
+interface BeneficiaryData {
+    id: string;
+    province: string;
+    city: string;
+    barangay: string;
+    beneficiaryCount: number;
+    totalFingerlings: number;
+}
+
 const FullScreenLoader: React.FC = () => (
     <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
     </div>
 );
 
+// Export to CSV utility function
+const exportToCSV = (data: any[], filename: string) => {
+    if (!data.length) return;
+
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+        headers.join(','), // Header row
+        ...data.map(row =>
+            headers.map(header => {
+                const value = row[header];
+                // Escape commas and quotes in CSV values
+                return typeof value === 'string' && value.includes(',')
+                    ? `"${value.replace(/"/g, '""')}"`
+                    : value;
+            }).join(',')
+        )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
 // Report Filters Component
-const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string) => void }> = ({ onApplyFilters }) => {
+const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, filters: ReportFilters) => void }> = ({ onApplyFilters }) => {
     const [isExpanded, setIsExpanded] = useState<boolean>(true);
     const [filters, setFilters] = useState<ReportFilters>({
         reportType: "Fingerling Count",
         species: "All Species",
         startDate: "2025-04-30",
-        endDate: "2025-05-30"
+        endDate: "2025-05-30",
+        province: "All Provinces",
+        city: "All Cities",
+        barangay: "All Barangays"
     });
 
     const handleFilterChange = (field: keyof ReportFilters, value: string) => {
@@ -50,18 +104,24 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string) =>
 
     const handleApplyFilters = () => {
         console.log("Applying filters:", filters);
-        onApplyFilters(filters.reportType);
+        onApplyFilters(filters.reportType, filters);
     };
 
     const handleReset = () => {
-        setFilters({
+        const resetFilters = {
             reportType: "Fingerling Count",
             species: "All Species",
             startDate: "2025-04-30",
-            endDate: "2025-05-30"
-        });
-        onApplyFilters("Fingerling Count");
+            endDate: "2025-05-30",
+            province: "All Provinces",
+            city: "All Cities",
+            barangay: "All Barangays"
+        };
+        setFilters(resetFilters);
+        onApplyFilters("Fingerling Count", resetFilters);
     };
+
+    const showLocationFilters = filters.reportType === "Beneficiaries Report";
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -96,35 +156,83 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string) =>
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                                 >
                                     <option value="Fingerling Count">Fingerling Count</option>
-                                    <option value="Growth Report">Growth Report</option>
-                                    <option value="Mortality Report">Mortality Report</option>
-                                    <option value="Feeding Report">Feeding Report</option>
+                                    <option value="Undistributed Batches">Undistributed Batches</option>
+                                    <option value="Beneficiaries Report">Beneficiaries Report</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                             </div>
                         </div>
 
                         {/* Species */}
-                        <div>
-                            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                                <Users className="h-4 w-4 mr-1 text-blue-600" />
-                                Species
-                            </label>
-                            <div className="relative">
-                                <select
-                                    value={filters.species}
-                                    onChange={(e) => handleFilterChange('species', e.target.value)}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
-                                >
-                                    <option value="All Species">All Species</option>
-                                    <option value="Tilapia">Tilapia</option>
-                                    <option value="Catfish">Catfish</option>
-                                    <option value="Carp">Carp</option>
-                                    <option value="Trout">Trout</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                        {filters.reportType !== "Beneficiaries Report" && (
+                            <div>
+                                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                    <Users className="h-4 w-4 mr-1 text-blue-600" />
+                                    Species
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        value={filters.species}
+                                        onChange={(e) => handleFilterChange('species', e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                                    >
+                                        <option value="All Species">All Species</option>
+                                        <option value="Tilapia">Tilapia</option>
+                                        <option value="Catfish">Catfish</option>
+                                        <option value="Carp">Carp</option>
+                                        <option value="Trout">Trout</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* Location Filters for Beneficiaries Report */}
+                        {showLocationFilters && (
+                            <>
+                                <div>
+                                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                        <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                                        Province
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            value={filters.province}
+                                            onChange={(e) => handleFilterChange('province', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                                        >
+                                            <option value="All Provinces">All Provinces</option>
+                                            <option value="Laguna">Laguna</option>
+                                            <option value="Batangas">Batangas</option>
+                                            <option value="Cavite">Cavite</option>
+                                            <option value="Rizal">Rizal</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                        <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                                        City
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            value={filters.city}
+                                            onChange={(e) => handleFilterChange('city', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                                        >
+                                            <option value="All Cities">All Cities</option>
+                                            <option value="Los Baños">Los Baños</option>
+                                            <option value="Calamba">Calamba</option>
+                                            <option value="Santa Rosa">Santa Rosa</option>
+                                            <option value="Biñan">Biñan</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Start Date */}
                         <div>
@@ -186,6 +294,16 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string) =>
 
 // Fingerling Count Report Component
 const FingerlingsCountReportView: React.FC = () => {
+    const handleExportCSV = () => {
+        // Sample data for fingerling count report
+        const data = [
+            { date: "2025-05-30", species: "Tilapia", count: 1500 },
+            { date: "2025-05-29", species: "Catfish", count: 850 },
+            { date: "2025-05-28", species: "Carp", count: 1200 }
+        ];
+        exportToCSV(data, "fingerling_count_report");
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             {/* Report Header */}
@@ -197,8 +315,17 @@ const FingerlingsCountReportView: React.FC = () => {
                         <span>Apr 30, 2025 - May 30, 2025</span>
                     </div>
                 </div>
-                <div className="p-2 bg-blue-50 rounded-lg">
-                    <FileText className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportCSV}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export CSV
+                    </button>
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                    </div>
                 </div>
             </div>
 
@@ -235,7 +362,7 @@ const FingerlingsCountReportView: React.FC = () => {
 
                     <div className="mt-6">
                         <p className="text-sm text-gray-500">
-                            Try adjusting your date range or report type to see available data.
+                            Try adjusting your date range or species filter to see available data.
                         </p>
                     </div>
                 </div>
@@ -244,70 +371,102 @@ const FingerlingsCountReportView: React.FC = () => {
     );
 };
 
-// Sample Report Data Table (Hidden when showing fingerling count report)
-const ReportDataTable: React.FC<{ showFingerlingsReport: boolean }> = ({ showFingerlingsReport }) => {
-    const sampleData: ReportData[] = [
+// Undistributed Batches Report Component
+const UndistributedBatchesReportView: React.FC = () => {
+    const sampleBatchData: BatchData[] = [
         {
             id: "1",
-            date: "2025-05-30",
-            reportType: "Growth Report",
+            batchNumber: "BTH-2025-001",
             species: "Tilapia",
-            count: 1500,
-            status: "Completed"
+            quantity: 5000,
+            dateCreated: "2025-04-15",
+            expectedDistribution: "2025-05-15",
+            status: "Overdue"
         },
         {
             id: "2",
-            date: "2025-05-29",
-            reportType: "Mortality Report",
+            batchNumber: "BTH-2025-003",
             species: "Catfish",
-            count: 850,
-            status: "Completed"
+            quantity: 3000,
+            dateCreated: "2025-04-20",
+            expectedDistribution: "2025-05-20",
+            status: "Pending"
         },
         {
             id: "3",
-            date: "2025-05-28",
-            reportType: "Feeding Report",
-            species: "Tilapia",
-            count: 1200,
-            status: "In Progress"
+            batchNumber: "BTH-2025-005",
+            species: "Carp",
+            quantity: 2500,
+            dateCreated: "2025-04-25",
+            expectedDistribution: "2025-05-25",
+            status: "Overdue"
         }
     ];
 
-    if (showFingerlingsReport) {
-        return <FingerlingsCountReportView />;
-    }
+    const handleExportCSV = () => {
+        const csvData = sampleBatchData.map(batch => ({
+            "Batch Number": batch.batchNumber,
+            "Species": batch.species,
+            "Quantity": batch.quantity,
+            "Date Created": batch.dateCreated,
+            "Expected Distribution": batch.expectedDistribution,
+            "Status": batch.status
+        }));
+        exportToCSV(csvData, "undistributed_batches_report");
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800">Report Data</h3>
-                <p className="text-sm text-gray-600 mt-1">Recent report entries based on your filters</p>
+            {/* Report Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Undistributed Batches Report</h3>
+                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        <span>Batches pending distribution</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportCSV}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export CSV
+                    </button>
+                    <div className="p-2 bg-orange-50 rounded-lg">
+                        <AlertTriangle className="h-5 w-5 text-orange-600" />
+                    </div>
+                </div>
             </div>
 
+            {/* Report Content */}
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Report Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Distribution</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {sampleData.map((row) => (
-                            <tr key={row.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.date}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.reportType}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.species}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.count.toLocaleString()}</td>
+                        {sampleBatchData.map((batch) => (
+                            <tr key={batch.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.species}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.quantity.toLocaleString()}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.dateCreated}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.expectedDistribution}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${row.status === 'Completed'
-                                        ? 'bg-green-100 text-green-800'
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${batch.status === 'Overdue'
+                                        ? 'bg-red-100 text-red-800'
                                         : 'bg-yellow-100 text-yellow-800'
                                         }`}>
-                                        {row.status}
+                                        {batch.status}
                                     </span>
                                 </td>
                             </tr>
@@ -319,6 +478,122 @@ const ReportDataTable: React.FC<{ showFingerlingsReport: boolean }> = ({ showFin
     );
 };
 
+// Beneficiaries Report Component
+const BeneficiariesReportView: React.FC = () => {
+    const sampleBeneficiaryData: BeneficiaryData[] = [
+        {
+            id: "1",
+            province: "Laguna",
+            city: "Los Baños",
+            barangay: "Baybayin",
+            beneficiaryCount: 25,
+            totalFingerlings: 12500
+        },
+        {
+            id: "2",
+            province: "Laguna",
+            city: "Los Baños",
+            barangay: "Bambang",
+            beneficiaryCount: 18,
+            totalFingerlings: 9000
+        },
+        {
+            id: "3",
+            province: "Laguna",
+            city: "Calamba",
+            barangay: "Parian",
+            beneficiaryCount: 32,
+            totalFingerlings: 16000
+        },
+        {
+            id: "4",
+            province: "Batangas",
+            city: "Tanauan",
+            barangay: "Poblacion",
+            beneficiaryCount: 22,
+            totalFingerlings: 11000
+        }
+    ];
+
+    const handleExportCSV = () => {
+        const csvData = sampleBeneficiaryData.map(beneficiary => ({
+            "Province": beneficiary.province,
+            "City": beneficiary.city,
+            "Barangay": beneficiary.barangay,
+            "Beneficiary Count": beneficiary.beneficiaryCount,
+            "Total Fingerlings": beneficiary.totalFingerlings
+        }));
+        exportToCSV(csvData, "beneficiaries_report");
+    };
+
+    return (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            {/* Report Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Beneficiaries Report</h3>
+                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        <span>Beneficiaries per Province, City, and Barangay</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportCSV}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export CSV
+                    </button>
+                    <div className="p-2 bg-green-50 rounded-lg">
+                        <MapPin className="h-5 w-5 text-green-600" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Report Content */}
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barangay</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Count</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {sampleBeneficiaryData.map((beneficiary) => (
+                            <tr key={beneficiary.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.province}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.city}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.barangay}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryCount}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+// Main Report Display Component
+const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters }> = ({ reportType, filters }) => {
+    switch (reportType) {
+        case "Fingerling Count":
+            return <FingerlingsCountReportView />;
+        case "Undistributed Batches":
+            return <UndistributedBatchesReportView />;
+        case "Beneficiaries Report":
+            return <BeneficiariesReportView />;
+        default:
+            return <FingerlingsCountReportView />;
+    }
+};
+
 const Reports: React.FC = () => {
     const { isLoading, isAuthenticated, logout } = withAuth({
         userType: "admin",
@@ -326,17 +601,17 @@ const Reports: React.FC = () => {
     });
 
     const { unreadCount } = useNotification();
-    const [showFingerlingsReport, setShowFingerlingsReport] = useState<boolean>(true);
+    const [currentReportType, setCurrentReportType] = useState<string>("Fingerling Count");
+    const [currentFilters, setCurrentFilters] = useState<ReportFilters>({
+        reportType: "Fingerling Count",
+        species: "All Species",
+        startDate: "2025-04-30",
+        endDate: "2025-05-30"
+    });
 
-    const handleExportReport = () => {
-        // Add export functionality here
-        console.log("Exporting report...");
-        // You can implement CSV, PDF, or Excel export here
-    };
-
-    const handleApplyFilters = (reportType: string) => {
-        // Show fingerling count report when that report type is selected
-        setShowFingerlingsReport(reportType === "Fingerling Count");
+    const handleApplyFilters = (reportType: string, filters: ReportFilters) => {
+        setCurrentReportType(reportType);
+        setCurrentFilters(filters);
     };
 
     if (isLoading) {
@@ -385,13 +660,6 @@ const Reports: React.FC = () => {
                                 <h1 className="text-2xl font-bold text-gray-900 mb-2">Reports</h1>
                                 <p className="text-gray-600">Generate and analyze fingerling data reports</p>
                             </div>
-                            <button
-                                onClick={handleExportReport}
-                                className="mt-4 sm:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:ring-4 focus:ring-blue-200 focus:outline-none"
-                            >
-                                <Download className="h-4 w-4 mr-2" />
-                                Export Report
-                            </button>
                         </div>
 
                         {/* Date and Time Display */}
@@ -408,8 +676,8 @@ const Reports: React.FC = () => {
                         {/* Report Filters */}
                         <ReportFiltersComponent onApplyFilters={handleApplyFilters} />
 
-                        {/* Report Data Table or Fingerling Count Report */}
-                        <ReportDataTable showFingerlingsReport={showFingerlingsReport} />
+                        {/* Report Display */}
+                        <ReportDisplay reportType={currentReportType} filters={currentFilters} />
                     </div>
                 </div>
             </div>
