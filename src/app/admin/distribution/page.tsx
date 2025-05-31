@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash, ChevronDown, ChevronUp, Plus, Edit3 } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -46,6 +46,11 @@ interface Distribution {
     date: string;
     forecast: string;
     harvestDate: string;
+    // New harvest tracking fields
+    expectedHarvestDate?: string;
+    actualHarvestDate?: string;
+    actualHarvestKilos?: number;
+    actualHarvestCount?: number;
 }
 
 interface FormErrors {
@@ -189,6 +194,12 @@ const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: ()
                             <span className="text-gray-500">Forecast Date:</span>
                             <p className="font-medium text-amber-600">{distribution.forecast}</p>
                         </div>
+                        {distribution.actualHarvestKilos && (
+                            <div>
+                                <span className="text-gray-500">Actual Harvest:</span>
+                                <p className="font-medium text-green-600">{distribution.actualHarvestKilos} kg</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -307,9 +318,13 @@ const DistributionFormModal: React.FC<{
         const harvestDate = new Date(date);
         harvestDate.setMonth(date.getMonth() + 6); // 6 months for harvest
 
+        const expectedHarvestDate = new Date(date);
+        expectedHarvestDate.setMonth(date.getMonth() + 5); // 5 months for expected harvest
+
         return {
             forecast: forecastDate.toISOString().split('T')[0],
-            harvest: harvestDate.toISOString().split('T')[0]
+            harvest: harvestDate.toISOString().split('T')[0],
+            expectedHarvest: expectedHarvestDate.toISOString().split('T')[0]
         };
     };
 
@@ -335,7 +350,8 @@ const DistributionFormModal: React.FC<{
                 facilityType: formData.facilityType,
                 date: formData.date,
                 forecast: dates.forecast,
-                harvestDate: dates.harvest
+                harvestDate: dates.harvest,
+                expectedHarvestDate: dates.expectedHarvest
             };
 
             // Update batch remaining fingerlings
@@ -687,6 +703,290 @@ const DistributionFormModal: React.FC<{
     );
 };
 
+// Detailed View Modal with Harvest Tracking
+const DetailModal: React.FC<{
+    distribution: Distribution;
+    onClose: () => void;
+    onUpdate: (updatedDistribution: Distribution) => void;
+}> = ({ distribution, onClose, onUpdate }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editData, setEditData] = useState({
+        expectedHarvestDate: distribution.expectedHarvestDate || '',
+        actualHarvestDate: distribution.actualHarvestDate || '',
+        actualHarvestKilos: distribution.actualHarvestKilos || 0,
+        actualHarvestCount: distribution.actualHarvestCount || 0
+    });
+
+    const handleSaveChanges = async () => {
+        setIsSaving(true);
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const updatedDistribution: Distribution = {
+                ...distribution,
+                expectedHarvestDate: editData.expectedHarvestDate,
+                actualHarvestDate: editData.actualHarvestDate,
+                actualHarvestKilos: editData.actualHarvestKilos,
+                actualHarvestCount: editData.actualHarvestCount
+            };
+
+            onUpdate(updatedDistribution);
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error updating harvest data:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const cancelEdit = () => {
+        setEditData({
+            expectedHarvestDate: distribution.expectedHarvestDate || '',
+            actualHarvestDate: distribution.actualHarvestDate || '',
+            actualHarvestKilos: distribution.actualHarvestKilos || 0,
+            actualHarvestCount: distribution.actualHarvestCount || 0
+        });
+        setIsEditing(false);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <User className="h-6 w-6" />
+                            Distribution Details
+                        </h3>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 p-1"
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Beneficiary Information */}
+                        <div className="bg-blue-50 rounded-lg p-4">
+                            <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                                <User className="h-5 w-5" />
+                                Beneficiary Information
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <span className="text-blue-600 font-medium">Name:</span>
+                                    <p className="text-blue-800">{distribution.beneficiary}</p>
+                                </div>
+                                <div>
+                                    <span className="text-blue-600 font-medium">Facility Type:</span>
+                                    <p className="text-blue-800">{distribution.facilityType}</p>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <span className="text-blue-600 font-medium">Location:</span>
+                                    <p className="text-blue-800">{distribution.location}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Distribution Details */}
+                        <div className="bg-green-50 rounded-lg p-4">
+                            <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                                <Fish className="h-5 w-5" />
+                                Distribution Details
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <span className="text-green-600 font-medium">Batch ID:</span>
+                                    <p className="text-green-800 font-mono">{distribution.batchId}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 font-medium">Fingerlings Count:</span>
+                                    <p className="text-green-800">{distribution.fingerlingsCount.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 font-medium">Distribution Date:</span>
+                                    <p className="text-green-800">{distribution.date}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Timeline */}
+                        <div className="bg-amber-50 rounded-lg p-4">
+                            <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                                <Calendar className="h-5 w-5" />
+                                Project Timeline
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <span className="text-amber-600 font-medium">Forecast Date:</span>
+                                    <p className="text-amber-800">{distribution.forecast}</p>
+                                </div>
+                                <div>
+                                    <span className="text-amber-600 font-medium">Initial Harvest Date:</span>
+                                    <p className="text-amber-800">{distribution.harvestDate}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Harvest Tracking Section */}
+                        <div className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
+                            <div className="flex justify-between items-start mb-4">
+                                <h4 className="font-semibold text-purple-900 flex items-center gap-2">
+                                    <Fish className="h-5 w-5" />
+                                    Harvest Tracking
+                                </h4>
+                                {!isEditing && (
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+                                    >
+                                        <Edit3 className="h-4 w-4" />
+                                        Update Harvest Data
+                                    </button>
+                                )}
+                            </div>
+
+                            {!isEditing ? (
+                                // Display Mode
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <span className="text-purple-600 font-medium">Expected Harvest Date:</span>
+                                            <p className="text-purple-800">
+                                                {distribution.expectedHarvestDate || 'Not set'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-purple-600 font-medium">Actual Harvest Date:</span>
+                                            <p className="text-purple-800">
+                                                {distribution.actualHarvestDate || 'Not harvested yet'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <span className="text-purple-600 font-medium">Harvested Weight (kg):</span>
+                                            <p className="text-purple-800 text-lg font-semibold">
+                                                {distribution.actualHarvestKilos ?
+                                                    `${distribution.actualHarvestKilos.toLocaleString()} kg` :
+                                                    'Not recorded'
+                                                }
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-purple-600 font-medium">Harvested Fish Count:</span>
+                                            <p className="text-purple-800 text-lg font-semibold">
+                                                {distribution.actualHarvestCount ?
+                                                    distribution.actualHarvestCount.toLocaleString() :
+                                                    'Not recorded'
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                // Edit Mode
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-purple-700 mb-2">
+                                                Expected Harvest Date
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={editData.expectedHarvestDate}
+                                                onChange={(e) => setEditData(prev => ({ ...prev, expectedHarvestDate: e.target.value }))}
+                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-purple-700 mb-2">
+                                                Actual Harvest Date
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={editData.actualHarvestDate}
+                                                onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestDate: e.target.value }))}
+                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-purple-700 mb-2">
+                                                Harvested Weight (kg)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                min="0"
+                                                value={editData.actualHarvestKilos || ''}
+                                                onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestKilos: parseFloat(e.target.value) || 0 }))}
+                                                placeholder="Enter harvested weight in kg"
+                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-purple-700 mb-2">
+                                                Total Harvested Fish Count
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={editData.actualHarvestCount || ''}
+                                                onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestCount: parseInt(e.target.value) || 0 }))}
+                                                placeholder="Enter total fish count"
+                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 pt-4 border-t border-purple-200">
+                                        <button
+                                            onClick={cancelEdit}
+                                            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleSaveChanges}
+                                            disabled={isSaving}
+                                            className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="h-4 w-4" />
+                                                    Save Changes
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end mt-6">
+                        <button
+                            onClick={onClose}
+                            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const DistributionForm: React.FC = () => {
     const { unreadCount } = useNotification();
     const { isLoading, isAuthenticated, logout } = withAuth({
@@ -738,6 +1038,22 @@ const DistributionForm: React.FC = () => {
     // Handle saving new distribution
     const handleSaveDistribution = (newDistribution: Distribution) => {
         setDistributions(prev => [...prev, newDistribution]);
+        setShowSuccess(true);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+            setShowSuccess(false);
+        }, 3000);
+    };
+
+    // Handle updating distribution
+    const handleUpdateDistribution = (updatedDistribution: Distribution) => {
+        setDistributions(prev =>
+            prev.map(dist =>
+                dist.id === updatedDistribution.id ? updatedDistribution : dist
+            )
+        );
+        setSelectedDistribution(updatedDistribution);
         setShowSuccess(true);
 
         // Hide success message after 3 seconds
@@ -805,8 +1121,9 @@ const DistributionForm: React.FC = () => {
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Location</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Forecast</th>
-                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Expected</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actual</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Harvest (kg)</th>
                                                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
                                                 </tr>
                                             </thead>
@@ -821,8 +1138,25 @@ const DistributionForm: React.FC = () => {
                                                         </td>
                                                         <td className="px-4 py-3 text-sm text-gray-900">{dist.facilityType}</td>
                                                         <td className="px-4 py-3 text-sm text-gray-900">{dist.date}</td>
-                                                        <td className="px-4 py-3 text-sm text-amber-600">{dist.forecast}</td>
-                                                        <td className="px-4 py-3 text-sm text-green-600">{dist.harvestDate}</td>
+                                                        <td className="px-4 py-3 text-sm text-amber-600">
+                                                            {dist.expectedHarvestDate || '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            {dist.actualHarvestDate ? (
+                                                                <span className="text-green-600">{dist.actualHarvestDate}</span>
+                                                            ) : (
+                                                                <span className="text-gray-400">Pending</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            {dist.actualHarvestKilos ? (
+                                                                <span className="text-green-600 font-semibold">
+                                                                    {dist.actualHarvestKilos.toLocaleString()} kg
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400">-</span>
+                                                            )}
+                                                        </td>
                                                         <td className="px-4 py-3 text-center">
                                                             <button
                                                                 onClick={() => openDetailModal(dist)}
@@ -860,7 +1194,15 @@ const DistributionForm: React.FC = () => {
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.facilityType}</td>
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.date}</td>
-                                                        <td className="px-3 py-3 text-sm text-green-600">{dist.harvestDate}</td>
+                                                        <td className="px-3 py-3 text-sm">
+                                                            {dist.actualHarvestKilos ? (
+                                                                <span className="text-green-600 font-semibold">
+                                                                    {dist.actualHarvestKilos} kg
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400">Pending</span>
+                                                            )}
+                                                        </td>
                                                         <td className="px-3 py-3 text-center">
                                                             <button
                                                                 onClick={() => openDetailModal(dist)}
@@ -900,55 +1242,11 @@ const DistributionForm: React.FC = () => {
 
                     {/* Detail Modal */}
                     {showDetailModal && selectedDistribution && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                                <div className="p-6">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                            <User className="h-6 w-6" />
-                                            Distribution Details
-                                        </h3>
-                                        <button
-                                            onClick={() => setShowDetailModal(false)}
-                                            className="text-gray-400 hover:text-gray-600 p-1"
-                                        >
-                                            <X className="h-6 w-6" />
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        <div className="bg-blue-50 rounded-lg p-4">
-                                            <h4 className="font-semibold text-blue-900 mb-2">Beneficiary Information</h4>
-                                            <p className="text-blue-800"><strong>Name:</strong> {selectedDistribution.beneficiary}</p>
-                                            <p className="text-blue-800"><strong>Location:</strong> {selectedDistribution.location}</p>
-                                            <p className="text-blue-800"><strong>Facility Type:</strong> {selectedDistribution.facilityType}</p>
-                                        </div>
-
-                                        <div className="bg-green-50 rounded-lg p-4">
-                                            <h4 className="font-semibold text-green-900 mb-2">Distribution Details</h4>
-                                            <p className="text-green-800"><strong>Batch ID:</strong> {selectedDistribution.batchId}</p>
-                                            <p className="text-green-800"><strong>Fingerlings Count:</strong> {selectedDistribution.fingerlingsCount.toLocaleString()}</p>
-                                            <p className="text-green-800"><strong>Distribution Date:</strong> {selectedDistribution.date}</p>
-                                        </div>
-
-                                        <div className="bg-amber-50 rounded-lg p-4">
-                                            <h4 className="font-semibold text-amber-900 mb-2">Timeline</h4>
-                                            <p className="text-amber-800"><strong>Forecast Date:</strong> {selectedDistribution.forecast}</p>
-                                            <p className="text-amber-800"><strong>Expected Harvest:</strong> {selectedDistribution.harvestDate}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-end mt-6">
-                                        <button
-                                            onClick={() => setShowDetailModal(false)}
-                                            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
-                                        >
-                                            Close
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <DetailModal
+                            distribution={selectedDistribution}
+                            onClose={() => setShowDetailModal(false)}
+                            onUpdate={handleUpdateDistribution}
+                        />
                     )}
                 </div>
             </div>
