@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Users, TrendingUp, Calendar, MapPin, Fish, Building2, BarChart3, Settings } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LineChart, Line, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LineChart, Line, Tooltip, ComposedChart, Area, AreaChart } from "recharts";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -11,18 +11,36 @@ import { withAuth } from "@/server/with.auth";
 // Types
 interface ForecastData {
     month: string;
+    date: string;
     predicted: number;
     historical: number;
     confidence: number;
+    species: string;
+    location: string;
+}
+
+interface TrendData {
+    month: string;
+    date: string;
+    value: number;
+    species: string;
+    location: string;
 }
 
 interface FormData {
+    dateFrom: string;
+    dateTo: string;
     species: string;
+    province: string;
+    city: string;
+    barangay: string;
     facilityType: string;
-    location: string;
-    forecastPeriod: string;
-    date: string;
-    quantity: string;
+}
+
+interface LocationData {
+    provinces: string[];
+    cities: { [key: string]: string[] };
+    barangays: { [key: string]: string[] };
 }
 
 const FullScreenLoader: React.FC = () => (
@@ -41,88 +59,152 @@ const HarvestForecast: React.FC = () => {
 
     // Form state
     const [formData, setFormData] = useState<FormData>({
+        dateFrom: "2025-06-01",
+        dateTo: "2025-12-31",
         species: "Red Tilapia",
-        facilityType: "Fish Cage",
-        location: "Southern",
-        forecastPeriod: "1 Months",
-        date: "05/28/2025",
-        quantity: "1000"
+        province: "Davao del Norte",
+        city: "Tagum City",
+        barangay: "Apokon",
+        facilityType: "Fish Cage"
     });
 
     // Forecast data state
     const [forecastData, setForecastData] = useState<ForecastData[]>([]);
+    const [trendData, setTrendData] = useState<TrendData[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [showResults, setShowResults] = useState(false);
+
+    // Davao Region locations data
+    const locationData: LocationData = {
+        provinces: ["Davao del Norte", "Davao del Sur", "Davao de Oro", "Davao Oriental", "Davao Occidental"],
+        cities: {
+            "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
+            "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
+            "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
+            "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
+            "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"]
+        },
+        barangays: {
+            "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village"],
+            "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
+            "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
+            "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
+            "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
+            "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
+            "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
+            "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
+            "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
+            "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
+            "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
+            "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
+            "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
+            "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
+            "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"]
+        }
+    };
 
     // Options for dropdowns
     const speciesOptions = [
         "Red Tilapia",
-        "Nile Tilapia",
-        "Blue Tilapia",
-        "Hybrid Tilapia",
-        "Catfish",
-        "Carp",
-        "Bass"
+        "Bangus",
     ];
 
     const facilityTypeOptions = [
         "Fish Cage",
         "Pond System",
-        "RAS (Recirculating Aquaculture System)",
-        "Flow-through System",
-        "Biofloc System"
-    ];
-
-    const locationOptions = [
-        "Northern",
-        "Southern",
-        "Eastern",
-        "Western",
-        "Central",
-        "Coastal"
-    ];
-
-    const forecastPeriodOptions = [
-        "1 Months",
-        "3 Months",
-        "6 Months",
-        "12 Months"
     ];
 
     // Handle form input changes
     const handleInputChange = (field: keyof FormData, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setFormData(prev => {
+            const newData = { ...prev, [field]: value };
+
+            // Reset dependent fields when parent changes
+            if (field === 'province') {
+                newData.city = locationData.cities[value]?.[0] || '';
+                newData.barangay = '';
+            } else if (field === 'city') {
+                newData.barangay = locationData.barangays[value]?.[0] || '';
+            }
+
+            return newData;
+        });
+    };
+
+    // Generate date range between two dates
+    const getDateRange = (startDate: string, endDate: string): string[] => {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const dates: string[] = [];
+
+        const current = new Date(start);
+        while (current <= end) {
+            dates.push(current.toISOString().split('T')[0]);
+            current.setMonth(current.getMonth() + 1);
+        }
+
+        return dates;
     };
 
     // Generate mock forecast data
-    const generateForecastData = () => {
-        const periods = parseInt(formData.forecastPeriod.split(' ')[0]);
-        const baseQuantity = parseInt(formData.quantity);
+    const generateForecastData = (): ForecastData[] => {
+        const dates = getDateRange(formData.dateFrom, formData.dateTo);
         const data: ForecastData[] = [];
-
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const currentMonth = new Date().getMonth();
 
-        for (let i = 0; i < periods; i++) {
-            const monthIndex = (currentMonth + i) % 12;
+        dates.forEach((date, index) => {
+            const dateObj = new Date(date);
+            const monthIndex = dateObj.getMonth();
             const seasonalFactor = 0.8 + 0.4 * Math.sin((monthIndex / 12) * 2 * Math.PI);
-            const growthFactor = 1 + (i * 0.15); // Growth over time
+            const growthFactor = 1 + (index * 0.1);
             const randomVariation = 0.9 + Math.random() * 0.2;
 
+            const baseQuantity = 1000;
             const predicted = Math.round(baseQuantity * seasonalFactor * growthFactor * randomVariation);
             const historical = Math.round(predicted * (0.85 + Math.random() * 0.3));
             const confidence = Math.round(85 + Math.random() * 10);
 
             data.push({
                 month: months[monthIndex],
+                date,
                 predicted,
                 historical,
-                confidence
+                confidence,
+                species: formData.species,
+                location: `${formData.province}, ${formData.city}`
             });
-        }
+        });
+
+        return data;
+    };
+
+    // Generate trend data based on selected parameters
+    const generateTrendData = (): TrendData[] => {
+        const dates = getDateRange(formData.dateFrom, formData.dateTo);
+        const data: TrendData[] = [];
+
+        dates.forEach((date, index) => {
+            const dateObj = new Date(date);
+            const monthIndex = dateObj.getMonth();
+            const seasonalFactor = 0.8 + 0.4 * Math.sin((monthIndex / 12) * 2 * Math.PI);
+            const growthFactor = 1 + (index * 0.08);
+            const randomVariation = 0.9 + Math.random() * 0.2;
+
+            // Add some variation based on facility type
+            const facilityFactor = formData.facilityType === "Fish Cage" ? 1.1 :
+                formData.facilityType === "RAS (Recirculating Aquaculture System)" ? 1.3 :
+                    formData.facilityType === "Pond System" ? 0.9 : 1.0;
+
+            const value = Math.round(1000 * seasonalFactor * growthFactor * facilityFactor * randomVariation);
+
+            data.push({
+                month: dateObj.toLocaleDateString('en-US', { month: 'short' }),
+                date,
+                value,
+                species: formData.species,
+                location: `${formData.province}, ${formData.city}`
+            });
+        });
 
         return data;
     };
@@ -134,10 +216,28 @@ const HarvestForecast: React.FC = () => {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        const data = generateForecastData();
-        setForecastData(data);
+        const forecastResults = generateForecastData();
+        const trendResults = generateTrendData();
+
+        setForecastData(forecastResults);
+        setTrendData(trendResults);
         setShowResults(true);
         setIsGenerating(false);
+    };
+
+    // Get available cities based on selected province
+    const getAvailableCities = () => {
+        return locationData.cities[formData.province] || [];
+    };
+
+    // Get available barangays based on selected city
+    const getAvailableBarangays = () => {
+        return locationData.barangays[formData.city] || [];
+    };
+
+    // Generate dynamic titles based on selected parameters
+    const getParameterBasedTitle = () => {
+        return `${formData.species} - ${formData.city}, ${formData.province} (${formData.facilityType})`;
     };
 
     if (isLoading) {
@@ -184,22 +284,51 @@ const HarvestForecast: React.FC = () => {
                         {/* Header */}
                         <div className="mb-8">
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">Forecasting</h1>
+                            <p className="text-gray-600">Generate harvest forecasts and analyze trends across different species and locations</p>
                         </div>
 
-                        {/* Harvest Forecast Card */}
+                        {/* Forecasting Form Card */}
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
                             <div className="p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-3">
                                         <TrendingUp className="h-5 w-5 text-blue-600" />
-                                        <h2 className="text-lg font-semibold text-gray-900">Harvest Forecast</h2>
+                                        <h2 className="text-lg font-semibold text-gray-900">Forecasting Parameters</h2>
                                     </div>
                                     <Settings className="h-5 w-5 text-gray-400" />
                                 </div>
 
-                                {/* Form Fields */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                                    {/* Species */}
+                                {/* Date Range */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <Calendar className="h-4 w-4" />
+                                            Date From:
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.dateFrom}
+                                            onChange={(e) => handleInputChange('dateFrom', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <Calendar className="h-4 w-4" />
+                                            Date To:
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.dateTo}
+                                            onChange={(e) => handleInputChange('dateTo', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Species and Facility */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <div>
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                             <Fish className="h-4 w-4" />
@@ -216,7 +345,6 @@ const HarvestForecast: React.FC = () => {
                                         </select>
                                     </div>
 
-                                    {/* Facility Type */}
                                     <div>
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                             <Building2 className="h-4 w-4" />
@@ -232,97 +360,89 @@ const HarvestForecast: React.FC = () => {
                                             ))}
                                         </select>
                                     </div>
+                                </div>
 
-                                    {/* Location */}
+                                {/* Location Hierarchy */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                                     <div>
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                             <MapPin className="h-4 w-4" />
-                                            Location:
+                                            Province:
                                         </label>
                                         <select
-                                            value={formData.location}
-                                            onChange={(e) => handleInputChange('location', e.target.value)}
+                                            value={formData.province}
+                                            onChange={(e) => handleInputChange('province', e.target.value)}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         >
-                                            {locationOptions.map(option => (
-                                                <option key={option} value={option}>{option}</option>
+                                            {locationData.provinces.map(province => (
+                                                <option key={province} value={province}>{province}</option>
                                             ))}
                                         </select>
                                     </div>
 
-                                    {/* Forecast Period */}
                                     <div>
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                            <Calendar className="h-4 w-4" />
-                                            Forecast Period:
+                                            <MapPin className="h-4 w-4" />
+                                            City/Municipality:
                                         </label>
                                         <select
-                                            value={formData.forecastPeriod}
-                                            onChange={(e) => handleInputChange('forecastPeriod', e.target.value)}
+                                            value={formData.city}
+                                            onChange={(e) => handleInputChange('city', e.target.value)}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         >
-                                            {forecastPeriodOptions.map(option => (
-                                                <option key={option} value={option}>{option}</option>
+                                            {getAvailableCities().map(city => (
+                                                <option key={city} value={city}>{city}</option>
                                             ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <MapPin className="h-4 w-4" />
+                                            Barangay:
+                                        </label>
+                                        <select
+                                            value={formData.barangay}
+                                            onChange={(e) => handleInputChange('barangay', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                        >
+                                            {getAvailableBarangays().length > 0 ? (
+                                                getAvailableBarangays().map(barangay => (
+                                                    <option key={barangay} value={barangay}>{barangay}</option>
+                                                ))
+                                            ) : (
+                                                <option value="">Select a barangay</option>
+                                            )}
                                         </select>
                                     </div>
                                 </div>
 
-                                {/* Date and Quantity Row */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                            <Calendar className="h-4 w-4" />
-                                            Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={formData.date}
-                                            onChange={(e) => handleInputChange('date', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                        />
-                                    </div>
-
-                                    {/* <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                            <BarChart3 className="h-4 w-4" />
-                                            Quantity
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={formData.quantity}
-                                            onChange={(e) => handleInputChange('quantity', e.target.value)}
-                                            placeholder="1000"
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                        />
-                                    </div> */}
-
-                                    <div className="flex items-end">
-                                        <button
-                                            onClick={handleGenerateForecast}
-                                            disabled={isGenerating}
-                                            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 flex items-center justify-center gap-2"
-                                        >
-                                            {isGenerating ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                    Generating...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <TrendingUp className="h-4 w-4" />
-                                                    Generate Forecast
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
+                                {/* Generate Button */}
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={handleGenerateForecast}
+                                        disabled={isGenerating}
+                                        className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 flex items-center justify-center gap-2"
+                                    >
+                                        {isGenerating ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                Generating Forecast...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <TrendingUp className="h-4 w-4" />
+                                                Generate Forecast
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
 
                                 {/* Instructions */}
                                 {!showResults && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
                                         <p className="text-blue-800 text-sm">
-                                            Select a species and click Generate Forecast to view predictions
+                                            Configure your forecasting parameters and click "Generate Forecast" to view predictions and trend analysis
                                         </p>
                                     </div>
                                 )}
@@ -331,43 +451,9 @@ const HarvestForecast: React.FC = () => {
 
                         {/* Results Section */}
                         {showResults && (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Forecast Chart */}
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Harvest Forecast</h3>
-                                    <div className="h-80">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={forecastData}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="month" />
-                                                <YAxis />
-                                                <Tooltip />
-                                                <Legend />
-                                                <Bar dataKey="predicted" fill="#3B82F6" name="Predicted" />
-                                                <Bar dataKey="historical" fill="#10B981" name="Historical" />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-
-                                {/* Confidence Chart */}
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Prediction Confidence</h3>
-                                    <div className="h-80">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={forecastData}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="month" />
-                                                <YAxis domain={[0, 100]} />
-                                                <Tooltip formatter={(value) => [`${value}%`, 'Confidence']} />
-                                                <Line type="monotone" dataKey="confidence" stroke="#F59E0B" strokeWidth={3} />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-
+                            <>
                                 {/* Summary Statistics */}
-                                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-5">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Summary</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div className="bg-blue-50 rounded-lg p-4">
@@ -390,13 +476,90 @@ const HarvestForecast: React.FC = () => {
                                         </div>
                                         <div className="bg-orange-50 rounded-lg p-4">
                                             <div className="text-2xl font-bold text-orange-600">
-                                                {formData.species}
+                                                {forecastData.length}
                                             </div>
-                                            <div className="text-sm text-orange-800">Species</div>
+                                            <div className="text-sm text-orange-800">Months Forecasted</div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+
+                                {/* Forecast Charts */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                                    {/* Forecast Chart */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
+                                        <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
+                                        <div className="h-80">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={forecastData}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="month" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Legend />
+                                                    <Bar dataKey="predicted" fill="#3B82F6" name="Predicted" />
+                                                    <Bar dataKey="historical" fill="#10B981" name="Historical" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    {/* Confidence Chart */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Prediction Confidence</h3>
+                                        <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
+                                        <div className="h-80">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={forecastData}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="month" />
+                                                    <YAxis domain={[0, 100]} />
+                                                    <Tooltip formatter={(value) => [`${value}%`, 'Confidence']} />
+                                                    <Line type="monotone" dataKey="confidence" stroke="#F59E0B" strokeWidth={3} />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Trend Analysis Section */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+                                    <div className="p-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <BarChart3 className="h-5 w-5 text-purple-600" />
+                                            <h3 className="text-lg font-semibold text-gray-900">Trend Analysis</h3>
+                                        </div>
+                                        <p className="text-sm text-gray-600 mb-6">{getParameterBasedTitle()}</p>
+
+                                        {/* Trend Chart */}
+                                        <div className="h-96">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={trendData}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="month" />
+                                                    <YAxis />
+                                                    <Tooltip
+                                                        formatter={(value) => [
+                                                            value?.toLocaleString(),
+                                                            'Harvest Volume'
+                                                        ]}
+                                                        labelFormatter={(label) => `Month: ${label}`}
+                                                    />
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey="value"
+                                                        stroke="#8B5CF6"
+                                                        fill="#8B5CF6"
+                                                        fillOpacity={0.3}
+                                                        strokeWidth={2}
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </>
                         )}
                     </div>
                 </div>
@@ -416,4 +579,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
