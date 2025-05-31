@@ -27,6 +27,15 @@ interface TrendData {
     location: string;
 }
 
+interface BatchData {
+    batchId: string;
+    name: string;
+    city?: string;
+    barangay?: string;
+    fingerlingsCount: number;
+    harvestForecasted: number;
+}
+
 interface FormData {
     dateFrom: string;
     dateTo: string;
@@ -75,6 +84,11 @@ const HarvestForecast: React.FC = () => {
     const [barangayTrendData, setBarangayTrendData] = useState<TrendData[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [showResults, setShowResults] = useState(false);
+
+    // Modal states
+    const [showModal, setShowModal] = useState(false);
+    const [modalLevel, setModalLevel] = useState<'province' | 'city' | 'barangay'>('province');
+    const [modalData, setModalData] = useState<BatchData[]>([]);
 
     // Davao Region locations data
     const locationData: LocationData = {
@@ -178,6 +192,59 @@ const HarvestForecast: React.FC = () => {
         });
 
         return data;
+    };
+
+    // Generate mock batch data for details modal
+    const generateBatchData = (level: 'province' | 'city' | 'barangay'): BatchData[] => {
+        const batchCount = Math.floor(Math.random() * 8) + 5; // 5-12 batches
+        const data: BatchData[] = [];
+
+        const batchNames = [
+            "Aqua Farm Alpha", "Blue Waters Beta", "Coastal Gamma", "Delta Fisheries",
+            "Echo Marine", "Freshwater Phi", "Golden Harvest", "Harbor Industries",
+            "Island Aqua", "Jade Waters", "Kelp Cultivation", "Lake Marina"
+        ];
+
+        const cities = locationData.cities[formData.province] || [];
+        const barangays = locationData.barangays[formData.city] || [];
+
+        for (let i = 0; i < batchCount; i++) {
+            const batchId = `BTC-${String(i + 1).padStart(3, '0')}-${new Date().getFullYear()}`;
+            const name = batchNames[Math.floor(Math.random() * batchNames.length)];
+            const fingerlingsCount = Math.floor(Math.random() * 8000) + 2000; // 2000-10000
+            const harvestForecasted = Math.floor(fingerlingsCount * (0.75 + Math.random() * 0.2)); // 75-95% survival rate
+
+            const batchData: BatchData = {
+                batchId,
+                name,
+                fingerlingsCount,
+                harvestForecasted
+            };
+
+            if (level === 'province') {
+                batchData.city = cities[Math.floor(Math.random() * cities.length)];
+            } else if (level === 'city') {
+                batchData.barangay = barangays[Math.floor(Math.random() * barangays.length)];
+            }
+
+            data.push(batchData);
+        }
+
+        return data.sort((a, b) => a.batchId.localeCompare(b.batchId));
+    };
+
+    // Handle view details modal
+    const handleViewDetails = (level: 'province' | 'city' | 'barangay') => {
+        const data = generateBatchData(level);
+        setModalData(data);
+        setModalLevel(level);
+        setShowModal(true);
+    };
+
+    // Close modal
+    const closeModal = () => {
+        setShowModal(false);
+        setModalData([]);
     };
 
     // Generate trend data for specific geographic level
@@ -319,7 +386,7 @@ const HarvestForecast: React.FC = () => {
                                         <TrendingUp className="h-5 w-5 text-blue-600" />
                                         <h2 className="text-lg font-semibold text-gray-900">Forecasting Parameters</h2>
                                     </div>
-                                    <Settings className="h-5 w-5 text-gray-400" />
+                                    {/* <Settings className="h-5 w-5 text-gray-400" /> */}
                                 </div>
 
                                 {/* Date Range */}
@@ -477,7 +544,7 @@ const HarvestForecast: React.FC = () => {
                         {showResults && (
                             <>
                                 {/* Summary Statistics */}
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-5">
+                                {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-5">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Summary</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div className="bg-blue-50 rounded-lg p-4">
@@ -505,11 +572,10 @@ const HarvestForecast: React.FC = () => {
                                             <div className="text-sm text-orange-800">Months Forecasted</div>
                                         </div>
                                     </div>
-                                </div>
+                                </div> */}
 
                                 {/* Forecast Charts */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                                    {/* Forecast Chart */}
+                                {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
@@ -528,7 +594,6 @@ const HarvestForecast: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Confidence Chart */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Prediction Confidence</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
@@ -544,7 +609,7 @@ const HarvestForecast: React.FC = () => {
                                             </ResponsiveContainer>
                                         </div>
                                     </div>
-                                </div>
+                                </div> */}
 
                                 {/* Trend Analysis Section - Three Separate Charts */}
                                 <div className="mb-8">
@@ -557,7 +622,16 @@ const HarvestForecast: React.FC = () => {
                                     {/* Province Level Trend */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                                         <div className="p-6">
-                                            <h4 className="text-lg font-semibold text-gray-900 mb-2">Province Level Trend</h4>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="text-lg font-semibold text-gray-900">Province Level Trend</h4>
+                                                <button
+                                                    onClick={() => handleViewDetails('province')}
+                                                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
+                                                >
+                                                    <BarChart3 className="h-4 w-4" />
+                                                    View Details
+                                                </button>
+                                            </div>
                                             <p className="text-sm text-gray-600 mb-4">{formData.province} - Aggregated Provincial Data</p>
                                             <div className="h-80">
                                                 <ResponsiveContainer width="100%" height="100%">
@@ -589,7 +663,16 @@ const HarvestForecast: React.FC = () => {
                                     {/* City Level Trend */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                                         <div className="p-6">
-                                            <h4 className="text-lg font-semibold text-gray-900 mb-2">City/Municipality Level Trend</h4>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="text-lg font-semibold text-gray-900">City/Municipality Level Trend</h4>
+                                                <button
+                                                    onClick={() => handleViewDetails('city')}
+                                                    className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors text-sm flex items-center gap-2"
+                                                >
+                                                    <BarChart3 className="h-4 w-4" />
+                                                    View Details
+                                                </button>
+                                            </div>
                                             <p className="text-sm text-gray-600 mb-4">{formData.city}, {formData.province} - City-Level Data</p>
                                             <div className="h-80">
                                                 <ResponsiveContainer width="100%" height="100%">
@@ -621,7 +704,16 @@ const HarvestForecast: React.FC = () => {
                                     {/* Barangay Level Trend */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                                         <div className="p-6">
-                                            <h4 className="text-lg font-semibold text-gray-900 mb-2">Barangay Level Trend</h4>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="text-lg font-semibold text-gray-900">Barangay Level Trend</h4>
+                                                <button
+                                                    onClick={() => handleViewDetails('barangay')}
+                                                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+                                                >
+                                                    <BarChart3 className="h-4 w-4" />
+                                                    View Details
+                                                </button>
+                                            </div>
                                             <p className="text-sm text-gray-600 mb-4">{formData.barangay}, {formData.city}, {formData.province} - Barangay-Specific Data</p>
                                             <div className="h-80">
                                                 <ResponsiveContainer width="100%" height="100%">
@@ -655,6 +747,137 @@ const HarvestForecast: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Details Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                            <div>
+                                <h3 className="text-xl font-semibold text-gray-900">
+                                    {modalLevel === 'province' ? 'Province Level Details' :
+                                        modalLevel === 'city' ? 'City Level Details' :
+                                            'Barangay Level Details'}
+                                </h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    {modalLevel === 'province' ? `${formData.province} - All Cities` :
+                                        modalLevel === 'city' ? `${formData.city}, ${formData.province} - All Barangays` :
+                                            `${formData.barangay}, ${formData.city}, ${formData.province}`}
+                                </p>
+                            </div>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-6 overflow-y-auto max-h-[70vh]">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-blue-50 rounded-lg p-4">
+                                    <div className="text-2xl font-bold text-blue-600">
+                                        {modalData.length}
+                                    </div>
+                                    <div className="text-sm text-blue-800">Total Batches</div>
+                                </div>
+                                <div className="bg-green-50 rounded-lg p-4">
+                                    <div className="text-2xl font-bold text-green-600">
+                                        {modalData.reduce((sum, batch) => sum + batch.fingerlingsCount, 0).toLocaleString()}
+                                    </div>
+                                    <div className="text-sm text-green-800">Total Fingerlings</div>
+                                </div>
+                                <div className="bg-purple-50 rounded-lg p-4">
+                                    <div className="text-2xl font-bold text-purple-600">
+                                        {modalData.reduce((sum, batch) => sum + batch.harvestForecasted, 0).toLocaleString()}
+                                    </div>
+                                    <div className="text-sm text-purple-800">Forecasted Harvest</div>
+                                </div>
+                            </div>
+
+                            {/* Data Table */}
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse border border-gray-300">
+                                    <thead>
+                                        <tr className="bg-gray-50">
+                                            <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Batch ID</th>
+                                            <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Name</th>
+                                            {modalLevel === 'province' && (
+                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">City</th>
+                                            )}
+                                            {modalLevel === 'city' && (
+                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Barangay</th>
+                                            )}
+                                            <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Fingerlings Count</th>
+                                            <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Harvest Forecasted</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {modalData.map((batch, index) => (
+                                            <tr key={batch.batchId} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                                <td className="border border-gray-300 px-4 py-3 font-mono text-sm">{batch.batchId}</td>
+                                                <td className="border border-gray-300 px-4 py-3">{batch.name}</td>
+                                                {modalLevel === 'province' && batch.city && (
+                                                    <td className="border border-gray-300 px-4 py-3">{batch.city}</td>
+                                                )}
+                                                {modalLevel === 'city' && batch.barangay && (
+                                                    <td className="border border-gray-300 px-4 py-3">{batch.barangay}</td>
+                                                )}
+                                                <td className="border border-gray-300 px-4 py-3 text-right font-mono">
+                                                    {batch.fingerlingsCount.toLocaleString()}
+                                                </td>
+                                                <td className="border border-gray-300 px-4 py-3 text-right font-mono">
+                                                    {batch.harvestForecasted.toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+                            <button
+                                onClick={closeModal}
+                                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const csv = [
+                                        ['Batch ID', 'Name', modalLevel === 'province' ? 'City' : modalLevel === 'city' ? 'Barangay' : '', 'Fingerlings Count', 'Harvest Forecasted'].filter(Boolean),
+                                        ...modalData.map(batch => [
+                                            batch.batchId,
+                                            batch.name,
+                                            modalLevel === 'province' ? batch.city : modalLevel === 'city' ? batch.barangay : '',
+                                            batch.fingerlingsCount,
+                                            batch.harvestForecasted
+                                        ].filter((_, i) => modalLevel === 'barangay' ? i !== 2 : true))
+                                    ].map(row => row.join(',')).join('\n');
+
+                                    const blob = new Blob([csv], { type: 'text/csv' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `${modalLevel}_batch_details.csv`;
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                }}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
