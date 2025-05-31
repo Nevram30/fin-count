@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -196,14 +196,12 @@ const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: ()
     );
 };
 
-const DistributionForm: React.FC = () => {
-    const { unreadCount } = useNotification();
-    const { isLoading, isAuthenticated, logout } = withAuth({
-        userType: "admin",
-        redirectTo: "/signin",
-    });
-
-    // Form state
+// Distribution Form Modal Component
+const DistributionFormModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (distribution: Distribution) => void;
+}> = ({ isOpen, onClose, onSave }) => {
     const [formData, setFormData] = useState<DistributionForm>({
         firstname: '',
         lastname: '',
@@ -218,48 +216,11 @@ const DistributionForm: React.FC = () => {
         fingerlingsCount: 0
     });
 
-    // State management
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
-    const [distributions, setDistributions] = useState<Distribution[]>([]);
-    const [showModal, setShowModal] = useState(false);
-    const [selectedDistribution, setSelectedDistribution] = useState<Distribution | null>(null);
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <FullScreenLoader />
-            </div>
-        );
-    }
-
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-                <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-md text-center">
-                    <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-red-50 mb-6">
-                        <Users className="h-8 w-8 text-red-500" />
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">
-                        Access Denied
-                    </h2>
-                    <p className="text-gray-600 mb-6">
-                        {!isAuthenticated
-                            ? "Your account doesn't have access to this area"
-                            : "Invalid role for this section"}
-                    </p>
-                    <button
-                        onClick={logout}
-                        className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300 focus:ring-4 focus:ring-blue-200 focus:outline-none"
-                    >
-                        Return to Login
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    if (!isOpen) return null;
 
     // Get available cities based on selected province
     const getAvailableCities = () => {
@@ -377,25 +338,22 @@ const DistributionForm: React.FC = () => {
                 harvestDate: dates.harvest
             };
 
-            setDistributions(prev => [...prev, newDistribution]);
-
             // Update batch remaining fingerlings
             if (selectedBatch) {
                 selectedBatch.remainingFingerlings -= formData.fingerlingsCount;
             }
 
-            setShowSuccess(true);
+            onSave(newDistribution);
 
             // Reset form
-            setTimeout(() => {
-                setFormData({
-                    firstname: '', lastname: '', date: '', province: '', city: '',
-                    barangay: '', street: '', facilityType: '', details: '',
-                    batchId: '', fingerlingsCount: 0
-                });
-                setSelectedBatch(null);
-                setShowSuccess(false);
-            }, 3000);
+            setFormData({
+                firstname: '', lastname: '', date: '', province: '', city: '',
+                barangay: '', street: '', facilityType: '', details: '',
+                batchId: '', fingerlingsCount: 0
+            });
+            setSelectedBatch(null);
+            setErrors({});
+            onClose();
 
         } catch (error) {
             console.error('Error saving distribution:', error);
@@ -404,437 +362,551 @@ const DistributionForm: React.FC = () => {
         }
     };
 
-    // Open modal with distribution details
-    const openModal = (distribution: Distribution) => {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                <Users className="h-5 w-5 text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900">New Fingerling Distribution</h2>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                    </div>
+
+                    <div className="space-y-8">
+                        {/* Batch Selection */}
+                        <div className="bg-blue-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                Batch Information
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Batch ID</label>
+                                    <select
+                                        value={formData.batchId}
+                                        onChange={(e) => handleBatchChange(e.target.value)}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.batchId ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    >
+                                        <option value="">Select a batch</option>
+                                        {mockBatches.map(batch => (
+                                            <option key={batch.id} value={batch.id}>
+                                                {batch.id} - {batch.name} (Available: {batch.remainingFingerlings})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.batchId && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.batchId}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Fish className="h-4 w-4" />
+                                        Fingerlings Count (Auto-filled)
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={formData.fingerlingsCount || ''}
+                                            readOnly
+                                            placeholder="Will be auto-filled when batch is selected"
+                                            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                        />
+                                        {selectedBatch && (
+                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {selectedBatch && (
+                                        <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                                            <CheckCircle className="h-4 w-4" />
+                                            Automatically assigned: {selectedBatch.remainingFingerlings} fingerlings
+                                        </p>
+                                    )}
+                                    {!selectedBatch && (
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Select a batch to automatically fill fingerlings count
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Beneficiary Information */}
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <User className="h-5 w-5" />
+                                Beneficiary Information
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Firstname</label>
+                                    <input
+                                        type="text"
+                                        value={formData.firstname}
+                                        onChange={(e) => handleInputChange('firstname', e.target.value)}
+                                        placeholder="Enter firstname"
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.firstname ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.firstname && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.firstname}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Lastname</label>
+                                    <input
+                                        type="text"
+                                        value={formData.lastname}
+                                        onChange={(e) => handleInputChange('lastname', e.target.value)}
+                                        placeholder="Enter lastname"
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.lastname ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.lastname && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.lastname}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Location Information */}
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <MapPin className="h-5 w-5" />
+                                Location Details
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
+                                    <select
+                                        value={formData.province}
+                                        onChange={(e) => handleInputChange('province', e.target.value)}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.province ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    >
+                                        <option value="">Select province</option>
+                                        {Object.keys(davaoRegionLocations).map(province => (
+                                            <option key={province} value={province}>{province}</option>
+                                        ))}
+                                    </select>
+                                    {errors.province && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.province}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                    <select
+                                        value={formData.city}
+                                        onChange={(e) => handleInputChange('city', e.target.value)}
+                                        disabled={!formData.province}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            } ${!formData.province ? 'bg-gray-100' : ''}`}
+                                    >
+                                        <option value="">Select city</option>
+                                        {getAvailableCities().map(city => (
+                                            <option key={city} value={city}>{city}</option>
+                                        ))}
+                                    </select>
+                                    {errors.city && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.city}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Barangay</label>
+                                    <select
+                                        value={formData.barangay}
+                                        onChange={(e) => handleInputChange('barangay', e.target.value)}
+                                        disabled={!formData.city}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.barangay ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            } ${!formData.city ? 'bg-gray-100' : ''}`}
+                                    >
+                                        <option value="">Select barangay</option>
+                                        {getAvailableBarangays().map((barangay: string): JSX.Element => (
+                                            <option key={barangay} value={barangay}>{barangay}</option>
+                                        ))}
+                                    </select>
+                                    {errors.barangay && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.barangay}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Street / Purok</label>
+                                    <input
+                                        type="text"
+                                        value={formData.street}
+                                        onChange={(e) => handleInputChange('street', e.target.value)}
+                                        placeholder="Enter street or purok"
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.street ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.street && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.street}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Facility and Additional Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                    <Building2 className="h-4 w-4" />
+                                    Facility Type
+                                </label>
+                                <div className="space-y-3">
+                                    {['Fish Cage', 'Pond'].map(type => (
+                                        <label key={type} className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="facilityType"
+                                                value={type}
+                                                checked={formData.facilityType === type}
+                                                onChange={(e) => handleInputChange('facilityType', e.target.value)}
+                                                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700">{type}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                {errors.facilityType && (
+                                    <div className="flex items-center gap-1 mt-2">
+                                        <AlertCircle className="h-4 w-4 text-red-500" />
+                                        <span className="text-sm text-red-600">{errors.facilityType}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <Calendar className="h-4 w-4" />
+                                    Distribution Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => handleInputChange('date', e.target.value)}
+                                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.date ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                        }`}
+                                />
+                                {errors.date && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <AlertCircle className="h-4 w-4 text-red-500" />
+                                        <span className="text-sm text-red-600">{errors.date}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Details */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <FileText className="h-4 w-4" />
+                                Additional Details
+                            </label>
+                            <textarea
+                                value={formData.details}
+                                onChange={(e) => handleInputChange('details', e.target.value)}
+                                placeholder="Enter additional details about the distribution"
+                                rows={4}
+                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${errors.details ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                    }`}
+                            />
+                            {errors.details && (
+                                <div className="flex items-center gap-1 mt-1">
+                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <span className="text-sm text-red-600">{errors.details}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-center gap-4 pt-4">
+                            <button
+                                onClick={onClose}
+                                className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-12 py-3 rounded-lg transition-colors duration-300 flex items-center gap-3 font-semibold"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                        Saving Distribution...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="h-5 w-5" />
+                                        Save Distribution
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DistributionForm: React.FC = () => {
+    const { unreadCount } = useNotification();
+    const { isLoading, isAuthenticated, logout } = withAuth({
+        userType: "admin",
+        redirectTo: "/signin",
+    });
+
+    // State management
+    const [distributions, setDistributions] = useState<Distribution[]>([]);
+    const [showFormModal, setShowFormModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedDistribution, setSelectedDistribution] = useState<Distribution | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <FullScreenLoader />
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+                <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-md text-center">
+                    <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-red-50 mb-6">
+                        <Users className="h-8 w-8 text-red-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">
+                        Access Denied
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                        {!isAuthenticated
+                            ? "Your account doesn't have access to this area"
+                            : "Invalid role for this section"}
+                    </p>
+                    <button
+                        onClick={logout}
+                        className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300 focus:ring-4 focus:ring-blue-200 focus:outline-none"
+                    >
+                        Return to Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Handle saving new distribution
+    const handleSaveDistribution = (newDistribution: Distribution) => {
+        setDistributions(prev => [...prev, newDistribution]);
+        setShowSuccess(true);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+            setShowSuccess(false);
+        }, 3000);
+    };
+
+    // Open detail modal
+    const openDetailModal = (distribution: Distribution) => {
         setSelectedDistribution(distribution);
-        setShowModal(true);
+        setShowDetailModal(true);
     };
 
     return (
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
-            <div className="grid grid-cols-6 place-items-center p-5 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
-                <div className="col-start-1 sm:col-start-1 md:col-start-1 lg:col-start-2 xl:col-start-2 col-span-6 overflow-y-auto px-0 pt-14 pb-8 sm:px-6 sm:py-8">
-                    <div className="bg-white max-w-full rounded-xl shadow-lg border border-gray-200">
-                        {/* Success Message */}
-                        {showSuccess && (
-                            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                                <p className="text-green-800 font-medium">Distribution saved successfully!</p>
-                            </div>
-                        )}
-                        <div className="p-6">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                                    <Users className="h-5 w-5 text-white" />
-                                </div>
-                                <h1 className="text-2xl font-bold text-gray-900">New Fingerling Distribution</h1>
-                            </div>
+            <div className="grid grid-cols-6 p-5 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
+                <div className="col-start-1 sm:col-start-1 md:col-start-1 lg:col-start-2 xl:col-start-2 col-span-6 overflow-y-auto px-0 pt-14 pb-8 sm:px-6 sm:py-8 w-full">
 
-                            <div className="space-y-8">
-                                {/* Batch Selection */}
-                                <div className="bg-blue-50 rounded-lg p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                        Batch Information
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Batch ID</label>
-                                            <select
-                                                value={formData.batchId}
-                                                onChange={(e) => handleBatchChange(e.target.value)}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.batchId ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    }`}
-                                            >
-                                                <option value="">Select a batch</option>
-                                                {mockBatches.map(batch => (
-                                                    <option key={batch.id} value={batch.id}>
-                                                        {batch.id} - {batch.name} (Available: {batch.remainingFingerlings})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.batchId && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.batchId}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                                <Fish className="h-4 w-4" />
-                                                Fingerlings Count (Auto-filled)
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    type="number"
-                                                    value={formData.fingerlingsCount || ''}
-                                                    readOnly
-                                                    placeholder="Will be auto-filled when batch is selected"
-                                                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
-                                                />
-                                                {selectedBatch && (
-                                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                                        <CheckCircle className="h-5 w-5 text-green-500" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {selectedBatch && (
-                                                <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
-                                                    <CheckCircle className="h-4 w-4" />
-                                                    Automatically assigned: {selectedBatch.remainingFingerlings} fingerlings
-                                                </p>
-                                            )}
-                                            {!selectedBatch && (
-                                                <p className="text-sm text-gray-500 mt-1">
-                                                    Select a batch to automatically fill fingerlings count
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Beneficiary Information */}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                        <User className="h-5 w-5" />
-                                        Beneficiary Information
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Firstname</label>
-                                            <input
-                                                type="text"
-                                                value={formData.firstname}
-                                                onChange={(e) => handleInputChange('firstname', e.target.value)}
-                                                placeholder="Enter firstname"
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.firstname ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    }`}
-                                            />
-                                            {errors.firstname && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.firstname}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Lastname</label>
-                                            <input
-                                                type="text"
-                                                value={formData.lastname}
-                                                onChange={(e) => handleInputChange('lastname', e.target.value)}
-                                                placeholder="Enter lastname"
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.lastname ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    }`}
-                                            />
-                                            {errors.lastname && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.lastname}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Location Information */}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                        <MapPin className="h-5 w-5" />
-                                        Location Details
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
-                                            <select
-                                                value={formData.province}
-                                                onChange={(e) => handleInputChange('province', e.target.value)}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.province ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    }`}
-                                            >
-                                                <option value="">Select province</option>
-                                                {Object.keys(davaoRegionLocations).map(province => (
-                                                    <option key={province} value={province}>{province}</option>
-                                                ))}
-                                            </select>
-                                            {errors.province && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.province}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                                            <select
-                                                value={formData.city}
-                                                onChange={(e) => handleInputChange('city', e.target.value)}
-                                                disabled={!formData.province}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    } ${!formData.province ? 'bg-gray-100' : ''}`}
-                                            >
-                                                <option value="">Select city</option>
-                                                {getAvailableCities().map(city => (
-                                                    <option key={city} value={city}>{city}</option>
-                                                ))}
-                                            </select>
-                                            {errors.city && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.city}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Barangay</label>
-                                            <select
-                                                value={formData.barangay}
-                                                onChange={(e) => handleInputChange('barangay', e.target.value)}
-                                                disabled={!formData.city}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.barangay ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    } ${!formData.city ? 'bg-gray-100' : ''}`}
-                                            >
-                                                <option value="">Select barangay</option>
-                                                {getAvailableBarangays().map((barangay: string): JSX.Element => (
-                                                    <option key={barangay} value={barangay}>{barangay}</option>
-                                                ))}
-                                            </select>
-                                            {errors.barangay && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.barangay}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Street / Purok</label>
-                                            <input
-                                                type="text"
-                                                value={formData.street}
-                                                onChange={(e) => handleInputChange('street', e.target.value)}
-                                                placeholder="Enter street or purok"
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.street ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    }`}
-                                            />
-                                            {errors.street && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.street}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Facility and Additional Info */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                                            <Building2 className="h-4 w-4" />
-                                            Facility Type
-                                        </label>
-                                        <div className="space-y-3">
-                                            {['Fish Cage', 'Pond'].map(type => (
-                                                <label key={type} className="flex items-center gap-3 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="facilityType"
-                                                        value={type}
-                                                        checked={formData.facilityType === type}
-                                                        onChange={(e) => handleInputChange('facilityType', e.target.value)}
-                                                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                                    />
-                                                    <span className="text-sm text-gray-700">{type}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                        {errors.facilityType && (
-                                            <div className="flex items-center gap-1 mt-2">
-                                                <AlertCircle className="h-4 w-4 text-red-500" />
-                                                <span className="text-sm text-red-600">{errors.facilityType}</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                            <Calendar className="h-4 w-4" />
-                                            Distribution Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={formData.date}
-                                            onChange={(e) => handleInputChange('date', e.target.value)}
-                                            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.date ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                }`}
-                                        />
-                                        {errors.date && (
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <AlertCircle className="h-4 w-4 text-red-500" />
-                                                <span className="text-sm text-red-600">{errors.date}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Details */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                        <FileText className="h-4 w-4" />
-                                        Additional Details
-                                    </label>
-                                    <textarea
-                                        value={formData.details}
-                                        onChange={(e) => handleInputChange('details', e.target.value)}
-                                        placeholder="Enter additional details about the distribution"
-                                        rows={4}
-                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${errors.details ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                            }`}
-                                    />
-                                    {errors.details && (
-                                        <div className="flex items-center gap-1 mt-1">
-                                            <AlertCircle className="h-4 w-4 text-red-500" />
-                                            <span className="text-sm text-red-600">{errors.details}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex justify-center pt-4">
-                                    <button
-                                        onClick={handleSubmit}
-                                        disabled={isSubmitting}
-                                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-12 py-4 rounded-lg transition-colors duration-300 flex items-center gap-3 font-semibold text-lg"
-                                    >
-                                        {isSubmitting ? (
-                                            <>
-                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                                Saving Distribution...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Save className="h-5 w-5" />
-                                                Save Distribution
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Distribution Display - Responsive */}
-                    {distributions.length > 0 && (
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 mt-8">
-                            <div className="p-6">
-                                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                    <Fish className="h-6 w-6" />
-                                    Fingerling Distributions
-                                </h2>
-
-                                {/* Desktop Table - Hidden on mobile */}
-                                <div className="hidden lg:block overflow-x-auto">
-                                    <table className="w-full table-auto">
-                                        <thead>
-                                            <tr className="bg-gray-50">
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Beneficiary</th>
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batch ID</th>
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Fingerlings</th>
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Location</th>
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Forecast</th>
-                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
-                                                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {distributions.map((dist) => (
-                                                <tr key={dist.id} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
-                                                    <td className="px-4 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title={dist.location}>
-                                                        {dist.location}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">{dist.facilityType}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">{dist.date}</td>
-                                                    <td className="px-4 py-3 text-sm text-amber-600">{dist.forecast}</td>
-                                                    <td className="px-4 py-3 text-sm text-green-600">{dist.harvestDate}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <button
-                                                            onClick={() => openModal(dist)}
-                                                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
-                                                            title="View Details"
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Tablet Table - Condensed version */}
-                                <div className="hidden md:block lg:hidden overflow-x-auto">
-                                    <table className="w-full table-auto">
-                                        <thead>
-                                            <tr className="bg-gray-50">
-                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Beneficiary</th>
-                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Batch</th>
-                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Count</th>
-                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
-                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                                                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
-                                                <th className="px-3 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {distributions.map((dist) => (
-                                                <tr key={dist.id} className="hover:bg-gray-50">
-                                                    <td className="px-3 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
-                                                    <td className="px-3 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
-                                                    <td className="px-3 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
-                                                    <td className="px-3 py-3 text-sm text-gray-900">{dist.facilityType}</td>
-                                                    <td className="px-3 py-3 text-sm text-gray-900">{dist.date}</td>
-                                                    <td className="px-3 py-3 text-sm text-green-600">{dist.harvestDate}</td>
-                                                    <td className="px-3 py-3 text-center">
-                                                        <button
-                                                            onClick={() => openModal(dist)}
-                                                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
-                                                            title="View Details"
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Mobile Cards - Shown only on mobile */}
-                                <div className="block md:hidden">
-                                    {distributions.map((dist) => (
-                                        <DistributionCard
-                                            key={dist.id}
-                                            distribution={dist}
-                                            onViewDetails={() => openModal(dist)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
+                    {/* Success Message */}
+                    {showSuccess && (
+                        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <p className="text-green-800 font-medium">Distribution saved successfully!</p>
                         </div>
                     )}
 
+                    {/* Main Content */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                        <div className="p-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                        <Fish className="h-5 w-5 text-white" />
+                                    </div>
+                                    <h1 className="text-2xl font-bold text-gray-900">Fingerling Distributions</h1>
+                                </div>
+                                <button
+                                    onClick={() => setShowFormModal(true)}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-300 flex items-center gap-2 font-semibold"
+                                >
+                                    <Plus className="h-5 w-5" />
+                                    Add New Distribution
+                                </button>
+                            </div>
+
+                            {/* Distribution Table/List */}
+                            {distributions.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Fish className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Distributions Yet</h3>
+                                    <p className="text-gray-500 mb-6">Start by adding your first fingerling distribution</p>
+                                    <button
+                                        onClick={() => setShowFormModal(true)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-300 flex items-center gap-2 font-semibold mx-auto"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                        Add New Distribution
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Desktop Table - Hidden on mobile */}
+                                    <div className="hidden lg:block overflow-x-auto">
+                                        <table className="w-full table-auto">
+                                            <thead>
+                                                <tr className="bg-gray-50">
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Beneficiary</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batch ID</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Fingerlings</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Location</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Forecast</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
+                                                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {distributions.map((dist) => (
+                                                    <tr key={dist.id} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
+                                                        <td className="px-4 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title={dist.location}>
+                                                            {dist.location}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">{dist.facilityType}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">{dist.date}</td>
+                                                        <td className="px-4 py-3 text-sm text-amber-600">{dist.forecast}</td>
+                                                        <td className="px-4 py-3 text-sm text-green-600">{dist.harvestDate}</td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <button
+                                                                onClick={() => openDetailModal(dist)}
+                                                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
+                                                                title="View Details"
+                                                            >
+                                                                <Eye className="h-4 w-4" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Tablet Table - Condensed version */}
+                                    <div className="hidden md:block lg:hidden overflow-x-auto">
+                                        <table className="w-full table-auto">
+                                            <thead>
+                                                <tr className="bg-gray-50">
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Beneficiary</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Batch</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Count</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
+                                                    <th className="px-3 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {distributions.map((dist) => (
+                                                    <tr key={dist.id} className="hover:bg-gray-50">
+                                                        <td className="px-3 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
+                                                        <td className="px-3 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
+                                                        <td className="px-3 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
+                                                        <td className="px-3 py-3 text-sm text-gray-900">{dist.facilityType}</td>
+                                                        <td className="px-3 py-3 text-sm text-gray-900">{dist.date}</td>
+                                                        <td className="px-3 py-3 text-sm text-green-600">{dist.harvestDate}</td>
+                                                        <td className="px-3 py-3 text-center">
+                                                            <button
+                                                                onClick={() => openDetailModal(dist)}
+                                                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
+                                                                title="View Details"
+                                                            >
+                                                                <Eye className="h-4 w-4" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Mobile Cards - Shown only on mobile */}
+                                    <div className="block md:hidden">
+                                        {distributions.map((dist) => (
+                                            <DistributionCard
+                                                key={dist.id}
+                                                distribution={dist}
+                                                onViewDetails={() => openDetailModal(dist)}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Form Modal */}
+                    <DistributionFormModal
+                        isOpen={showFormModal}
+                        onClose={() => setShowFormModal(false)}
+                        onSave={handleSaveDistribution}
+                    />
+
                     {/* Detail Modal */}
-                    {showModal && selectedDistribution && (
+                    {showDetailModal && selectedDistribution && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                                 <div className="p-6">
@@ -844,7 +916,7 @@ const DistributionForm: React.FC = () => {
                                             Distribution Details
                                         </h3>
                                         <button
-                                            onClick={() => setShowModal(false)}
+                                            onClick={() => setShowDetailModal(false)}
                                             className="text-gray-400 hover:text-gray-600 p-1"
                                         >
                                             <X className="h-6 w-6" />
@@ -875,7 +947,7 @@ const DistributionForm: React.FC = () => {
 
                                     <div className="flex justify-end mt-6">
                                         <button
-                                            onClick={() => setShowModal(false)}
+                                            onClick={() => setShowDetailModal(false)}
                                             className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
                                         >
                                             Close
