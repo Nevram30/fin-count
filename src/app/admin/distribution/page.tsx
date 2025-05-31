@@ -56,14 +56,6 @@ interface FormErrors {
 const mockBatches: Batch[] = [
     { id: "BATCH-001", name: "Tilapia Batch Jan 2024", totalFingerlings: 5000, remainingFingerlings: 3500 },
     { id: "BATCH-002", name: "Bangus Batch Feb 2024", totalFingerlings: 3000, remainingFingerlings: 2800 },
-    { id: "BATCH-003", name: "Carp Batch Mar 2024", totalFingerlings: 4000, remainingFingerlings: 4000 },
-    { id: "BATCH-004", name: "Goldfish Batch Apr 2024", totalFingerlings: 2500, remainingFingerlings: 1850 },
-    { id: "BATCH-005", name: "Catfish Batch May 2024", totalFingerlings: 6000, remainingFingerlings: 5200 },
-    { id: "BATCH-006", name: "Trout Batch Jun 2024", totalFingerlings: 1800, remainingFingerlings: 1800 },
-    { id: "BATCH-007", name: "Salmon Batch Jul 2024", totalFingerlings: 3500, remainingFingerlings: 2950 },
-    { id: "BATCH-008", name: "Bass Batch Aug 2024", totalFingerlings: 2200, remainingFingerlings: 1100 },
-    { id: "BATCH-009", name: "Tuna Batch Sep 2024", totalFingerlings: 1500, remainingFingerlings: 1500 },
-    { id: "BATCH-010", name: "Mackerel Batch Oct 2024", totalFingerlings: 4500, remainingFingerlings: 3200 },
 ];
 
 // Define type for locations
