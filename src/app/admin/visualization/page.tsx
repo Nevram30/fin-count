@@ -272,7 +272,7 @@ const HarvestForecast: React.FC = () => {
 
                                 {/* Date and Quantity Row */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                                    <div>
+                                    {/* <div>
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                             <Calendar className="h-4 w-4" />
                                             Date
@@ -283,10 +283,10 @@ const HarvestForecast: React.FC = () => {
                                             onChange={(e) => handleInputChange('date', e.target.value)}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         />
-                                    </div>
+                                    </div> */}
 
                                     <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <label className="flex items-end gap-2 text-sm font-medium text-gray-700 mb-2">
                                             <BarChart3 className="h-4 w-4" />
                                             Quantity
                                         </label>
