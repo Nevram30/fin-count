@@ -1,31 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle } from "lucide-react";
+import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
-
-// Types
-interface DistributionForm {
-    firstname: string;
-    lastname: string;
-    date: string;
-    location: string;
-    facilityType: 'Fish Cage' | 'Pond' | '';
-    details: string;
-}
-
-interface FormErrors {
-    firstname?: string;
-    lastname?: string;
-    date?: string;
-    location?: string;
-    facilityType?: string;
-    details?: string;
-}
 
 const FullScreenLoader = () => (
     <div className="flex items-center justify-center">
@@ -33,139 +14,107 @@ const FullScreenLoader = () => (
     </div>
 );
 
-const Distribution: React.FC = () => {
+// Types
+interface DistributionForm {
+    firstname: string;
+    lastname: string;
+    date: string;
+    province: string;
+    city: string;
+    barangay: string;
+    street: string;
+    facilityType: 'Fish Cage' | 'Pond' | '';
+    details: string;
+    batchId: string;
+    fingerlingsCount: number;
+}
+
+interface Batch {
+    id: string;
+    name: string;
+    totalFingerlings: number;
+    remainingFingerlings: number;
+}
+
+interface Distribution {
+    id: string;
+    beneficiary: string;
+    batchId: string;
+    fingerlingsCount: number;
+    location: string;
+    facilityType: string;
+    date: string;
+    forecast: string;
+    harvestDate: string;
+}
+
+interface FormErrors {
+    [key: string]: string;
+}
+
+// Mock data for batches
+const mockBatches: Batch[] = [
+    { id: "BATCH-001", name: "Tilapia Batch Jan 2024", totalFingerlings: 5000, remainingFingerlings: 3500 },
+    { id: "BATCH-002", name: "Bangus Batch Feb 2024", totalFingerlings: 3000, remainingFingerlings: 2800 },
+    { id: "BATCH-003", name: "Carp Batch Mar 2024", totalFingerlings: 4000, remainingFingerlings: 4000 },
+];
+
+// Define type for locations
+type LocationData = {
+    [province: string]: {
+        [city: string]: string[];
+    };
+};
+
+// Philippine locations data
+const philippineLocations: LocationData = {
+    "Metro Manila": {
+        "Manila": ["Binondo", "Ermita", "Intramuros", "Malate", "Paco", "Pandacan"],
+        "Quezon City": ["Bagumbayan", "Batasan Hills", "Commonwealth", "Cubao", "Diliman"],
+        "Makati": ["Bel-Air", "Forbes Park", "Legazpi Village", "Poblacion", "Salcedo Village"]
+    },
+    "Cebu": {
+        "Cebu City": ["Lahug", "Capitol Site", "Kamputhaw", "Mabolo", "Talamban"],
+        "Mandaue City": ["Alang-alang", "Banilad", "Centro", "Looc", "Tingub"],
+        "Lapu-Lapu City": ["Agus", "Babag", "Basak", "Buaya", "Canjulao"]
+    },
+    "Davao": {
+        "Davao City": ["Agdao", "Buhangin", "Bunawan", "Calinan", "Marilog"],
+        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo", "Mankilam"],
+        "Panabo City": ["Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Nanyo"]
+    }
+};
+
+const DistributionForm: React.FC = () => {
+    const { unreadCount } = useNotification();
     const { isLoading, isAuthenticated, logout } = withAuth({
         userType: "admin",
         redirectTo: "/signin",
     });
-
-    const { unreadCount } = useNotification();
-
     // Form state
     const [formData, setFormData] = useState<DistributionForm>({
         firstname: '',
         lastname: '',
         date: '',
-        location: 'Prk',
+        province: '',
+        city: '',
+        barangay: '',
+        street: '',
         facilityType: '',
-        details: ''
+        details: '',
+        batchId: '',
+        fingerlingsCount: 0
     });
 
-    // Form validation and UI state
+    // State management
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
+    const [distributions, setDistributions] = useState<Distribution[]>([]);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedDistribution, setSelectedDistribution] = useState<Distribution | null>(null);
 
-    // Location options
-    const locationOptions = [
-        'Prk',
-        'Northern Region',
-        'Southern Region',
-        'Eastern Region',
-        'Western Region',
-        'Central Region',
-        'Coastal Area'
-    ];
-
-    // Handle input changes
-    const handleInputChange = (field: keyof DistributionForm, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({
-                ...prev,
-                [field]: undefined
-            }));
-        }
-    };
-
-    // Handle facility type radio change
-    const handleFacilityTypeChange = (value: 'Fish Cage' | 'Pond') => {
-        setFormData(prev => ({
-            ...prev,
-            facilityType: value
-        }));
-
-        if (errors.facilityType) {
-            setErrors(prev => ({
-                ...prev,
-                facilityType: undefined
-            }));
-        }
-    };
-
-    // Form validation
-    const validateForm = (): boolean => {
-        const newErrors: FormErrors = {};
-
-        if (!formData.firstname.trim()) {
-            newErrors.firstname = 'Firstname is required';
-        }
-
-        if (!formData.lastname.trim()) {
-            newErrors.lastname = 'Lastname is required';
-        }
-
-        if (!formData.date) {
-            newErrors.date = 'Date is required';
-        }
-
-        if (!formData.location) {
-            newErrors.location = 'Location is required';
-        }
-
-        if (!formData.facilityType) {
-            newErrors.facilityType = 'Facility type is required';
-        }
-
-        if (!formData.details.trim()) {
-            newErrors.details = 'Details are required';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    // Handle form submission
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Show success message
-            setShowSuccess(true);
-
-            // Reset form after success
-            setTimeout(() => {
-                setFormData({
-                    firstname: '',
-                    lastname: '',
-                    date: '',
-                    location: 'Prk',
-                    facilityType: '',
-                    details: ''
-                });
-                setShowSuccess(false);
-            }, 3000);
-
-        } catch (error) {
-            console.error('Error saving distribution:', error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     if (isLoading) {
         return (
@@ -201,46 +150,250 @@ const Distribution: React.FC = () => {
         );
     }
 
+    // Get available cities based on selected province
+    const getAvailableCities = () => {
+        if (!formData.province || !philippineLocations[formData.province]) return [];
+        return Object.keys(philippineLocations[formData.province]);
+    };
+
+    // Get available barangays based on selected city
+    const getAvailableBarangays = () => {
+        if (!formData.province || !formData.city) return [];
+        const province = philippineLocations[formData.province];
+        return province && province[formData.city] ? province[formData.city] : [];
+    };
+
+    // Handle input changes
+    const handleInputChange = (field: keyof DistributionForm, value: string | number) => {
+        setFormData(prev => {
+            const newData = { ...prev, [field]: value };
+
+            // Reset dependent fields when parent location changes
+            if (field === 'province') {
+                newData.city = '';
+                newData.barangay = '';
+            } else if (field === 'city') {
+                newData.barangay = '';
+            }
+
+            return newData;
+        });
+
+        // Clear error when user starts typing
+        if (errors[field]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
+    };
+
+    // Handle batch selection
+    const handleBatchChange = (batchId: string) => {
+        const batch = mockBatches.find(b => b.id === batchId);
+        setSelectedBatch(batch || null);
+        handleInputChange('batchId', batchId);
+    };
+
+    // Form validation
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
+
+        if (!formData.firstname.trim()) newErrors.firstname = 'Firstname is required';
+        if (!formData.lastname.trim()) newErrors.lastname = 'Lastname is required';
+        if (!formData.date) newErrors.date = 'Date is required';
+        if (!formData.province) newErrors.province = 'Province is required';
+        if (!formData.city) newErrors.city = 'City is required';
+        if (!formData.barangay) newErrors.barangay = 'Barangay is required';
+        if (!formData.street.trim()) newErrors.street = 'Street/Purok is required';
+        if (!formData.facilityType) newErrors.facilityType = 'Facility type is required';
+        if (!formData.details.trim()) newErrors.details = 'Details are required';
+        if (!formData.batchId) newErrors.batchId = 'Batch ID is required';
+        if (!formData.fingerlingsCount || formData.fingerlingsCount <= 0) {
+            newErrors.fingerlingsCount = 'Valid fingerlings count is required';
+        }
+        if (selectedBatch && formData.fingerlingsCount > selectedBatch.remainingFingerlings) {
+            newErrors.fingerlingsCount = `Cannot exceed remaining fingerlings (${selectedBatch.remainingFingerlings})`;
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // Calculate forecast and harvest dates
+    const calculateDates = (distributionDate: string) => {
+        const date = new Date(distributionDate);
+        const forecastDate = new Date(date);
+        forecastDate.setMonth(date.getMonth() + 3); // 3 months for forecast
+
+        const harvestDate = new Date(date);
+        harvestDate.setMonth(date.getMonth() + 6); // 6 months for harvest
+
+        return {
+            forecast: forecastDate.toISOString().split('T')[0],
+            harvest: harvestDate.toISOString().split('T')[0]
+        };
+    };
+
+    // Handle form submission
+    const handleSubmit = async () => {
+        if (!validateForm()) return;
+
+        setIsSubmitting(true);
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const dates = calculateDates(formData.date);
+            const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
+
+            const newDistribution: Distribution = {
+                id: `DIST-${Date.now()}`,
+                beneficiary: `${formData.firstname} ${formData.lastname}`,
+                batchId: formData.batchId,
+                fingerlingsCount: formData.fingerlingsCount,
+                location,
+                facilityType: formData.facilityType,
+                date: formData.date,
+                forecast: dates.forecast,
+                harvestDate: dates.harvest
+            };
+
+            setDistributions(prev => [...prev, newDistribution]);
+
+            // Update batch remaining fingerlings
+            if (selectedBatch) {
+                selectedBatch.remainingFingerlings -= formData.fingerlingsCount;
+            }
+
+            setShowSuccess(true);
+
+            // Reset form
+            setTimeout(() => {
+                setFormData({
+                    firstname: '', lastname: '', date: '', province: '', city: '',
+                    barangay: '', street: '', facilityType: '', details: '',
+                    batchId: '', fingerlingsCount: 0
+                });
+                setSelectedBatch(null);
+                setShowSuccess(false);
+            }, 3000);
+
+        } catch (error) {
+            console.error('Error saving distribution:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Open modal with distribution details
+    const openModal = (distribution: Distribution) => {
+        setSelectedDistribution(distribution);
+        setShowModal(true);
+    };
+
     return (
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
-            <div className="grid grid-cols-6 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
+            <div className="grid grid-cols-6 place-items-center p-5 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
                 <div className="col-start-2 col-span-5 overflow-y-auto">
-                    <div className="max-w-4xl mx-auto px-6 py-8">
-                        {/* Success Message */}
-                        {showSuccess && (
-                            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                                <p className="text-green-800 font-medium">Distribution saved successfully!</p>
-                            </div>
-                        )}
+                    {/* Success Message */}
+                    {showSuccess && (
+                        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <p className="text-green-800 font-medium">Distribution saved successfully!</p>
+                        </div>
+                    )}
 
-                        {/* New Distribution Form */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                            <div className="p-6">
-                                {/* Header */}
-                                <div className="flex items-center gap-3 mb-8">
-                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                        <Users className="h-4 w-4 text-white" />
-                                    </div>
-                                    <h1 className="text-xl font-semibold text-gray-900">New Distribution</h1>
+                    {/* New Distribution Form */}
+                    <div className="bg-white max-w-7xl rounded-xl shadow-lg border border-gray-200 mb-5">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <Users className="h-5 w-5 text-white" />
                                 </div>
+                                <h1 className="text-2xl font-bold text-gray-900">New Fingerling Distribution</h1>
+                            </div>
 
-                                <form onSubmit={handleSubmit} className="space-y-6">
-                                    {/* First Row - Firstname and Location */}
+                            <div className="space-y-8">
+                                {/* Batch Selection */}
+                                <div className="bg-blue-50 rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                        <Hash className="h-5 w-5" />
+                                        Batch Information
+                                    </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Firstname */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Batch ID</label>
+                                            <select
+                                                value={formData.batchId}
+                                                onChange={(e) => handleBatchChange(e.target.value)}
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.batchId ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    }`}
+                                            >
+                                                <option value="">Select a batch</option>
+                                                {mockBatches.map(batch => (
+                                                    <option key={batch.id} value={batch.id}>
+                                                        {batch.id} - {batch.name} (Available: {batch.remainingFingerlings})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.batchId && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                    <span className="text-sm text-red-600">{errors.batchId}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div>
                                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                                <User className="h-4 w-4" />
-                                                Firstname
+                                                <Fish className="h-4 w-4" />
+                                                Fingerlings Count
                                             </label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={selectedBatch?.remainingFingerlings || 0}
+                                                value={formData.fingerlingsCount || ''}
+                                                onChange={(e) => handleInputChange('fingerlingsCount', parseInt(e.target.value) || 0)}
+                                                placeholder="Enter fingerlings count"
+                                                disabled={!selectedBatch}
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.fingerlingsCount ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    } ${!selectedBatch ? 'bg-gray-100' : ''}`}
+                                            />
+                                            {selectedBatch && (
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    Available: {selectedBatch.remainingFingerlings} fingerlings
+                                                </p>
+                                            )}
+                                            {errors.fingerlingsCount && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                    <span className="text-sm text-red-600">{errors.fingerlingsCount}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Beneficiary Information */}
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                        <User className="h-5 w-5" />
+                                        Beneficiary Information
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Firstname</label>
                                             <input
                                                 type="text"
                                                 value={formData.firstname}
                                                 onChange={(e) => handleInputChange('firstname', e.target.value)}
                                                 placeholder="Enter firstname"
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.firstname ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.firstname ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                                     }`}
                                             />
                                             {errors.firstname && (
@@ -251,45 +404,14 @@ const Distribution: React.FC = () => {
                                             )}
                                         </div>
 
-                                        {/* Location */}
                                         <div>
-                                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                                <MapPin className="h-4 w-4" />
-                                                Location
-                                            </label>
-                                            <select
-                                                value={formData.location}
-                                                onChange={(e) => handleInputChange('location', e.target.value)}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.location ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    }`}
-                                            >
-                                                {locationOptions.map(option => (
-                                                    <option key={option} value={option}>{option}</option>
-                                                ))}
-                                            </select>
-                                            {errors.location && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.location}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Second Row - Lastname and Facility Type */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Lastname */}
-                                        <div>
-                                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                                <User className="h-4 w-4" />
-                                                Lastname
-                                            </label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Lastname</label>
                                             <input
                                                 type="text"
                                                 value={formData.lastname}
                                                 onChange={(e) => handleInputChange('lastname', e.target.value)}
                                                 placeholder="Enter lastname"
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.lastname ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.lastname ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                                     }`}
                                             />
                                             {errors.lastname && (
@@ -299,130 +421,319 @@ const Distribution: React.FC = () => {
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* Facility Type */}
-                                        <div>
-                                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                                                <Building2 className="h-4 w-4" />
-                                                Facility Type
-                                            </label>
-                                            <div className="space-y-3">
-                                                <label className="flex items-center gap-3 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="facilityType"
-                                                        value="Fish Cage"
-                                                        checked={formData.facilityType === 'Fish Cage'}
-                                                        onChange={() => handleFacilityTypeChange('Fish Cage')}
-                                                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                                    />
-                                                    <span className="text-sm text-gray-700">Fish Cage</span>
-                                                </label>
-                                                <label className="flex items-center gap-3 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="facilityType"
-                                                        value="Pond"
-                                                        checked={formData.facilityType === 'Pond'}
-                                                        onChange={() => handleFacilityTypeChange('Pond')}
-                                                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                                    />
-                                                    <span className="text-sm text-gray-700">Pond</span>
-                                                </label>
-                                            </div>
-                                            {errors.facilityType && (
-                                                <div className="flex items-center gap-1 mt-2">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.facilityType}</span>
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
+                                </div>
 
-                                    {/* Third Row - Date and Details */}
+                                {/* Location Information */}
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                        <MapPin className="h-5 w-5" />
+                                        Location Details
+                                    </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Date */}
                                         <div>
-                                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                                <Calendar className="h-4 w-4" />
-                                                Date
-                                            </label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
+                                            <select
+                                                value={formData.province}
+                                                onChange={(e) => handleInputChange('province', e.target.value)}
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.province ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    }`}
+                                            >
+                                                <option value="">Select province</option>
+                                                {Object.keys(philippineLocations).map(province => (
+                                                    <option key={province} value={province}>{province}</option>
+                                                ))}
+                                            </select>
+                                            {errors.province && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                    <span className="text-sm text-red-600">{errors.province}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                            <select
+                                                value={formData.city}
+                                                onChange={(e) => handleInputChange('city', e.target.value)}
+                                                disabled={!formData.province}
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    } ${!formData.province ? 'bg-gray-100' : ''}`}
+                                            >
+                                                <option value="">Select city</option>
+                                                {getAvailableCities().map(city => (
+                                                    <option key={city} value={city}>{city}</option>
+                                                ))}
+                                            </select>
+                                            {errors.city && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                    <span className="text-sm text-red-600">{errors.city}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Barangay</label>
+                                            <select
+                                                value={formData.barangay}
+                                                onChange={(e) => handleInputChange('barangay', e.target.value)}
+                                                disabled={!formData.city}
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.barangay ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    } ${!formData.city ? 'bg-gray-100' : ''}`}
+                                            >
+                                                <option value="">Select barangay</option>
+                                                {getAvailableBarangays().map((barangay: string): JSX.Element => (
+                                                    <option key={barangay} value={barangay}>{barangay}</option>
+                                                ))}
+                                            </select>
+                                            {errors.barangay && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                    <span className="text-sm text-red-600">{errors.barangay}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Street / Purok</label>
                                             <input
-                                                type="date"
-                                                value={formData.date}
-                                                onChange={(e) => handleInputChange('date', e.target.value)}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.date ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                type="text"
+                                                value={formData.street}
+                                                onChange={(e) => handleInputChange('street', e.target.value)}
+                                                placeholder="Enter street or purok"
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.street ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                                     }`}
                                             />
-                                            {errors.date && (
+                                            {errors.street && (
                                                 <div className="flex items-center gap-1 mt-1">
                                                     <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.date}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Details */}
-                                        <div>
-                                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                                <FileText className="h-4 w-4" />
-                                                Details
-                                            </label>
-                                            <textarea
-                                                value={formData.details}
-                                                onChange={(e) => handleInputChange('details', e.target.value)}
-                                                placeholder="Enter additional details"
-                                                rows={4}
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${errors.details ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                    }`}
-                                            />
-                                            {errors.details && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.details}</span>
+                                                    <span className="text-sm text-red-600">{errors.street}</span>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* Submit Button */}
-                                    <div className="flex justify-center pt-4">
-                                        <button
-                                            type="submit"
-                                            disabled={isSubmitting}
-                                            className="bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-colors duration-300 flex items-center gap-2 font-medium"
-                                        >
-                                            {isSubmitting ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                    Saving...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Save className="h-4 w-4" />
-                                                    Save Distribution
-                                                </>
-                                            )}
-                                        </button>
+                                {/* Facility and Additional Info */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                            <Building2 className="h-4 w-4" />
+                                            Facility Type
+                                        </label>
+                                        <div className="space-y-3">
+                                            {['Fish Cage', 'Pond'].map(type => (
+                                                <label key={type} className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="facilityType"
+                                                        value={type}
+                                                        checked={formData.facilityType === type}
+                                                        onChange={(e) => handleInputChange('facilityType', e.target.value)}
+                                                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-sm text-gray-700">{type}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {errors.facilityType && (
+                                            <div className="flex items-center gap-1 mt-2">
+                                                <AlertCircle className="h-4 w-4 text-red-500" />
+                                                <span className="text-sm text-red-600">{errors.facilityType}</span>
+                                            </div>
+                                        )}
                                     </div>
-                                </form>
+
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <Calendar className="h-4 w-4" />
+                                            Distribution Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.date}
+                                            onChange={(e) => handleInputChange('date', e.target.value)}
+                                            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.date ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                }`}
+                                        />
+                                        {errors.date && (
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <AlertCircle className="h-4 w-4 text-red-500" />
+                                                <span className="text-sm text-red-600">{errors.date}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Details */}
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <FileText className="h-4 w-4" />
+                                        Additional Details
+                                    </label>
+                                    <textarea
+                                        value={formData.details}
+                                        onChange={(e) => handleInputChange('details', e.target.value)}
+                                        placeholder="Enter additional details about the distribution"
+                                        rows={4}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${errors.details ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.details && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.details}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-center pt-4">
+                                    <button
+                                        onClick={handleSubmit}
+                                        disabled={isSubmitting}
+                                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-12 py-4 rounded-lg transition-colors duration-300 flex items-center gap-3 font-semibold text-lg"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                                Saving Distribution...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="h-5 w-5" />
+                                                Save Distribution
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* Distribution Table */}
+                    {distributions.length > 0 && (
+                        <div className="bg-white max-w-7xl rounded-xl shadow-lg border border-gray-200">
+                            <div className="p-6">
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <Fish className="h-6 w-6" />
+                                    Fingerling Distributions
+                                </h2>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full table-auto">
+                                        <thead>
+                                            <tr className="bg-gray-50">
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Beneficiary</th>
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batch ID</th>
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Fingerlings</th>
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Location</th>
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Forecast</th>
+                                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
+                                                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {distributions.map((dist) => (
+                                                <tr key={dist.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
+                                                    <td className="px-4 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title={dist.location}>
+                                                        {dist.location}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">{dist.facilityType}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">{dist.date}</td>
+                                                    <td className="px-4 py-3 text-sm text-amber-600">{dist.forecast}</td>
+                                                    <td className="px-4 py-3 text-sm text-green-600">{dist.harvestDate}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <button
+                                                            onClick={() => openModal(dist)}
+                                                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Detail Modal */}
+                    {showModal && selectedDistribution && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                                <div className="p-6">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                            <User className="h-6 w-6" />
+                                            Distribution Details
+                                        </h3>
+                                        <button
+                                            onClick={() => setShowModal(false)}
+                                            className="text-gray-400 hover:text-gray-600 p-1"
+                                        >
+                                            <X className="h-6 w-6" />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="bg-blue-50 rounded-lg p-4">
+                                            <h4 className="font-semibold text-blue-900 mb-2">Beneficiary Information</h4>
+                                            <p className="text-blue-800"><strong>Name:</strong> {selectedDistribution.beneficiary}</p>
+                                            <p className="text-blue-800"><strong>Location:</strong> {selectedDistribution.location}</p>
+                                            <p className="text-blue-800"><strong>Facility Type:</strong> {selectedDistribution.facilityType}</p>
+                                        </div>
+
+                                        <div className="bg-green-50 rounded-lg p-4">
+                                            <h4 className="font-semibold text-green-900 mb-2">Distribution Details</h4>
+                                            <p className="text-green-800"><strong>Batch ID:</strong> {selectedDistribution.batchId}</p>
+                                            <p className="text-green-800"><strong>Fingerlings Count:</strong> {selectedDistribution.fingerlingsCount.toLocaleString()}</p>
+                                            <p className="text-green-800"><strong>Distribution Date:</strong> {selectedDistribution.date}</p>
+                                        </div>
+
+                                        <div className="bg-amber-50 rounded-lg p-4">
+                                            <h4 className="font-semibold text-amber-900 mb-2">Timeline</h4>
+                                            <p className="text-amber-800"><strong>Forecast Date:</strong> {selectedDistribution.forecast}</p>
+                                            <p className="text-amber-800"><strong>Expected Harvest:</strong> {selectedDistribution.harvestDate}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end mt-6">
+                                        <button
+                                            onClick={() => setShowModal(false)}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </>
     );
 };
 
+
 // Main App Component with LogoutProvider wrapper
 const App: React.FC = () => {
     return (
         <LogoutProvider>
-            <Distribution />
+            <DistributionForm />
             <LogoutModal />
         </LogoutProvider>
     );
 };
 
 export default App;
+
