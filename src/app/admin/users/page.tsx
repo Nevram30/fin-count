@@ -396,8 +396,8 @@ const AddUserPage: React.FC = () => {
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
             <div className="grid grid-cols-6 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
-                <main className="col-start-2 col-span-6 p-8">
-                    <div className="max-w-6xl mx-auto space-y-8">
+                <main className="col-start-1 sm:col-start-1 md:col-start-1 lg:col-start-2 xl:col-start-2 col-span-6 overflow-y-auto">
+                    <div className="max-w-7xl mx-auto px-5 pt-20 pb-8 sm:px-6 sm:py-8">
                         <div className="flex items-center justify-between mb-8">
                             <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
                             <div className="flex items-center space-x-2">

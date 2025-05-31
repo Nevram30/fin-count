@@ -298,8 +298,8 @@ const DataVisualization: React.FC = () => {
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
             <div className="grid grid-cols-6 bg-gradient-to-br from-gray-50 to-emerald-50 min-h-screen">
-                <div className="col-start-2 col-span-5 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto px-6 py-8">
+                <div className="col-start-1 sm:col-start-1 md:col-start-1 lg:col-start-2 xl:col-start-2 col-span-6 overflow-y-auto">
+                    <div className="max-w-7xl mx-auto px-5 pt-20 pb-8 sm:px-6 sm:py-8">
                         {/* Header */}
                         <div className="mb-8">
                             <div className="flex flex-col items-start gap-3 mb-2">
