@@ -335,7 +335,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
 
                         {/* Page Header */}
-                        <div className="mb-8 mt-10">
+                        {/* <div className="mb-8 mt-10">
                             <div className="flex items-center mb-4">
                                 <div className="p-2 bg-blue-50 rounded-lg mr-3">
                                     <TrendingUp className="h-6 w-6 text-blue-600" />
@@ -345,13 +345,11 @@ const AdminDashboard: React.FC = () => {
                             <p className="text-gray-600">
                                 Comprehensive insights and analytics for your fingerling production data
                             </p>
-                        </div>
+                        </div> */}
 
                         {/* Chart Section */}
-                        <div className="space-y-8">
+                        {/* <div className="space-y-8">
                             <MonthlyFingerlingsChart />
-
-                            {/* Additional Charts Placeholder */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Batch Performance</h3>
@@ -373,7 +371,7 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>
