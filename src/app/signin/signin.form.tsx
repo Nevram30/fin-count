@@ -5,12 +5,14 @@ import React, { useState, useId, FormEvent } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff } from "lucide-react";
+import { CircleCheck, Eye, EyeOff } from "lucide-react";
 
 import { LoginState } from "./state";
 import { FormErrors, FormState } from "./types";
 import { NoteOneFeature } from "../components/ui/note";
 import { validateForm, loginSchema } from "../validation/loginSchema";
+import Image from "next/image";
+import Logo from "../../../public/image/logo.png";
 
 const LoginPage: React.FC = () => {
     const ids = {
@@ -154,17 +156,32 @@ const LoginPage: React.FC = () => {
                 <div className="max-w-md w-full">
                     <div className="md:hidden flex items-center justify-center mb-8">
                         <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-xl">SMS</span>
+                            <Image
+                                src={Logo}
+                                alt="FinCount Logo"
+                                width={48}
+                                height={48}
+                                className="w-8 h-8"
+                            />
                         </div>
                     </div>
-
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                        FinCount
-                    </h2>
-
-                    <div>
-                        <NoteOneFeature description="Only administrators can create new accounts. Please contact your system administrator if you need access." />
+                    <div className="flex flex-col justify-start mb-2">
+                        <div className="w-32 h-32 rounded-full flex items-start justify-start">
+                            <Image
+                                src={Logo}
+                                alt="FinCount Logo"
+                                width={100}
+                                height={100}
+                            />
+                        </div>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                            FinCount
+                        </h2>
                     </div>
+
+                    {/* <div>
+                        <NoteOneFeature description="Only administrators can create new accounts. Please contact your system administrator if you need access." />
+                    </div> */}
 
                     {errors.general && (
                         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -292,86 +309,34 @@ const LoginPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="hidden md:flex md:w-1/2 text-black flex-col justify-center items-center p-10">
+            <div className="hidden md:flex md:w-1/2 text-black flex-col bg-gradient-to-br from-blue-400 via-blue-500 to-blue-900 justify-center items-center p-10">
                 <div className="max-w-md">
                     <div className="w-16 h-1 bg-white mb-8"></div>
 
-                    <p className="text-xl mb-8">
+                    <p className="text-4xl text-white font-semibold marker:mb-8">
                         Welcome to finCount
                     </p>
-                    <p className="text-gray-700 mb-8">
+                    <p className="text-white mb-8 pt-4">
                         Your Automated fingerling Counting with Descriptive and Predictive Analytics
                     </p>
-                    <div className="space-y-6 text-lg">
+                    <div className="space-y-6 text-lg text-white font-medium">
                         <div className="flex items-start">
-                            <svg
-                                className="h-6 w-6 mr-3 mt-1"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
+                            <CircleCheck className="h-6 w-6 mr-3 mt-1" />
                             <p>Real-time fingerling counting</p>
                         </div>
 
                         <div className="flex items-start">
-                            <svg
-                                className="h-6 w-6 mr-3 mt-1"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
+                            <CircleCheck className="h-6 w-6 mr-3 mt-1" />
                             <p>Accurate harvest tracking</p>
                         </div>
 
                         <div className="flex items-start">
-                            <svg
-                                className="h-6 w-6 mr-3 mt-1"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
+                            <CircleCheck className="h-6 w-6 mr-3 mt-1" />
                             <p>Comprehensive reporting</p>
                         </div>
 
                         <div className="flex items-start">
-                            <svg
-                                className="h-6 w-6 mr-3 mt-1"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
+                            <CircleCheck className="h-6 w-6 mr-3 mt-1" />
                             <p>Real-time Descriptive and Predictive Analytics</p>
                         </div>
                     </div>
