@@ -154,17 +154,6 @@ const LoginPage: React.FC = () => {
         <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
             <div className="w-full md:w-1/2 flex items-center justify-center p-6">
                 <div className="max-w-md w-full">
-                    <div className="md:hidden flex items-center justify-center mb-8">
-                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                            <Image
-                                src={Logo}
-                                alt="FinCount Logo"
-                                width={48}
-                                height={48}
-                                className="w-8 h-8"
-                            />
-                        </div>
-                    </div>
                     <div className="flex flex-col justify-start mb-2">
                         <div className="w-32 h-32 rounded-full flex items-start justify-start">
                             <Image
