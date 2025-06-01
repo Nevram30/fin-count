@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Users, Download, Filter, Calendar, ChevronDown, ChevronUp, RotateCcw, FileText, MapPin, AlertTriangle } from "lucide-react";
+import { Users, Download, Filter, Calendar, ChevronDown, ChevronUp, RotateCcw, FileText, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 
 import { LogoutModal } from "@/app/components/logout.modal";
@@ -36,6 +36,21 @@ interface BatchData {
     dateCreated: string;
     expectedDistribution: string;
     status: string;
+    staffName: string;
+    staffRole: string;
+}
+
+interface DistributedBatchData {
+    id: string;
+    batchNumber: string;
+    species: string;
+    quantity: number;
+    dateCreated: string;
+    distributionDate: string;
+    beneficiaryLocation: string;
+    staffName: string;
+    staffRole: string;
+    status: string;
 }
 
 interface BeneficiaryData {
@@ -45,6 +60,7 @@ interface BeneficiaryData {
     barangay: string;
     beneficiaryCount: number;
     totalFingerlings: number;
+    beneficiaryName: string;
 }
 
 const FullScreenLoader: React.FC = () => (
@@ -157,6 +173,7 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                 >
                                     <option value="Fingerling Count">Fingerling Count</option>
                                     <option value="Undistributed Batches">Undistributed Batches</option>
+                                    <option value="Distributed Batches">Distributed Batches</option>
                                     <option value="Beneficiaries Report">Beneficiaries Report</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
@@ -371,7 +388,7 @@ const FingerlingsCountReportView: React.FC = () => {
     );
 };
 
-// Undistributed Batches Report Component
+// Undistributed Batches Report Component (Updated with Staff Names)
 const UndistributedBatchesReportView: React.FC = () => {
     const sampleBatchData: BatchData[] = [
         {
@@ -381,7 +398,9 @@ const UndistributedBatchesReportView: React.FC = () => {
             quantity: 5000,
             dateCreated: "2025-04-15",
             expectedDistribution: "2025-05-15",
-            status: "Overdue"
+            status: "Overdue",
+            staffName: "Maria Santos",
+            staffRole: "Production Manager"
         },
         {
             id: "2",
@@ -390,7 +409,9 @@ const UndistributedBatchesReportView: React.FC = () => {
             quantity: 3000,
             dateCreated: "2025-04-20",
             expectedDistribution: "2025-05-20",
-            status: "Pending"
+            status: "Pending",
+            staffName: "Juan Dela Cruz",
+            staffRole: "Hatchery Supervisor"
         },
         {
             id: "3",
@@ -399,7 +420,20 @@ const UndistributedBatchesReportView: React.FC = () => {
             quantity: 2500,
             dateCreated: "2025-04-25",
             expectedDistribution: "2025-05-25",
-            status: "Overdue"
+            status: "Overdue",
+            staffName: "Ana Rodriguez",
+            staffRole: "Aquaculture Technician"
+        },
+        {
+            id: "4",
+            batchNumber: "BTH-2025-007",
+            species: "Tilapia",
+            quantity: 4000,
+            dateCreated: "2025-04-28",
+            expectedDistribution: "2025-05-28",
+            status: "Pending",
+            staffName: "Carlos Mendoza",
+            staffRole: "Field Coordinator"
         }
     ];
 
@@ -410,7 +444,9 @@ const UndistributedBatchesReportView: React.FC = () => {
             "Quantity": batch.quantity,
             "Date Created": batch.dateCreated,
             "Expected Distribution": batch.expectedDistribution,
-            "Status": batch.status
+            "Status": batch.status,
+            "Staff Name": batch.staffName,
+            "Staff Role": batch.staffRole
         }));
         exportToCSV(csvData, "undistributed_batches_report");
     };
@@ -450,6 +486,8 @@ const UndistributedBatchesReportView: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Distribution</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Role</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                     </thead>
@@ -461,11 +499,147 @@ const UndistributedBatchesReportView: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.quantity.toLocaleString()}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.dateCreated}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.expectedDistribution}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{batch.staffRole}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${batch.status === 'Overdue'
                                         ? 'bg-red-100 text-red-800'
                                         : 'bg-yellow-100 text-yellow-800'
                                         }`}>
+                                        {batch.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+// New Distributed Batches Report Component
+const DistributedBatchesReportView: React.FC = () => {
+    const sampleDistributedBatchData: DistributedBatchData[] = [
+        {
+            id: "1",
+            batchNumber: "BTH-2025-002",
+            species: "Tilapia",
+            quantity: 6000,
+            dateCreated: "2025-04-10",
+            distributionDate: "2025-05-10",
+            beneficiaryLocation: "Los Baños, Laguna",
+            staffName: "Elena Reyes",
+            staffRole: "Distribution Coordinator",
+            status: "Completed"
+        },
+        {
+            id: "2",
+            batchNumber: "BTH-2025-004",
+            species: "Catfish",
+            quantity: 4500,
+            dateCreated: "2025-04-18",
+            distributionDate: "2025-05-18",
+            beneficiaryLocation: "Calamba, Laguna",
+            staffName: "Roberto Cruz",
+            staffRole: "Field Operations Manager",
+            status: "Completed"
+        },
+        {
+            id: "3",
+            batchNumber: "BTH-2025-006",
+            species: "Carp",
+            quantity: 3500,
+            dateCreated: "2025-04-22",
+            distributionDate: "2025-05-22",
+            beneficiaryLocation: "Tanauan, Batangas",
+            staffName: "Sofia Garcia",
+            staffRole: "Logistics Supervisor",
+            status: "Completed"
+        },
+        {
+            id: "4",
+            batchNumber: "BTH-2025-008",
+            species: "Tilapia",
+            quantity: 5500,
+            dateCreated: "2025-04-26",
+            distributionDate: "2025-05-26",
+            beneficiaryLocation: "Santa Rosa, Laguna",
+            staffName: "Miguel Torres",
+            staffRole: "Community Liaison",
+            status: "Completed"
+        }
+    ];
+
+    const handleExportCSV = () => {
+        const csvData = sampleDistributedBatchData.map(batch => ({
+            "Batch Number": batch.batchNumber,
+            "Species": batch.species,
+            "Quantity": batch.quantity,
+            "Date Created": batch.dateCreated,
+            "Distribution Date": batch.distributionDate,
+            "Beneficiary Location": batch.beneficiaryLocation,
+            "Staff Name": batch.staffName,
+            "Staff Role": batch.staffRole,
+            "Status": batch.status
+        }));
+        exportToCSV(csvData, "distributed_batches_report");
+    };
+
+    return (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            {/* Report Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Distributed Batches Report</h3>
+                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        <span>Successfully distributed batches</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportCSV}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export CSV
+                    </button>
+                    <div className="p-2 bg-green-50 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Report Content */}
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Date</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {sampleDistributedBatchData.map((batch) => (
+                            <tr key={batch.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.species}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.quantity.toLocaleString()}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.dateCreated}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.distributionDate}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.beneficiaryLocation}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{batch.staffRole}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                         {batch.status}
                                     </span>
                                 </td>
@@ -487,7 +661,8 @@ const BeneficiariesReportView: React.FC = () => {
             city: "Los Baños",
             barangay: "Baybayin",
             beneficiaryCount: 25,
-            totalFingerlings: 12500
+            totalFingerlings: 12500,
+            beneficiaryName: "Farmer's Association of Baybayin"
         },
         {
             id: "2",
@@ -495,7 +670,8 @@ const BeneficiariesReportView: React.FC = () => {
             city: "Los Baños",
             barangay: "Bambang",
             beneficiaryCount: 18,
-            totalFingerlings: 9000
+            totalFingerlings: 9000,
+            beneficiaryName: "Bambang Aquaculture Cooperative"
         },
         {
             id: "3",
@@ -503,7 +679,8 @@ const BeneficiariesReportView: React.FC = () => {
             city: "Calamba",
             barangay: "Parian",
             beneficiaryCount: 32,
-            totalFingerlings: 16000
+            totalFingerlings: 16000,
+            beneficiaryName: "Parian Fish Farmers Group"
         },
         {
             id: "4",
@@ -511,7 +688,8 @@ const BeneficiariesReportView: React.FC = () => {
             city: "Tanauan",
             barangay: "Poblacion",
             beneficiaryCount: 22,
-            totalFingerlings: 11000
+            totalFingerlings: 11000,
+            beneficiaryName: "Tanauan Fishery Association"
         }
     ];
 
@@ -521,7 +699,8 @@ const BeneficiariesReportView: React.FC = () => {
             "City": beneficiary.city,
             "Barangay": beneficiary.barangay,
             "Beneficiary Count": beneficiary.beneficiaryCount,
-            "Total Fingerlings": beneficiary.totalFingerlings
+            "Total Fingerlings": beneficiary.totalFingerlings,
+            "Beneficiary Name": beneficiary.beneficiaryName
         }));
         exportToCSV(csvData, "beneficiaries_report");
     };
@@ -559,6 +738,7 @@ const BeneficiariesReportView: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barangay</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Name</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Count</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
                         </tr>
@@ -569,7 +749,8 @@ const BeneficiariesReportView: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.province}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.city}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.barangay}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryCount}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryName}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.beneficiaryCount}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
                             </tr>
                         ))}
@@ -587,6 +768,8 @@ const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters }> = 
             return <FingerlingsCountReportView />;
         case "Undistributed Batches":
             return <UndistributedBatchesReportView />;
+        case "Distributed Batches":
+            return <DistributedBatchesReportView />;
         case "Beneficiaries Report":
             return <BeneficiariesReportView />;
         default:
