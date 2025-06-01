@@ -911,7 +911,7 @@ const DataVisualization: React.FC = () => {
 
                                     {/* Summary Cards */}
                                     {!harvestState.isLoading && harvestState.data.length > 0 && (
-                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             <div className="bg-green-50 rounded-lg p-4">
                                                 <div className="text-2xl font-bold text-green-600">
                                                     {harvestState.data.reduce((sum, item) => sum + item.tilapia, 0).toLocaleString()} kg
@@ -923,18 +923,6 @@ const DataVisualization: React.FC = () => {
                                                     {harvestState.data.reduce((sum, item) => sum + item.bangus, 0).toLocaleString()} kg
                                                 </div>
                                                 <div className="text-sm text-blue-800">Total Bangus Harvest</div>
-                                            </div>
-                                            <div className="bg-purple-50 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-purple-600">
-                                                    {Math.round(harvestState.data.reduce((sum, item) => sum + item.survivalRate, 0) / harvestState.data.length)}%
-                                                </div>
-                                                <div className="text-sm text-purple-800">Avg Survival Rate</div>
-                                            </div>
-                                            <div className="bg-orange-50 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-orange-600">
-                                                    {Math.round(harvestState.data.reduce((sum, item) => sum + item.avgWeight, 0) / harvestState.data.length)}g
-                                                </div>
-                                                <div className="text-sm text-orange-800">Avg Fish Weight</div>
                                             </div>
                                             <div className="bg-teal-50 rounded-lg p-4">
                                                 <div className="text-2xl font-bold text-teal-600">
