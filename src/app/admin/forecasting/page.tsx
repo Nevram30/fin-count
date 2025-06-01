@@ -615,7 +615,7 @@ const HarvestForecast: React.FC = () => {
                                 <div className="mb-8">
                                     <div className="flex items-center gap-3 mb-6">
                                         <BarChart3 className="h-5 w-5 text-purple-600" />
-                                        <h3 className="text-xl font-semibold text-gray-900">Geographic Trend Analysis</h3>
+                                        <h3 className="text-xl font-semibold text-gray-900">Geographic Forecast Trend Analysis</h3>
                                     </div>
                                     <p className="text-sm text-gray-600 mb-6">Compare harvest trends across different geographic levels for {formData.species}</p>
 
