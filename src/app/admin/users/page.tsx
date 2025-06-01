@@ -41,6 +41,45 @@ const UsersTable: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [deleteModal, setDeleteModal] = useState<{
+        isOpen: boolean;
+        user: User | null;
+        isDeleting: boolean;
+    }>({
+        isOpen: false,
+        user: null,
+        isDeleting: false
+    });
+
+    const [editModal, setEditModal] = useState<{
+        isOpen: boolean;
+        user: User | null;
+        isUpdating: boolean;
+    }>({
+        isOpen: false,
+        user: null,
+        isUpdating: false
+    });
+
+    const [editFormData, setEditFormData] = useState<{
+        name: string;
+        email: string;
+        userType: string;
+        status: string;
+        username?: string;
+        phoneNumber?: string;
+        firstName?: string;
+        lastName?: string;
+    }>({
+        name: '',
+        email: '',
+        userType: '',
+        status: '',
+        username: '',
+        phoneNumber: '',
+        firstName: '',
+        lastName: ''
+    });
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
@@ -99,19 +138,43 @@ const UsersTable: React.FC = () => {
             : 'bg-gray-100 text-gray-800';
     };
 
-    const handleEdit = (userId: number) => {
-        // Implement edit functionality - could open a modal or navigate to edit page
-        console.log('Edit user:', userId);
-        // Example: router.push(`/admin/users/${userId}/edit`);
+    const handleEdit = (user: User) => {
+        // Populate the form with existing user data
+        setEditFormData({
+            name: user.name,
+            email: user.email,
+            userType: user.userType,
+            status: user.status,
+            username: user.username || '',
+            phoneNumber: user.phoneNumber || '',
+            firstName: user.firstName || '',
+            lastName: user.lastName || ''
+        });
+
+        // Open the edit modal
+        setEditModal({
+            isOpen: true,
+            user: user,
+            isUpdating: false
+        });
     };
 
-    const handleDelete = async (userId: number) => {
-        if (!confirm('Are you sure you want to delete this user?')) {
-            return;
-        }
+    // Fixed delete function - opens modal instead of browser confirm
+    const handleDeleteClick = (user: User) => {
+        setDeleteModal({
+            isOpen: true,
+            user: user,
+            isDeleting: false
+        });
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteModal.user) return;
 
         try {
-            const response = await fetch(`/api/user/${userId}`, {
+            setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+
+            const response = await fetch(`/api/user/${deleteModal.user.id}`, {
                 method: 'DELETE',
             });
 
@@ -123,15 +186,79 @@ const UsersTable: React.FC = () => {
 
             if (result.success) {
                 // Refresh the users list
-                fetchUsers(pagination.currentPage);
-                // Show success message (you might want to use a toast notification)
-                alert('User deleted successfully');
+                await fetchUsers(pagination.currentPage);
+                setDeleteModal({ isOpen: false, user: null, isDeleting: false });
+                // You can add a success toast notification here if you have one
             } else {
                 throw new Error('Failed to delete user');
             }
         } catch (err) {
-            alert('Error deleting user: ' + (err instanceof Error ? err.message : 'Unknown error'));
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            alert('Error deleting user: ' + errorMessage);
+        } finally {
+            setDeleteModal(prev => ({ ...prev, isDeleting: false }));
         }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteModal({ isOpen: false, user: null, isDeleting: false });
+    };
+
+    const handleEditSubmit = async () => {
+        if (!editModal.user) return;
+
+        try {
+            setEditModal(prev => ({ ...prev, isUpdating: true }));
+
+            const response = await fetch(`/api/user/${editModal.user.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(editFormData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update user');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Refresh the users list
+                await fetchUsers(pagination.currentPage);
+                setEditModal({ isOpen: false, user: null, isUpdating: false });
+                // You can add a success toast notification here if you have one
+            } else {
+                throw new Error('Failed to update user');
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            alert('Error updating user: ' + errorMessage);
+        } finally {
+            setEditModal(prev => ({ ...prev, isUpdating: false }));
+        }
+    };
+
+    const handleEditCancel = () => {
+        setEditModal({ isOpen: false, user: null, isUpdating: false });
+        setEditFormData({
+            name: '',
+            email: '',
+            userType: '',
+            status: '',
+            username: '',
+            phoneNumber: '',
+            firstName: '',
+            lastName: ''
+        });
+    };
+
+    const handleFormChange = (field: string, value: string) => {
+        setEditFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
     if (loading) {
@@ -268,14 +395,14 @@ const UsersTable: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div className="flex items-center space-x-2">
                                         <button
-                                            onClick={() => handleEdit(user.id)}
+                                            onClick={() => handleEdit(user)}
                                             className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors duration-150"
                                             title="Edit user"
                                         >
                                             <Edit className="h-4 w-4" />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(user.id)}
+                                            onClick={() => handleDeleteClick(user)}
                                             className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors duration-150"
                                             title="Delete user"
                                         >
@@ -341,6 +468,241 @@ const UsersTable: React.FC = () => {
                                         Next
                                     </button>
                                 </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit User Modal */}
+            {editModal.isOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-blue-100 rounded-full">
+                            <Edit className="h-6 w-6 text-blue-600" />
+                        </div>
+
+                        <div className="text-center mb-6">
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                Edit User Account
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                                Update user information below
+                            </p>
+                        </div>
+
+                        <form className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.name}
+                                        onChange={(e) => handleFormChange('name', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        disabled={editModal.isUpdating}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={editFormData.email}
+                                        onChange={(e) => handleFormChange('email', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        disabled={editModal.isUpdating}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        User Type
+                                    </label>
+                                    <select
+                                        value={editFormData.userType}
+                                        onChange={(e) => handleFormChange('userType', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        disabled={editModal.isUpdating}
+                                    >
+                                        <option value="admin">Admin</option>
+                                        <option value="staff">Staff</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Status
+                                    </label>
+                                    <select
+                                        value={editFormData.status}
+                                        onChange={(e) => handleFormChange('status', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        disabled={editModal.isUpdating}
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {editFormData.userType === 'staff' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Username
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.username}
+                                            onChange={(e) => handleFormChange('username', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            disabled={editModal.isUpdating}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Phone Number
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.phoneNumber}
+                                            onChange={(e) => handleFormChange('phoneNumber', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            disabled={editModal.isUpdating}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {editFormData.userType === 'admin' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            First Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.firstName}
+                                            onChange={(e) => handleFormChange('firstName', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            disabled={editModal.isUpdating}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Last Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.lastName}
+                                            onChange={(e) => handleFormChange('lastName', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            disabled={editModal.isUpdating}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex space-x-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={handleEditCancel}
+                                    disabled={editModal.isUpdating}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleEditSubmit}
+                                    disabled={editModal.isUpdating}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                >
+                                    {editModal.isUpdating ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        'Update User'
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteModal.isOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                        <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                            <Trash2 className="h-6 w-6 text-red-600" />
+                        </div>
+
+                        <div className="text-center">
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                Delete User Account
+                            </h3>
+
+                            <p className="text-sm text-gray-500 mb-2">
+                                Are you sure you want to delete this user account? This action cannot be undone.
+                            </p>
+
+                            {deleteModal.user && (
+                                <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                                    <div className="flex items-center justify-center">
+                                        <div className="text-center">
+                                            <div className="font-medium text-gray-900">
+                                                {deleteModal.user.name}
+                                            </div>
+                                            <div className="text-sm text-gray-500 flex items-center justify-center mt-1">
+                                                <Mail className="h-3 w-3 mr-1" />
+                                                {deleteModal.user.email}
+                                            </div>
+                                            <div className="mt-1">
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(deleteModal.user.userType)}`}>
+                                                    <Shield className="h-3 w-3 mr-1" />
+                                                    {deleteModal.user.userType}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={handleDeleteCancel}
+                                    disabled={deleteModal.isDeleting}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteConfirm}
+                                    disabled={deleteModal.isDeleting}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                >
+                                    {deleteModal.isDeleting ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        'Delete User'
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>

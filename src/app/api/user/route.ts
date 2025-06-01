@@ -270,3 +270,207 @@ export async function GET(request: NextRequest) {
     });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = Number(params.id);
+
+    if (!id || isNaN(id)) {
+      return jsonResponse({
+        success: false,
+        error: "Valid user ID required",
+        status: 400,
+      });
+    }
+
+    const user = await models.User.findByPk(id);
+
+    if (!user) {
+      return jsonResponse({
+        success: false,
+        error: "User not found",
+        status: 404,
+      });
+    }
+
+    // Delete user and associated profiles in transaction
+    await models.sequelize.transaction(async (transaction) => {
+      // Delete associated profiles first
+      await Promise.all([
+        models.StaffProfile.destroy({
+          where: { userId: id },
+          transaction,
+        }),
+        models.AdminProfile.destroy({
+          where: { userId: id },
+          transaction,
+        }),
+      ]);
+
+      // Delete the user
+      await user.destroy({ transaction });
+    });
+
+    return jsonResponse({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete User API Error:", error);
+    return jsonResponse({
+      success: false,
+      error: error instanceof Error ? error.message : "Internal server error",
+      status: 500,
+    });
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = Number(params.id);
+    const body = await request.json();
+
+    if (!id || isNaN(id)) {
+      return jsonResponse({
+        success: false,
+        error: "Valid user ID required",
+        status: 400,
+      });
+    }
+
+    const user = await models.User.findByPk(id);
+
+    if (!user) {
+      return jsonResponse({
+        success: false,
+        error: "User not found",
+        status: 404,
+      });
+    }
+
+    // Update user and profiles in transaction
+    const updatedUser = await models.sequelize.transaction(
+      async (transaction) => {
+        // Update basic user info
+        if (body.email || body.userType) {
+          await user.update(
+            {
+              email: body.email || user.email,
+              userType: body.userType || user.userType,
+            },
+            { transaction }
+          );
+        }
+
+        // Update staff profile if provided
+        if (body.staffProfile) {
+          const existingStaffProfile = await models.StaffProfile.findOne({
+            where: { userId: id },
+            transaction,
+          });
+
+          if (existingStaffProfile) {
+            await existingStaffProfile.update(body.staffProfile, {
+              transaction,
+            });
+          } else if (user.userType === "staff") {
+            // Create new staff profile if user is staff type
+            await models.StaffProfile.create(
+              {
+                userId: id,
+                ...body.staffProfile,
+              },
+              { transaction }
+            );
+          }
+        }
+
+        // Update admin profile if provided
+        if (body.adminProfile) {
+          const existingAdminProfile = await models.AdminProfile.findOne({
+            where: { userId: id },
+            transaction,
+          });
+
+          if (existingAdminProfile) {
+            await existingAdminProfile.update(body.adminProfile, {
+              transaction,
+            });
+          } else if (user.userType === "admin") {
+            // Create new admin profile if user is admin type
+            await models.AdminProfile.create(
+              {
+                userId: id,
+                ...body.adminProfile,
+              },
+              { transaction }
+            );
+          }
+        }
+
+        // Return the updated user (fetch fresh data)
+        return await models.User.findByPk(id, {
+          attributes: { exclude: ["password"] },
+          transaction,
+        });
+      }
+    );
+
+    if (!updatedUser) {
+      throw new Error("Failed to retrieve updated user");
+    }
+
+    // Fetch updated profiles separately
+    const [staffProfile, adminProfile] = await Promise.all([
+      models.StaffProfile.findOne({
+        where: { userId: id },
+        attributes: ["fullName", "username", "phoneNumber", "profilePhoto"],
+      }),
+      models.AdminProfile.findOne({
+        where: { userId: id },
+        attributes: ["firstName", "lastName"],
+      }),
+    ]);
+
+    // Transform response data
+    const userData = updatedUser.get({ plain: true });
+    const staffData = staffProfile?.get({ plain: true });
+    const adminData = adminProfile?.get({ plain: true });
+
+    let displayName = userData.email;
+    if (staffData) {
+      displayName = staffData.fullName;
+    } else if (adminData) {
+      displayName = `${adminData.firstName} ${adminData.lastName}`;
+    }
+
+    const responseData = {
+      ...userData,
+      name: displayName,
+      username: staffData?.username || null,
+      phoneNumber: staffData?.phoneNumber || null,
+      profilePhoto: staffData?.profilePhoto || null,
+      firstName: adminData?.firstName || null,
+      lastName: adminData?.lastName || null,
+    };
+
+    return jsonResponse({
+      success: true,
+      data: responseData,
+      message: "User updated successfully",
+    });
+  } catch (error) {
+    console.error("Update User API Error:", error);
+    return jsonResponse({
+      success: false,
+      error: error instanceof Error ? error.message : "Internal server error",
+      status: 500,
+    });
+  }
+}
