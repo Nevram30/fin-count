@@ -9,7 +9,12 @@ import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
 
-// Types
+interface LocationData {
+    provinces: string[];
+    cities: { [key: string]: string[] };
+    barangays: { [key: string]: string[] };
+}
+
 interface ComparativeData {
     region: string;
     value: number;
@@ -67,6 +72,35 @@ interface LeaderboardState {
     isLoading: boolean;
 }
 
+// Davao Region locations data
+const locationData: LocationData = {
+    provinces: ["Davao del Norte", "Davao del Sur", "Davao de Oro", "Davao Oriental", "Davao Occidental"],
+    cities: {
+        "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
+        "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
+        "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
+        "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
+        "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"]
+    },
+    barangays: {
+        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village"],
+        "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
+        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
+        "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
+        "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
+        "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
+        "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
+        "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
+        "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
+        "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
+        "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
+        "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
+        "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
+        "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
+        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"]
+    }
+};
+
 const FullScreenLoader = () => (
     <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -81,7 +115,6 @@ const DataVisualization: React.FC = () => {
 
     const { unreadCount } = useNotification();
 
-    // State management
     const [activeTab, setActiveTab] = useState<'comparative' | 'fingerlings' | 'leaderboard'>('comparative');
 
     const [forecastState, setForecastState] = useState<ForecastingState>({
@@ -111,10 +144,23 @@ const DataVisualization: React.FC = () => {
 
     // Location options
     const locationOptions = ["Barangay", "Municipality", "Province"];
-    const provinces = ["All Provinces", "Pangasinan", "La Union", "Ilocos Norte", "Ilocos Sur"];
-    const cities = ["All Cities", "Dagupan", "San Carlos", "Alaminos", "Bolinao"];
-    const barangays = ["All Barangays", "Poblacion", "Lucao", "Bonuan", "Mayombo"];
     const facilityTypes = ["All Facilities", "Fish Cage", "Pond"];
+
+    // Get available cities based on selected province
+    const getAvailableCities = (province: string) => {
+        if (province === 'all' || !locationData.cities[province]) {
+            return ["All Cities"];
+        }
+        return ["All Cities", ...locationData.cities[province]];
+    };
+
+    // Get available barangays based on selected city
+    const getAvailableBarangays = (city: string) => {
+        if (city === 'all' || !locationData.barangays[city]) {
+            return ["All Barangays"];
+        }
+        return ["All Barangays", ...locationData.barangays[city]];
+    };
 
     // Generate mock comparative data
     const generateComparativeData = (location: string): ComparativeData[] => {
@@ -147,49 +193,56 @@ const DataVisualization: React.FC = () => {
         });
     };
 
-    // Generate mock fingerlings data
+    // Generate mock fingerlings data with Davao locations
     const generateFingerlingsData = (): FingerlingsData[] => {
-        const locations = ['Dagupan', 'San Carlos', 'Alaminos', 'Bolinao', 'Lingayen'];
+        const cities = ["Davao City", "Tagum City", "Panabo City", "Digos City", "Mati City", "Nabunturan", "Malita"];
         const facilityTypes = ['Fish Cage', 'Pond'];
-        const provinces = ['Pangasinan', 'La Union'];
-        const cities = ['Dagupan', 'San Carlos', 'Alaminos'];
-        const barangays = ['Poblacion', 'Lucao', 'Bonuan', 'Mayombo'];
+        const provinces = locationData.provinces;
 
-        return Array.from({ length: 12 }, (_, i) => ({
-            location: locations[i % locations.length],
-            tilapia: Math.floor(Math.random() * 5000) + 1000,
-            bangus: Math.floor(Math.random() * 3000) + 500,
-            date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            facilityType: facilityTypes[i % facilityTypes.length],
-            province: provinces[i % provinces.length],
-            city: cities[i % cities.length],
-            barangay: barangays[i % barangays.length]
-        }));
+        return Array.from({ length: 12 }, (_, i) => {
+            const city = cities[i % cities.length];
+            const province = provinces.find(p => locationData.cities[p]?.includes(city)) || provinces[0];
+            const barangays = locationData.barangays[city] || ["Poblacion"];
+
+            return {
+                location: city,
+                tilapia: Math.floor(Math.random() * 5000) + 1000,
+                bangus: Math.floor(Math.random() * 3000) + 500,
+                date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                facilityType: facilityTypes[i % facilityTypes.length],
+                province: province,
+                city: city,
+                barangay: barangays[i % barangays.length]
+            };
+        });
     };
 
-    // Generate mock beneficiary data
+    // Generate mock beneficiary data with Davao locations
     const generateBeneficiaryData = (): BeneficiaryData[] => {
         const names = ['Juan dela Cruz', 'Maria Santos', 'Pedro Gonzales', 'Ana Reyes', 'Carlos Martinez', 'Rosa Lopez', 'Miguel Torres', 'Elena Fernandez'];
-        const locations = ['Dagupan', 'San Carlos', 'Alaminos', 'Bolinao'];
+        const cities = ["Davao City", "Tagum City", "Panabo City", "Digos City", "Mati City", "Nabunturan", "Malita"];
         const species: ('tilapia' | 'bangus')[] = ['tilapia', 'bangus'];
         const facilityTypes: ('fish_cage' | 'pond')[] = ['fish_cage', 'pond'];
 
         return Array.from({ length: 20 }, (_, i) => {
             const fingerlingsReceived = Math.floor(Math.random() * 2000) + 500;
             const harvestKg = Math.floor(fingerlingsReceived * (0.6 + Math.random() * 0.4) * (0.8 + Math.random() * 0.4));
+            const city = cities[i % cities.length];
+            const province = locationData.provinces.find(p => locationData.cities[p]?.includes(city)) || locationData.provinces[0];
+            const barangays = locationData.barangays[city] || ["Poblacion"];
 
             return {
                 id: `BEN-${String(i + 1).padStart(3, '0')}`,
                 name: names[i % names.length],
-                location: locations[i % locations.length],
+                location: city,
                 species: species[i % species.length],
                 fingerlingsReceived,
                 harvestKg,
                 facilityType: facilityTypes[i % facilityTypes.length],
                 distributionDate: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                province: 'Pangasinan',
-                city: locations[i % locations.length],
-                barangay: ['Poblacion', 'Lucao', 'Bonuan'][i % 3]
+                province: province,
+                city: city,
+                barangay: barangays[i % barangays.length]
             };
         });
     };
@@ -228,6 +281,25 @@ const DataVisualization: React.FC = () => {
             ...prev,
             data: newData,
             isLoading: false
+        }));
+    };
+
+    // Handle province change in fingerlings section
+    const handleProvinceChange = (province: string) => {
+        setFingerlingsState(prev => ({
+            ...prev,
+            selectedProvince: province,
+            selectedCity: 'all',
+            selectedBarangay: 'all'
+        }));
+    };
+
+    // Handle city change in fingerlings section
+    const handleCityChange = (city: string) => {
+        setFingerlingsState(prev => ({
+            ...prev,
+            selectedCity: city,
+            selectedBarangay: 'all'
         }));
     };
 
@@ -305,9 +377,9 @@ const DataVisualization: React.FC = () => {
                             <div className="flex flex-col items-start gap-3 mb-2">
                                 <div className="flex items-center gap-3">
                                     <BarChart3 className="h-6 w-6 text-blue-600" />
-                                    <h1 className="text-2xl font-bold text-gray-900">Data Visualization</h1>
+                                    <h1 className="text-2xl font-bold text-gray-900">Davao Region Aquaculture Data Visualization</h1>
                                 </div>
-                                <p className="text-gray-600">Comparative tools and fingerling distribution analysis</p>
+                                <p className="text-gray-600">Comparative tools and fingerling distribution analysis for Davao Region</p>
                             </div>
                         </div>
 
@@ -343,6 +415,25 @@ const DataVisualization: React.FC = () => {
                                 >
                                     <Trophy className="h-4 w-4" />
                                     Harvest Leaderboard
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="mb-6 flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                                Last updated: {new Date().toLocaleString()}
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <RefreshCw className="h-4 w-4" />
+                                    Refresh All
+                                </button>
+
+                                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                    <Download className="h-4 w-4" />
+                                    Export Data
                                 </button>
                             </div>
                         </div>
@@ -479,11 +570,12 @@ const DataVisualization: React.FC = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Province</label>
                                             <select
                                                 value={fingerlingsState.selectedProvince}
-                                                onChange={(e) => setFingerlingsState(prev => ({ ...prev, selectedProvince: e.target.value }))}
+                                                onChange={(e) => handleProvinceChange(e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                {provinces.map(province => (
-                                                    <option key={province} value={province.toLowerCase().replace(/\s+/g, '_')}>{province}</option>
+                                                <option value="all">All Provinces</option>
+                                                {locationData.provinces.map(province => (
+                                                    <option key={province} value={province}>{province}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -491,11 +583,11 @@ const DataVisualization: React.FC = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                                             <select
                                                 value={fingerlingsState.selectedCity}
-                                                onChange={(e) => setFingerlingsState(prev => ({ ...prev, selectedCity: e.target.value }))}
+                                                onChange={(e) => handleCityChange(e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                {cities.map(city => (
-                                                    <option key={city} value={city.toLowerCase().replace(/\s+/g, '_')}>{city}</option>
+                                                {getAvailableCities(fingerlingsState.selectedProvince).map(city => (
+                                                    <option key={city} value={city}>{city}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -506,8 +598,8 @@ const DataVisualization: React.FC = () => {
                                                 onChange={(e) => setFingerlingsState(prev => ({ ...prev, selectedBarangay: e.target.value }))}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                {barangays.map(barangay => (
-                                                    <option key={barangay} value={barangay.toLowerCase().replace(/\s+/g, '_')}>{barangay}</option>
+                                                {getAvailableBarangays(fingerlingsState.selectedCity).map(barangay => (
+                                                    <option key={barangay} value={barangay}>{barangay}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -711,25 +803,6 @@ const DataVisualization: React.FC = () => {
                                 </div>
                             </div>
                         )}
-
-                        {/* Action Buttons */}
-                        <div className="mt-6 flex items-center justify-between">
-                            <div className="text-sm text-gray-500">
-                                Last updated: {new Date().toLocaleString()}
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                    <RefreshCw className="h-4 w-4" />
-                                    Refresh All
-                                </button>
-
-                                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                    <Download className="h-4 w-4" />
-                                    Export Data
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

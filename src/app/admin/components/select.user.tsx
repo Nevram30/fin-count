@@ -15,7 +15,7 @@ const UserSelectPage = () => {
     return (
         <div className="flex flex-col">
             <main className="flex items-start justify-start p-4">
-                <div className="max-w-4xl w-full overflow-hidden">
+                <div className="w-full overflow-hidden">
                     <div className="flex flex-col md:flex-row">
                         <div className="flex flex-col justify-center px-1 py-1 w-full">
                             <div className="space-y-6">
