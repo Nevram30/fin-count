@@ -523,25 +523,6 @@ const DataVisualization: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="mb-6 flex items-center justify-between">
-                            <div className="text-sm text-gray-500">
-                                Last updated: {new Date().toLocaleString()}
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                    <RefreshCw className="h-4 w-4" />
-                                    Refresh All
-                                </button>
-
-                                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                    <Download className="h-4 w-4" />
-                                    Export Data
-                                </button>
-                            </div>
-                        </div>
-
                         {/* Comparative Analysis Tab */}
                         {activeTab === 'comparative' && (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -1111,6 +1092,25 @@ const DataVisualization: React.FC = () => {
                                 </div>
                             </div>
                         )}
+
+                        {/* Action Buttons */}
+                        <div className="mt-6 flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                                Last updated: {new Date().toLocaleString()}
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <RefreshCw className="h-4 w-4" />
+                                    Refresh All
+                                </button>
+
+                                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                    <Download className="h-4 w-4" />
+                                    Export Data
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
