@@ -22,6 +22,30 @@ interface ComparativeData {
     growth: number;
 }
 
+interface HarvestData {
+    location: string;
+    tilapia: number;
+    bangus: number;
+    date: string;
+    facilityType: string;
+    province: string;
+    city: string;
+    barangay: string;
+    survivalRate: number;
+    avgWeight: number;
+}
+
+interface HarvestState {
+    dateFrom: string;
+    dateTo: string;
+    selectedProvince: string;
+    selectedCity: string;
+    selectedBarangay: string;
+    selectedFacilityType: string;
+    data: HarvestData[];
+    isLoading: boolean;
+}
+
 interface FingerlingsData {
     location: string;
     tilapia: number;
@@ -115,7 +139,7 @@ const DataVisualization: React.FC = () => {
 
     const { unreadCount } = useNotification();
 
-    const [activeTab, setActiveTab] = useState<'comparative' | 'fingerlings' | 'leaderboard'>('comparative');
+    const [activeTab, setActiveTab] = useState<'comparative' | 'fingerlings' | 'leaderboard' | 'harvest'>('comparative');
 
     const [forecastState, setForecastState] = useState<ForecastingState>({
         selectedLocation: "Barangay",
@@ -142,9 +166,79 @@ const DataVisualization: React.FC = () => {
         isLoading: false
     });
 
+    const [harvestState, setHarvestState] = useState<HarvestState>({
+        dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        dateTo: new Date().toISOString().split('T')[0],
+        selectedProvince: 'all',
+        selectedCity: 'all',
+        selectedBarangay: 'all',
+        selectedFacilityType: 'all',
+        data: [],
+        isLoading: false
+    });
+
+    // Generate mock harvest data with Davao locations
+    const generateHarvestData = (): HarvestData[] => {
+        const cities = ["Davao City", "Tagum City", "Panabo City", "Digos City", "Mati City", "Nabunturan", "Malita"];
+        const facilityTypes = ['Fish Cage', 'Pond'];
+        const provinces = locationData.provinces;
+
+        return Array.from({ length: 12 }, (_, i) => {
+            const city = cities[i % cities.length];
+            const province = provinces.find(p => locationData.cities[p]?.includes(city)) || provinces[0];
+            const barangays = locationData.barangays[city] || ["Poblacion"];
+            const survivalRate = 0.7 + Math.random() * 0.25; // 70-95% survival rate
+            const avgWeight = 150 + Math.random() * 100; // 150-250g average weight
+
+            return {
+                location: city,
+                tilapia: Math.floor((Math.random() * 3000 + 800) * survivalRate), // Harvest based on survival
+                bangus: Math.floor((Math.random() * 2000 + 400) * survivalRate),
+                date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                facilityType: facilityTypes[i % facilityTypes.length],
+                province: province,
+                city: city,
+                barangay: barangays[i % barangays.length],
+                survivalRate: Math.round(survivalRate * 100),
+                avgWeight: Math.round(avgWeight)
+            };
+        });
+    };
+
     // Location options
     const locationOptions = ["Barangay", "Municipality", "Province"];
     const facilityTypes = ["All Facilities", "Fish Cage", "Pond"];
+
+    // Handle harvest comparison
+    const handleHarvestCompare = async () => {
+        setHarvestState(prev => ({ ...prev, isLoading: true }));
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const newData = generateHarvestData();
+        setHarvestState(prev => ({
+            ...prev,
+            data: newData,
+            isLoading: false
+        }));
+    };
+
+    // Handle province change in harvest section
+    const handleHarvestProvinceChange = (province: string) => {
+        setHarvestState(prev => ({
+            ...prev,
+            selectedProvince: province,
+            selectedCity: 'all',
+            selectedBarangay: 'all'
+        }));
+    };
+
+    // Handle city change in harvest section
+    const handleHarvestCityChange = (city: string) => {
+        setHarvestState(prev => ({
+            ...prev,
+            selectedCity: city,
+            selectedBarangay: 'all'
+        }));
+    };
 
     // Get available cities based on selected province
     const getAvailableCities = (province: string) => {
@@ -405,6 +499,16 @@ const DataVisualization: React.FC = () => {
                                 >
                                     <Fish className="h-4 w-4" />
                                     Fingerling Distribution
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('harvest')}
+                                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'harvest'
+                                        ? 'bg-white text-blue-600 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                        }`}
+                                >
+                                    <TrendingUp className="h-4 w-4" />
+                                    Actual Harvest
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('leaderboard')}
@@ -689,6 +793,210 @@ const DataVisualization: React.FC = () => {
                                                     {fingerlingsState.data.reduce((sum, item) => sum + item.tilapia + item.bangus, 0).toLocaleString()}
                                                 </div>
                                                 <div className="text-sm text-orange-800">Total Fingerlings</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actual Harvest Tab */}
+                        {activeTab === 'harvest' && (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-3">
+                                            <TrendingUp className="h-5 w-5 text-blue-600" />
+                                            <h2 className="text-xl font-semibold text-gray-900">Actual Harvest Analysis</h2>
+                                        </div>
+                                    </div>
+
+                                    {/* Filters */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                                            <input
+                                                type="date"
+                                                value={harvestState.dateFrom}
+                                                onChange={(e) => setHarvestState(prev => ({ ...prev, dateFrom: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+                                            <input
+                                                type="date"
+                                                value={harvestState.dateTo}
+                                                onChange={(e) => setHarvestState(prev => ({ ...prev, dateTo: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Province</label>
+                                            <select
+                                                value={harvestState.selectedProvince}
+                                                onChange={(e) => handleHarvestProvinceChange(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            >
+                                                <option value="all">All Provinces</option>
+                                                {locationData.provinces.map(province => (
+                                                    <option key={province} value={province}>{province}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                            <select
+                                                value={harvestState.selectedCity}
+                                                onChange={(e) => handleHarvestCityChange(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            >
+                                                {getAvailableCities(harvestState.selectedProvince).map(city => (
+                                                    <option key={city} value={city}>{city}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Barangay</label>
+                                            <select
+                                                value={harvestState.selectedBarangay}
+                                                onChange={(e) => setHarvestState(prev => ({ ...prev, selectedBarangay: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            >
+                                                {getAvailableBarangays(harvestState.selectedCity).map(barangay => (
+                                                    <option key={barangay} value={barangay}>{barangay}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Facility Type</label>
+                                            <select
+                                                value={harvestState.selectedFacilityType}
+                                                onChange={(e) => setHarvestState(prev => ({ ...prev, selectedFacilityType: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            >
+                                                {facilityTypes.map(facility => (
+                                                    <option key={facility} value={facility.toLowerCase().replace(/\s+/g, '_')}>{facility}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end mb-6">
+                                        <button
+                                            onClick={handleHarvestCompare}
+                                            disabled={harvestState.isLoading}
+                                            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 flex items-center gap-2"
+                                        >
+                                            {harvestState.isLoading ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                    Loading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Filter className="h-4 w-4" />
+                                                    Apply Filters
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Chart */}
+                                    <div className="relative">
+                                        {harvestState.isLoading ? (
+                                            <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
+                                                <div className="text-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                                    <p className="text-gray-600">Loading harvest data...</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="h-96">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={harvestState.data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                                        <XAxis dataKey="location" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(value) => `${value.toLocaleString()} kg`} />
+                                                        <Tooltip content={<CustomTooltip />} />
+                                                        <Legend />
+                                                        <Bar dataKey="tilapia" fill="#059669" name="Tilapia (kg)" radius={[4, 4, 0, 0]} />
+                                                        <Bar dataKey="bangus" fill="#2563eb" name="Bangus (kg)" radius={[4, 4, 0, 0]} />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Summary Cards */}
+                                    {!harvestState.isLoading && harvestState.data.length > 0 && (
+                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                            <div className="bg-green-50 rounded-lg p-4">
+                                                <div className="text-2xl font-bold text-green-600">
+                                                    {harvestState.data.reduce((sum, item) => sum + item.tilapia, 0).toLocaleString()} kg
+                                                </div>
+                                                <div className="text-sm text-green-800">Total Tilapia Harvest</div>
+                                            </div>
+                                            <div className="bg-blue-50 rounded-lg p-4">
+                                                <div className="text-2xl font-bold text-blue-600">
+                                                    {harvestState.data.reduce((sum, item) => sum + item.bangus, 0).toLocaleString()} kg
+                                                </div>
+                                                <div className="text-sm text-blue-800">Total Bangus Harvest</div>
+                                            </div>
+                                            <div className="bg-purple-50 rounded-lg p-4">
+                                                <div className="text-2xl font-bold text-purple-600">
+                                                    {Math.round(harvestState.data.reduce((sum, item) => sum + item.survivalRate, 0) / harvestState.data.length)}%
+                                                </div>
+                                                <div className="text-sm text-purple-800">Avg Survival Rate</div>
+                                            </div>
+                                            <div className="bg-orange-50 rounded-lg p-4">
+                                                <div className="text-2xl font-bold text-orange-600">
+                                                    {Math.round(harvestState.data.reduce((sum, item) => sum + item.avgWeight, 0) / harvestState.data.length)}g
+                                                </div>
+                                                <div className="text-sm text-orange-800">Avg Fish Weight</div>
+                                            </div>
+                                            <div className="bg-teal-50 rounded-lg p-4">
+                                                <div className="text-2xl font-bold text-teal-600">
+                                                    {harvestState.data.reduce((sum, item) => sum + item.tilapia + item.bangus, 0).toLocaleString()} kg
+                                                </div>
+                                                <div className="text-sm text-teal-800">Total Harvest</div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Performance Insights */}
+                                    {!harvestState.isLoading && harvestState.data.length > 0 && (
+                                        <div className="mt-6 bg-gray-50 rounded-lg p-6">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Insights</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <h4 className="font-medium text-gray-700 mb-2">Top Performing Location</h4>
+                                                    <p className="text-sm text-gray-600">
+                                                        {harvestState.data.reduce((max, item) =>
+                                                            (item.tilapia + item.bangus) > (max.tilapia + max.bangus) ? item : max
+                                                        ).location} - {harvestState.data.reduce((max, item) =>
+                                                            (item.tilapia + item.bangus) > (max.tilapia + max.bangus) ? item : max
+                                                        ).tilapia + harvestState.data.reduce((max, item) =>
+                                                            (item.tilapia + item.bangus) > (max.tilapia + max.bangus) ? item : max
+                                                        ).bangus} kg total harvest
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-medium text-gray-700 mb-2">Best Facility Type</h4>
+                                                    <p className="text-sm text-gray-600">
+                                                        {harvestState.data.filter(item => item.facilityType === 'Fish Cage').length > 0 &&
+                                                            harvestState.data.filter(item => item.facilityType === 'Pond').length > 0 ?
+                                                            (harvestState.data.filter(item => item.facilityType === 'Fish Cage')
+                                                                .reduce((sum, item) => sum + item.tilapia + item.bangus, 0) /
+                                                                harvestState.data.filter(item => item.facilityType === 'Fish Cage').length) >
+                                                                (harvestState.data.filter(item => item.facilityType === 'Pond')
+                                                                    .reduce((sum, item) => sum + item.tilapia + item.bangus, 0) /
+                                                                    harvestState.data.filter(item => item.facilityType === 'Pond').length) ?
+                                                                'Fish Cage facilities show higher average yield' :
+                                                                'Pond facilities show higher average yield' :
+                                                            'Insufficient data for comparison'}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
