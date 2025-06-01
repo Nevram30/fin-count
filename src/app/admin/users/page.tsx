@@ -408,7 +408,7 @@ const AddUserPage: React.FC = () => {
                         </div>
 
                         {/* Add New User Section */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-5 overflow-hidden">
                             <div className="p-6 border-b border-gray-100">
                                 <h2 className="text-lg font-semibold text-gray-700">
                                     Add New User
