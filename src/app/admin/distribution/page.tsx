@@ -46,9 +46,9 @@ interface Distribution {
     date: string;
     forecast: string;
     harvestDate: string;
-    // New harvest tracking fields
+    // Updated harvest tracking fields
     expectedHarvestDate?: string;
-    actualHarvestDate?: string;
+    forecastedHarvestKilos?: number;
     actualHarvestKilos?: number;
 }
 
@@ -193,6 +193,12 @@ const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: ()
                             <span className="text-gray-500">Forecast Date:</span>
                             <p className="font-medium text-amber-600">{distribution.forecast}</p>
                         </div>
+                        {distribution.forecastedHarvestKilos && (
+                            <div>
+                                <span className="text-gray-500">Forecasted Harvest:</span>
+                                <p className="font-medium text-blue-600">{distribution.forecastedHarvestKilos} kg</p>
+                            </div>
+                        )}
                         {distribution.actualHarvestKilos && (
                             <div>
                                 <span className="text-gray-500">Actual Harvest:</span>
@@ -308,8 +314,8 @@ const DistributionFormModal: React.FC<{
         return Object.keys(newErrors).length === 0;
     };
 
-    // Calculate forecast and harvest dates
-    const calculateDates = (distributionDate: string) => {
+    // Calculate forecast and harvest dates with forecasted harvest kilos
+    const calculateDates = (distributionDate: string, fingerlingsCount: number) => {
         const date = new Date(distributionDate);
         const forecastDate = new Date(date);
         forecastDate.setMonth(date.getMonth() + 3); // 3 months for forecast
@@ -320,10 +326,14 @@ const DistributionFormModal: React.FC<{
         const expectedHarvestDate = new Date(date);
         expectedHarvestDate.setMonth(date.getMonth() + 5); // 5 months for expected harvest
 
+        // Calculate forecasted harvest: assuming 0.5kg per fingerling (industry average)
+        const forecastedHarvestKilos = Math.round(fingerlingsCount * 0.5);
+
         return {
             forecast: forecastDate.toISOString().split('T')[0],
             harvest: harvestDate.toISOString().split('T')[0],
-            expectedHarvest: expectedHarvestDate.toISOString().split('T')[0]
+            expectedHarvest: expectedHarvestDate.toISOString().split('T')[0],
+            forecastedHarvestKilos
         };
     };
 
@@ -337,7 +347,7 @@ const DistributionFormModal: React.FC<{
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            const dates = calculateDates(formData.date);
+            const dates = calculateDates(formData.date, formData.fingerlingsCount);
             const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
 
             const newDistribution: Distribution = {
@@ -350,7 +360,8 @@ const DistributionFormModal: React.FC<{
                 date: formData.date,
                 forecast: dates.forecast,
                 harvestDate: dates.harvest,
-                expectedHarvestDate: dates.expectedHarvest
+                expectedHarvestDate: dates.expectedHarvest,
+                forecastedHarvestKilos: dates.forecastedHarvestKilos
             };
 
             // Update batch remaining fingerlings
@@ -712,7 +723,7 @@ const DetailModal: React.FC<{
     const [isSaving, setIsSaving] = useState(false);
     const [editData, setEditData] = useState({
         expectedHarvestDate: distribution.expectedHarvestDate || '',
-        actualHarvestDate: distribution.actualHarvestDate || '',
+        forecastedHarvestKilos: distribution.forecastedHarvestKilos || 0,
         actualHarvestKilos: distribution.actualHarvestKilos || 0
     });
 
@@ -726,7 +737,7 @@ const DetailModal: React.FC<{
             const updatedDistribution: Distribution = {
                 ...distribution,
                 expectedHarvestDate: editData.expectedHarvestDate,
-                actualHarvestDate: editData.actualHarvestDate,
+                forecastedHarvestKilos: editData.forecastedHarvestKilos,
                 actualHarvestKilos: editData.actualHarvestKilos
             };
 
@@ -742,7 +753,7 @@ const DetailModal: React.FC<{
     const cancelEdit = () => {
         setEditData({
             expectedHarvestDate: distribution.expectedHarvestDate || '',
-            actualHarvestDate: distribution.actualHarvestDate || '',
+            forecastedHarvestKilos: distribution.forecastedHarvestKilos || 0,
             actualHarvestKilos: distribution.actualHarvestKilos || 0
         });
         setIsEditing(false);
@@ -857,15 +868,18 @@ const DetailModal: React.FC<{
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-purple-600 font-medium">Actual Harvest Date:</span>
-                                            <p className="text-purple-800">
-                                                {distribution.actualHarvestDate || 'Not harvested yet'}
+                                            <span className="text-purple-600 font-medium">Forecasted Harvest (kg):</span>
+                                            <p className="text-purple-800 text-lg font-semibold">
+                                                {distribution.forecastedHarvestKilos ?
+                                                    `${distribution.forecastedHarvestKilos.toLocaleString()} kg` :
+                                                    'Not calculated'
+                                                }
                                             </p>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
                                         <div>
-                                            <span className="text-purple-600 font-medium">Harvested Weight (kg):</span>
+                                            <span className="text-purple-600 font-medium">Actual Harvest Weight (kg):</span>
                                             <p className="text-purple-800 text-lg font-semibold">
                                                 {distribution.actualHarvestKilos ?
                                                     `${distribution.actualHarvestKilos.toLocaleString()} kg` :
@@ -892,18 +906,21 @@ const DetailModal: React.FC<{
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-purple-700 mb-2">
-                                                Actual Harvest Date
+                                                Forecasted Harvest (kg)
                                             </label>
                                             <input
-                                                type="date"
-                                                value={editData.actualHarvestDate}
-                                                onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestDate: e.target.value }))}
+                                                type="number"
+                                                step="0.1"
+                                                min="0"
+                                                value={editData.forecastedHarvestKilos || ''}
+                                                onChange={(e) => setEditData(prev => ({ ...prev, forecastedHarvestKilos: parseFloat(e.target.value) || 0 }))}
+                                                placeholder="Enter forecasted harvest weight in kg"
                                                 className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                             />
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-purple-700 mb-2">
-                                                Harvested Weight (kg)
+                                                Actual Harvest Weight (kg)
                                             </label>
                                             <input
                                                 type="number"
@@ -911,7 +928,7 @@ const DetailModal: React.FC<{
                                                 min="0"
                                                 value={editData.actualHarvestKilos || ''}
                                                 onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestKilos: parseFloat(e.target.value) || 0 }))}
-                                                placeholder="Enter harvested weight in kg"
+                                                placeholder="Enter actual harvested weight in kg"
                                                 className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                             />
                                         </div>
@@ -1096,8 +1113,8 @@ const DistributionForm: React.FC = () => {
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Expected</th>
-                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actual</th>
-                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Harvest (kg)</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Forecasted (kg)</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actual (kg)</th>
                                                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
                                                 </tr>
                                             </thead>
@@ -1116,16 +1133,18 @@ const DistributionForm: React.FC = () => {
                                                             {dist.expectedHarvestDate || '-'}
                                                         </td>
                                                         <td className="px-4 py-3 text-sm">
-                                                            {dist.actualHarvestDate ? (
-                                                                <span className="text-green-600">{dist.actualHarvestDate}</span>
+                                                            {dist.forecastedHarvestKilos ? (
+                                                                <span className="text-blue-600 font-semibold">
+                                                                    {dist.forecastedHarvestKilos.toLocaleString()}
+                                                                </span>
                                                             ) : (
-                                                                <span className="text-gray-400">Pending</span>
+                                                                <span className="text-gray-400">-</span>
                                                             )}
                                                         </td>
                                                         <td className="px-4 py-3 text-sm">
                                                             {dist.actualHarvestKilos ? (
                                                                 <span className="text-green-600 font-semibold">
-                                                                    {dist.actualHarvestKilos.toLocaleString()} kg
+                                                                    {dist.actualHarvestKilos.toLocaleString()}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-gray-400">-</span>
@@ -1156,7 +1175,8 @@ const DistributionForm: React.FC = () => {
                                                     <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Count</th>
                                                     <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
                                                     <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Harvest</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Forecasted</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900">Actual</th>
                                                     <th className="px-3 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
                                                 </tr>
                                             </thead>
@@ -1169,12 +1189,21 @@ const DistributionForm: React.FC = () => {
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.facilityType}</td>
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.date}</td>
                                                         <td className="px-3 py-3 text-sm">
+                                                            {dist.forecastedHarvestKilos ? (
+                                                                <span className="text-blue-600 font-semibold">
+                                                                    {dist.forecastedHarvestKilos} kg
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400">-</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-sm">
                                                             {dist.actualHarvestKilos ? (
                                                                 <span className="text-green-600 font-semibold">
                                                                     {dist.actualHarvestKilos} kg
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-gray-400">Pending</span>
+                                                                <span className="text-gray-400">-</span>
                                                             )}
                                                         </td>
                                                         <td className="px-3 py-3 text-center">
