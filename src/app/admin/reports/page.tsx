@@ -34,10 +34,8 @@ interface BatchData {
     species: string;
     quantity: number;
     dateCreated: string;
-    expectedDistribution: string;
     status: string;
     staffName: string;
-    staffRole: string;
 }
 
 interface DistributedBatchData {
@@ -49,7 +47,6 @@ interface DistributedBatchData {
     distributionDate: string;
     beneficiaryLocation: string;
     staffName: string;
-    staffRole: string;
     status: string;
 }
 
@@ -194,10 +191,8 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                                     >
                                         <option value="All Species">All Species</option>
-                                        <option value="Tilapia">Tilapia</option>
-                                        <option value="Catfish">Catfish</option>
-                                        <option value="Carp">Carp</option>
-                                        <option value="Trout">Trout</option>
+                                        <option value="Tilapia">Red Tilapia</option>
+                                        <option value="Catfish">Bangus</option>
                                     </select>
                                     <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                                 </div>
@@ -388,7 +383,7 @@ const FingerlingsCountReportView: React.FC = () => {
     );
 };
 
-// Undistributed Batches Report Component (Updated with Staff Names)
+// Undistributed Batches Report Component
 const UndistributedBatchesReportView: React.FC = () => {
     const sampleBatchData: BatchData[] = [
         {
@@ -397,10 +392,8 @@ const UndistributedBatchesReportView: React.FC = () => {
             species: "Tilapia",
             quantity: 5000,
             dateCreated: "2025-04-15",
-            expectedDistribution: "2025-05-15",
             status: "Overdue",
             staffName: "Maria Santos",
-            staffRole: "Production Manager"
         },
         {
             id: "2",
@@ -408,10 +401,8 @@ const UndistributedBatchesReportView: React.FC = () => {
             species: "Catfish",
             quantity: 3000,
             dateCreated: "2025-04-20",
-            expectedDistribution: "2025-05-20",
             status: "Pending",
             staffName: "Juan Dela Cruz",
-            staffRole: "Hatchery Supervisor"
         },
         {
             id: "3",
@@ -419,10 +410,8 @@ const UndistributedBatchesReportView: React.FC = () => {
             species: "Carp",
             quantity: 2500,
             dateCreated: "2025-04-25",
-            expectedDistribution: "2025-05-25",
             status: "Overdue",
             staffName: "Ana Rodriguez",
-            staffRole: "Aquaculture Technician"
         },
         {
             id: "4",
@@ -430,10 +419,8 @@ const UndistributedBatchesReportView: React.FC = () => {
             species: "Tilapia",
             quantity: 4000,
             dateCreated: "2025-04-28",
-            expectedDistribution: "2025-05-28",
             status: "Pending",
             staffName: "Carlos Mendoza",
-            staffRole: "Field Coordinator"
         }
     ];
 
@@ -443,10 +430,8 @@ const UndistributedBatchesReportView: React.FC = () => {
             "Species": batch.species,
             "Quantity": batch.quantity,
             "Date Created": batch.dateCreated,
-            "Expected Distribution": batch.expectedDistribution,
             "Status": batch.status,
             "Staff Name": batch.staffName,
-            "Staff Role": batch.staffRole
         }));
         exportToCSV(csvData, "undistributed_batches_report");
     };
@@ -485,9 +470,7 @@ const UndistributedBatchesReportView: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Distribution</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Role</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                     </thead>
@@ -498,9 +481,7 @@ const UndistributedBatchesReportView: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.species}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.quantity.toLocaleString()}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.dateCreated}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.expectedDistribution}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{batch.staffRole}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${batch.status === 'Overdue'
                                         ? 'bg-red-100 text-red-800'
@@ -530,7 +511,6 @@ const DistributedBatchesReportView: React.FC = () => {
             distributionDate: "2025-05-10",
             beneficiaryLocation: "Los Baños, Laguna",
             staffName: "Elena Reyes",
-            staffRole: "Distribution Coordinator",
             status: "Completed"
         },
         {
@@ -542,7 +522,6 @@ const DistributedBatchesReportView: React.FC = () => {
             distributionDate: "2025-05-18",
             beneficiaryLocation: "Calamba, Laguna",
             staffName: "Roberto Cruz",
-            staffRole: "Field Operations Manager",
             status: "Completed"
         },
         {
@@ -554,7 +533,6 @@ const DistributedBatchesReportView: React.FC = () => {
             distributionDate: "2025-05-22",
             beneficiaryLocation: "Tanauan, Batangas",
             staffName: "Sofia Garcia",
-            staffRole: "Logistics Supervisor",
             status: "Completed"
         },
         {
@@ -566,7 +544,6 @@ const DistributedBatchesReportView: React.FC = () => {
             distributionDate: "2025-05-26",
             beneficiaryLocation: "Santa Rosa, Laguna",
             staffName: "Miguel Torres",
-            staffRole: "Community Liaison",
             status: "Completed"
         }
     ];
@@ -580,7 +557,6 @@ const DistributedBatchesReportView: React.FC = () => {
             "Distribution Date": batch.distributionDate,
             "Beneficiary Location": batch.beneficiaryLocation,
             "Staff Name": batch.staffName,
-            "Staff Role": batch.staffRole,
             "Status": batch.status
         }));
         exportToCSV(csvData, "distributed_batches_report");
@@ -623,7 +599,6 @@ const DistributedBatchesReportView: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Date</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Role</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                     </thead>
@@ -637,7 +612,6 @@ const DistributedBatchesReportView: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.distributionDate}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.beneficiaryLocation}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{batch.staffRole}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                         {batch.status}
