@@ -337,7 +337,7 @@ const LoginPage: React.FC = () => {
 
                         <div className="flex items-start">
                             <CircleCheck className="h-6 w-6 mr-3 mt-1" />
-                            <p>Real-time Descriptive and Predictive Analytics</p>
+                            <p>Real-time Forecasting and Trends Analytics</p>
                         </div>
                     </div>
                 </div>
