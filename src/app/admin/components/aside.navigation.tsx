@@ -15,6 +15,8 @@ import {
     X,
     Building2,
     ChartNoAxesCombined,
+    CircleHelp,
+    MessageSquareText,
 } from "lucide-react";
 import { useLogout } from "@/app/context/logout";
 
@@ -258,31 +260,26 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                     {/* Profile Section */}
                     <div className="mt-auto pt-3 border-t border-gray-100">
                         <Link
-                            href="/admin/notifications"
-                            className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 relative ${pathname.startsWith("/admin/notifications")
+                            href="/admin/helpdesk"
+                            className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 relative ${pathname.startsWith("/admin/helpdesk")
                                 ? "bg-blue-50 text-blue-700 font-medium"
                                 : "text-gray-600 hover:bg-gray-50"
                                 }`}
                         >
                             <div className="relative flex-shrink-0">
-                                <Bell className="h-5 w-5" />
-                                {unreadNotificationCount > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] px-1">
-                                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                                    </span>
-                                )}
+                                <CircleHelp className="h-5 w-5" />
                             </div>
-                            <span className="truncate">Notifications</span>
+                            <span className="truncate">Help Desk</span>
                         </Link>
                         <Link
-                            href="/admin/settings"
-                            className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/settings")
+                            href="/admin/feedback"
+                            className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors duration-200 ${pathname.startsWith("/admin/feedback")
                                 ? "bg-blue-50 text-blue-700 font-medium"
                                 : "text-gray-600 hover:bg-gray-50"
                                 }`}
                         >
-                            <Settings className="h-5 w-5 flex-shrink-0" />
-                            <span className="truncate">Settings</span>
+                            <MessageSquareText className="h-5 w-5 flex-shrink-0" />
+                            <span className="truncate">Feedback</span>
                         </Link>
                         <button
                             onClick={handleLogoutClick}

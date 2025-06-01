@@ -8,7 +8,7 @@ import AsideNavigation from "../components/aside.navigation";
 import { LogoutProvider } from "@/app/context/logout";
 import { LogoutModal } from "@/app/components/logout.modal";
 
-const NotificationsPage: React.FC = () => {
+const SettingsPage: React.FC = () => {
     const { isLoading, isAuthenticated, logout } = withAuth({
         userType: "admin",
         redirectTo: "/signin",
@@ -56,7 +56,7 @@ const NotificationsPage: React.FC = () => {
             <div className="grid grid-cols-6">
                 <main className="h-screen col-start-2 col-span-6 p-8">
                     <div className="max-w-4xl mx-auto">
-                        notifications
+                        Feedback
                     </div>
                 </main>
             </div>
@@ -68,7 +68,7 @@ const NotificationsPage: React.FC = () => {
 const App: React.FC = () => {
     return (
         <LogoutProvider>
-            <NotificationsPage />
+            <SettingsPage />
             <LogoutModal />
         </LogoutProvider>
     );
