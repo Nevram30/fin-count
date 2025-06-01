@@ -89,15 +89,10 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                 id="sidebar-toggle"
                 onClick={toggleSidebar}
                 className={`fixed z-50 lg:hidden p-2 rounded-md shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200 
-                    ${isOpen ? 'bg-red-500 top-4 right-28' : 'bg-white top-4 left-4'}
-                    `}
+                    ${isOpen ? 'bg-red-500 top-4 right-28' : 'bg-white top-4 left-4'}`}
                 aria-label="Toggle navigation menu"
             >
-                {isOpen ? (
-                    <X className="h-6 w-6 text-white" />
-                ) : (
-                    <Menu className="h-6 w-6 text-gray-600" />
-                )}
+                {isOpen ? (<X className="h-6 w-6 text-white" />) : (<Menu className="h-6 w-6 text-gray-600" />)}
             </button>
 
             {/* Mobile Overlay */}

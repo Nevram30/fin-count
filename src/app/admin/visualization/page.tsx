@@ -139,7 +139,7 @@ const DataVisualization: React.FC = () => {
 
     const { unreadCount } = useNotification();
 
-    const [activeTab, setActiveTab] = useState<'comparative' | 'fingerlings' | 'leaderboard' | 'harvest'>('comparative');
+    const [activeTab, setActiveTab] = useState<'fingerlings' | 'leaderboard' | 'harvest'>('fingerlings');
 
     const [forecastState, setForecastState] = useState<ForecastingState>({
         selectedLocation: "Barangay",
@@ -480,7 +480,7 @@ const DataVisualization: React.FC = () => {
                         {/* Tab Navigation */}
                         <div className="mb-6">
                             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-                                <button
+                                {/* <button
                                     onClick={() => setActiveTab('comparative')}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'comparative'
                                         ? 'bg-white text-blue-600 shadow-sm'
@@ -489,7 +489,7 @@ const DataVisualization: React.FC = () => {
                                 >
                                     <Scale className="h-4 w-4" />
                                     Comparative Analysis
-                                </button>
+                                </button> */}
                                 <button
                                     onClick={() => setActiveTab('fingerlings')}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'fingerlings'
@@ -524,7 +524,7 @@ const DataVisualization: React.FC = () => {
                         </div>
 
                         {/* Comparative Analysis Tab */}
-                        {activeTab === 'comparative' && (
+                        {/* {activeTab === 'comparative' && (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                                 <div className="p-6">
                                     <div className="flex items-center justify-between mb-6">
@@ -618,7 +618,7 @@ const DataVisualization: React.FC = () => {
                                     )}
                                 </div>
                             </div>
-                        )}
+                        )} */}
 
                         {/* Fingerling Distribution Tab */}
                         {activeTab === 'fingerlings' && (
