@@ -69,6 +69,7 @@ const LoginPage: React.FC = () => {
             });
 
             if ((response as any).error) {
+                setIsLoading(false);
                 try {
                     const jsonError = JSON.parse((response as any).error);
 
@@ -134,6 +135,8 @@ const LoginPage: React.FC = () => {
                 return;
             }
 
+            setIsLoading(false);
+
             toast.success("Login successful!", {
                 duration: 3000,
             });
@@ -146,8 +149,6 @@ const LoginPage: React.FC = () => {
                 general: "Login failed. Please check your credentials and try again.",
             });
         }
-
-        setIsLoading(false);
     };
 
     return (
