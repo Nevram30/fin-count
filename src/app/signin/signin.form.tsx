@@ -181,7 +181,7 @@ const LoginPage: React.FC = () => {
 
                     <p className="text-gray-600 mb-8 text-lg">Log in to access your account</p>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label
                                 htmlFor={ids.email}
