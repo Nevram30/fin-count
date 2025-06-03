@@ -829,12 +829,8 @@ const DetailModal: React.FC<{
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <span className="text-amber-600 font-medium">Forecast Date:</span>
+                                    <span className="text-amber-600 font-medium">Forecast Harvest Date:</span>
                                     <p className="text-amber-800">{distribution.forecast}</p>
-                                </div>
-                                <div>
-                                    <span className="text-amber-600 font-medium">Initial Harvest Date:</span>
-                                    <p className="text-amber-800">{distribution.harvestDate}</p>
                                 </div>
                             </div>
                         </div>
@@ -862,7 +858,7 @@ const DetailModal: React.FC<{
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                         <div>
-                                            <span className="text-purple-600 font-medium">Expected Harvest Date:</span>
+                                            <span className="text-purple-600 font-medium">Actual Harvest Date:</span>
                                             <p className="text-purple-800">
                                                 {distribution.expectedHarvestDate || 'Not set'}
                                             </p>
@@ -895,7 +891,7 @@ const DetailModal: React.FC<{
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-sm font-medium text-purple-700 mb-2">
-                                                Expected Harvest Date
+                                                Actual Harvest Date
                                             </label>
                                             <input
                                                 type="date"
