@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Users, Download, Filter, Calendar, ChevronDown, ChevronUp, RotateCcw, FileText, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
+import { Users, Download, Filter, Calendar, ChevronDown, ChevronUp, RotateCcw, FileText, MapPin, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 
 import { LogoutModal } from "@/app/components/logout.modal";
@@ -58,6 +58,21 @@ interface BeneficiaryData {
     beneficiaryCount: number;
     totalFingerlings: number;
     beneficiaryName: string;
+}
+
+interface OverdueHarvestData {
+    id: string;
+    batchNumber: string;
+    species: string;
+    quantity: number;
+    distributionDate: string;
+    expectedHarvestDate: string;
+    daysOverdue: number;
+    beneficiaryLocation: string;
+    beneficiaryName: string;
+    staffName: string;
+    contactNumber: string;
+    status: string;
 }
 
 const FullScreenLoader: React.FC = () => (
@@ -134,7 +149,8 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
         onApplyFilters("Fingerling Count", resetFilters);
     };
 
-    const showLocationFilters = filters.reportType === "Beneficiaries Report";
+    const showLocationFilters = filters.reportType === "Beneficiaries Report" || filters.reportType === "Overdue Harvest Report";
+    const showDateFilters = filters.reportType !== "Overdue Harvest Report";
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -172,6 +188,7 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                     <option value="Undistributed Batches">Undistributed Batches</option>
                                     <option value="Distributed Batches">Distributed Batches</option>
                                     <option value="Beneficiaries Report">Beneficiaries Report</option>
+                                    <option value="Overdue Harvest Report">Overdue Harvest Report</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                             </div>
@@ -199,7 +216,7 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                             </div>
                         )}
 
-                        {/* Location Filters for Beneficiaries Report */}
+                        {/* Location Filters for Beneficiaries Report and Overdue Harvest Report */}
                         {showLocationFilters && (
                             <>
                                 <div>
@@ -246,39 +263,43 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                             </>
                         )}
 
-                        {/* Start Date */}
-                        <div>
-                            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                                <Calendar className="h-4 w-4 mr-1 text-blue-600" />
-                                Start Date
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="date"
-                                    value={filters.startDate}
-                                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                        {/* Start Date - Hidden for Overdue Harvest Report */}
+                        {showDateFilters && (
+                            <div>
+                                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                    <Calendar className="h-4 w-4 mr-1 text-blue-600" />
+                                    Start Date
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={filters.startDate}
+                                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* End Date */}
-                        <div>
-                            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                                <Calendar className="h-4 w-4 mr-1 text-blue-600" />
-                                End Date
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="date"
-                                    value={filters.endDate}
-                                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                        {/* End Date - Hidden for Overdue Harvest Report */}
+                        {showDateFilters && (
+                            <div>
+                                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                    <Calendar className="h-4 w-4 mr-1 text-blue-600" />
+                                    End Date
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={filters.endDate}
+                                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <Calendar className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Filter Actions */}
@@ -735,6 +756,198 @@ const BeneficiariesReportView: React.FC = () => {
     );
 };
 
+// NEW Overdue Harvest Report Component
+const OverdueHarvestReportView: React.FC = () => {
+    const sampleOverdueHarvestData: OverdueHarvestData[] = [
+        {
+            id: "1",
+            batchNumber: "BTH-2025-002",
+            species: "Tilapia",
+            quantity: 6000,
+            distributionDate: "2025-03-15",
+            expectedHarvestDate: "2025-05-15",
+            daysOverdue: 15,
+            beneficiaryLocation: "Los Baños, Laguna",
+            beneficiaryName: "Farmer's Association of Baybayin",
+            staffName: "Elena Reyes",
+            contactNumber: "+63 912 345 6789",
+            status: "Critical"
+        },
+        {
+            id: "2",
+            batchNumber: "BTH-2025-004",
+            species: "Catfish",
+            quantity: 4500,
+            distributionDate: "2025-03-20",
+            expectedHarvestDate: "2025-05-20",
+            daysOverdue: 10,
+            beneficiaryLocation: "Calamba, Laguna",
+            beneficiaryName: "Bambang Aquaculture Cooperative",
+            staffName: "Roberto Cruz",
+            contactNumber: "+63 917 234 5678",
+            status: "Overdue"
+        },
+        {
+            id: "3",
+            batchNumber: "BTH-2025-006",
+            species: "Tilapia",
+            quantity: 3500,
+            distributionDate: "2025-04-01",
+            expectedHarvestDate: "2025-05-25",
+            daysOverdue: 5,
+            beneficiaryLocation: "Tanauan, Batangas",
+            beneficiaryName: "Parian Fish Farmers Group",
+            staffName: "Sofia Garcia",
+            contactNumber: "+63 905 567 8901",
+            status: "Overdue"
+        },
+        {
+            id: "4",
+            batchNumber: "BTH-2025-008",
+            species: "Bangus",
+            quantity: 5500,
+            distributionDate: "2025-03-10",
+            expectedHarvestDate: "2025-05-10",
+            daysOverdue: 20,
+            beneficiaryLocation: "Santa Rosa, Laguna",
+            beneficiaryName: "Tanauan Fishery Association",
+            staffName: "Miguel Torres",
+            contactNumber: "+63 923 456 7890",
+            status: "Critical"
+        }
+    ];
+
+    const handleExportCSV = () => {
+        const csvData = sampleOverdueHarvestData.map(harvest => ({
+            "Batch Number": harvest.batchNumber,
+            "Species": harvest.species,
+            "Quantity": harvest.quantity,
+            "Distribution Date": harvest.distributionDate,
+            "Expected Harvest Date": harvest.expectedHarvestDate,
+            "Days Overdue": harvest.daysOverdue,
+            "Beneficiary Location": harvest.beneficiaryLocation,
+            "Beneficiary Name": harvest.beneficiaryName,
+            "Staff Name": harvest.staffName,
+            "Contact Number": harvest.contactNumber,
+            "Status": harvest.status
+        }));
+        exportToCSV(csvData, "overdue_harvest_report");
+    };
+
+    return (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            {/* Report Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Overdue Harvest Report</h3>
+                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                        <Clock className="h-4 w-4 mr-1" />
+                        <span>Distributed fingerlings past expected harvest date</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportCSV}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export CSV
+                    </button>
+                    <div className="p-2 bg-red-50 rounded-lg">
+                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-red-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <AlertTriangle className="h-8 w-8 text-red-600 mr-3" />
+                            <div>
+                                <p className="text-sm font-medium text-red-800">Critical Overdue</p>
+                                <p className="text-lg font-bold text-red-900">
+                                    {sampleOverdueHarvestData.filter(item => item.status === 'Critical').length}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <Clock className="h-8 w-8 text-orange-600 mr-3" />
+                            <div>
+                                <p className="text-sm font-medium text-orange-800">Total Overdue</p>
+                                <p className="text-lg font-bold text-orange-900">{sampleOverdueHarvestData.length}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <Users className="h-8 w-8 text-blue-600 mr-3" />
+                            <div>
+                                <p className="text-sm font-medium text-blue-800">Total Fingerlings</p>
+                                <p className="text-lg font-bold text-blue-900">
+                                    {sampleOverdueHarvestData.reduce((sum, item) => sum + item.quantity, 0).toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Report Content */}
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Date</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Harvest</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Overdue</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {sampleOverdueHarvestData.map((harvest) => (
+                            <tr key={harvest.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{harvest.batchNumber}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.species}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.quantity.toLocaleString()}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.distributionDate}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.expectedHarvestDate}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                    <span className={`${harvest.daysOverdue > 15 ? 'text-red-600' : 'text-orange-600'}`}>
+                                        {harvest.daysOverdue} days
+                                    </span>
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.beneficiaryLocation}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.beneficiaryName}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.contactNumber}</td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{harvest.staffName}</td>
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${harvest.status === 'Critical'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-orange-100 text-orange-800'
+                                        }`}>
+                                        {harvest.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
 // Main Report Display Component
 const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters }> = ({ reportType, filters }) => {
     switch (reportType) {
@@ -746,6 +959,8 @@ const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters }> = 
             return <DistributedBatchesReportView />;
         case "Beneficiaries Report":
             return <BeneficiariesReportView />;
+        case "Overdue Harvest Report":
+            return <OverdueHarvestReportView />;
         default:
             return <FingerlingsCountReportView />;
     }
