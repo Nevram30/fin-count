@@ -48,3 +48,14 @@ export type FormErrorsState = {
   confirmPassword?: string;
   agreeToTerms?: string;
 };
+
+// Batch interface based on mobile app session form
+export interface Batch {
+  id: string; // Format: BF-YYYYMMDD-XXX
+  date: string; // Session date
+  species: string; // Fish species
+  location: string; // Location field
+  notes?: string; // Notes about the session
+  totalFingerlings: number; // For distribution tracking
+  remainingFingerlings: number; // For distribution tracking
+}

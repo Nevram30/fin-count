@@ -7,6 +7,7 @@ import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
+import { Batch } from "@/app/components/types/data.types";
 
 const FullScreenLoader = () => (
     <div className="flex items-center justify-center">
@@ -33,12 +34,6 @@ interface DistributionForm {
     fingerlingsCount: number;
 }
 
-interface Batch {
-    id: string;
-    name: string;
-    totalFingerlings: number;
-    remainingFingerlings: number;
-}
 
 interface Distribution {
     id: string;
@@ -69,8 +64,24 @@ interface FormErrors {
 
 // Mock data for batches with more sample data
 const mockBatches: Batch[] = [
-    { id: "BATCH-001", name: "Tilapia Batch Jan 2024", totalFingerlings: 5000, remainingFingerlings: 3500 },
-    { id: "BATCH-002", name: "Bangus Batch Feb 2024", totalFingerlings: 3000, remainingFingerlings: 2800 },
+    {
+        id: "BF-20240115-001",
+        date: "Monday January 15, 2024",
+        species: "Red Tilapia",
+        location: "Pond A1, Tagum City, Davao del Norte",
+        notes: "Initial stocking session with high-quality fingerlings",
+        totalFingerlings: 5000,
+        remainingFingerlings: 3500
+    },
+    {
+        id: "BF-20240220-002",
+        date: "Tuesday February 20, 2024",
+        species: "Bangus",
+        location: "Fish Cage B2, Davao City",
+        notes: "Premium milkfish fingerlings from certified supplier",
+        totalFingerlings: 3000,
+        remainingFingerlings: 2800
+    },
 ];
 
 // Species options
@@ -411,7 +422,7 @@ const DistributionFormModal: React.FC<{
                                 Batch Information
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
+                                <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Batch ID</label>
                                     <select
                                         value={formData.batchId}
@@ -422,7 +433,7 @@ const DistributionFormModal: React.FC<{
                                         <option value="">Select a batch</option>
                                         {mockBatches.map(batch => (
                                             <option key={batch.id} value={batch.id}>
-                                                {batch.id} - {batch.name} (Available: {batch.remainingFingerlings})
+                                                {batch.id} - {batch.species} ({batch.location}) (Available: {batch.remainingFingerlings})
                                             </option>
                                         ))}
                                     </select>
@@ -432,6 +443,27 @@ const DistributionFormModal: React.FC<{
                                             <span className="text-sm text-red-600">{errors.batchId}</span>
                                         </div>
                                     )}
+                                </div>
+
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Calendar className="h-4 w-4" />
+                                        Batch Date (Auto-filled)
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={selectedBatch?.date || ''}
+                                            readOnly
+                                            placeholder="Will be auto-filled when batch is selected"
+                                            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                        />
+                                        {selectedBatch && (
+                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div>
@@ -449,6 +481,48 @@ const DistributionFormModal: React.FC<{
                                         />
                                         {selectedBatch && (
                                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <MapPin className="h-4 w-4" />
+                                        Batch Location (Auto-filled)
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={selectedBatch?.location || ''}
+                                            readOnly
+                                            placeholder="Will be auto-filled when batch is selected"
+                                            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                        />
+                                        {selectedBatch && (
+                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <FileText className="h-4 w-4" />
+                                        Batch Notes (Auto-filled)
+                                    </label>
+                                    <div className="relative">
+                                        <textarea
+                                            value={selectedBatch?.notes || ''}
+                                            readOnly
+                                            placeholder="Will be auto-filled when batch is selected"
+                                            rows={3}
+                                            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed resize-none"
+                                        />
+                                        {selectedBatch && (
+                                            <div className="absolute right-3 top-3">
                                                 <CheckCircle className="h-5 w-5 text-green-500" />
                                             </div>
                                         )}
