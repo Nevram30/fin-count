@@ -182,58 +182,6 @@ const MonthlyFingerlingsChart: React.FC = () => {
     );
 };
 
-// Additional Statistics Cards for Data Visualization
-const DataVisualizationStats: React.FC = () => {
-    const stats = [
-        {
-            title: "Peak Month",
-            value: "N/A",
-            description: "Highest production month",
-            bgColor: "bg-blue-50",
-            textColor: "text-blue-600"
-        },
-        {
-            title: "Total Annual",
-            value: "0",
-            description: "Total fingerlings this year",
-            bgColor: "bg-green-50",
-            textColor: "text-green-600"
-        },
-        {
-            title: "Average Monthly",
-            value: "0",
-            description: "Monthly average production",
-            bgColor: "bg-purple-50",
-            textColor: "text-purple-600"
-        },
-        {
-            title: "Growth Rate",
-            value: "0%",
-            description: "Month-over-month growth",
-            bgColor: "bg-orange-50",
-            textColor: "text-orange-600"
-        }
-    ];
-
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className={`inline-flex p-2 rounded-lg ${stat.bgColor} mb-3`}>
-                        <TrendingUp className={`h-4 w-4 ${stat.textColor}`} />
-                    </div>
-                    <div className="mb-2">
-                        <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
-                    </div>
-                    <div className="mb-1">
-                        <span className="text-sm font-medium text-gray-700">{stat.title}</span>
-                    </div>
-                    <p className="text-xs text-gray-500">{stat.description}</p>
-                </div>
-            ))}
-        </div>
-    );
-};
 
 
 const AdminDashboard: React.FC = () => {
@@ -292,9 +240,6 @@ const AdminDashboard: React.FC = () => {
 
                         {/* Statistics Overview */}
                         <StatisticsOverview />
-
-                        {/* Statistics Cards */}
-                        <DataVisualizationStats />
 
                         {/* Additional Dashboard Content */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
