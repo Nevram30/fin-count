@@ -7,7 +7,7 @@
     "build": "npm install --force && next build",
     "start": "next start --port ${PORT-3000}",
     "db": "npm run db:create && npm run db:migrate && npm run db:seed",
-    "db:create": "/node_modules/sequelize-cli/lib/sequelize db:create",
+    "db:create": "./node_modules/sequelize-cli/lib/sequelize db:create",
     "db:migrate": "./node_modules/sequelize-cli/lib/sequelize db:migrate",
     "db:seed": "./node_modules/sequelize-cli/lib/sequelize db:seed:all",
     "lint": "next lint"
