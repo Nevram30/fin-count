@@ -3,6 +3,8 @@ import { sequelize } from "./db";
 import User from "./user";
 import StaffProfile from "./staff.profile";
 import AdminProfile from "./admin.profile";
+import Batch from "./batch";
+import Session from "./session";
 
 // Define associations AFTER all models are imported
 User.hasMany(StaffProfile, {
@@ -15,6 +17,18 @@ User.hasMany(AdminProfile, {
   sourceKey: "id",
   foreignKey: "userId",
   as: "adminsProfile",
+});
+
+User.hasMany(Batch, {
+  sourceKey: "id",
+  foreignKey: "userId",
+  as: "batches",
+});
+
+Batch.hasMany(Session, {
+  sourceKey: "id",
+  foreignKey: "batchId",
+  as: "sessions",
 });
 
 // Define inverse associations (belongsTo)
@@ -30,12 +44,26 @@ AdminProfile.belongsTo(User, {
   as: "user",
 });
 
+Batch.belongsTo(User, {
+  targetKey: "id",
+  foreignKey: "userId",
+  as: "user",
+});
+
+Session.belongsTo(Batch, {
+  targetKey: "id",
+  foreignKey: "batchId",
+  as: "batch",
+});
+
 // Export all models
 const models = {
   sequelize,
   User,
   StaffProfile,
   AdminProfile,
+  Batch,
+  Session,
 };
 
 export default models;

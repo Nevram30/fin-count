@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash, ChevronDown, ChevronUp, Plus, Edit3 } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
-import { Batch } from "@/app/components/types/data.types";
+import { Batch, Distribution } from "@/app/components/types/data.types";
 
 const FullScreenLoader = () => (
     <div className="flex items-center justify-center">
@@ -35,54 +35,11 @@ interface DistributionForm {
 }
 
 
-interface Distribution {
-    id: string;
-    beneficiaryType: 'Individual' | 'Organization';
-    beneficiary: string;
-    phoneNumber: string;
-    species: string;
-    batchId: string;
-    fingerlingsCount: number;
-    location: string;
-    facilityType: string;
-    date: string;
-    forecast: string;
-    harvestDate: string;
-    // Updated harvest tracking fields
-    expectedHarvestDate?: string;
-    forecastedHarvestDate?: string;
-    actualHarvestDate?: string;
-    forecastedHarvestKilos?: number;
-    actualHarvestKilos?: number;
-    remarks?: 'Harvested' | 'Not Harvested' | 'Damaged' | 'Lost' | 'Disaster' | 'Other' | '';
-    customRemarks?: string;
-}
 
 interface FormErrors {
     [key: string]: string;
 }
 
-// Mock data for batches with more sample data
-const mockBatches: Batch[] = [
-    {
-        id: "BF-20240115-001",
-        date: "Monday January 15, 2024",
-        species: "Red Tilapia",
-        location: "Pond A1, Tagum City, Davao del Norte",
-        notes: "Initial stocking session with high-quality fingerlings",
-        totalFingerlings: 5000,
-        remainingFingerlings: 3500
-    },
-    {
-        id: "BF-20240220-002",
-        date: "Tuesday February 20, 2024",
-        species: "Bangus",
-        location: "Fish Cage B2, Davao City",
-        notes: "Premium milkfish fingerlings from certified supplier",
-        totalFingerlings: 3000,
-        remainingFingerlings: 2800
-    },
-];
 
 // Species options
 const speciesOptions = [
@@ -201,7 +158,8 @@ const DistributionFormModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     onSave: (distribution: Distribution) => void;
-}> = ({ isOpen, onClose, onSave }) => {
+    batches: Batch[];
+}> = ({ isOpen, onClose, onSave, batches }) => {
     const [formData, setFormData] = useState<DistributionForm>({
         beneficiaryType: '',
         firstname: '',
@@ -273,13 +231,11 @@ const DistributionFormModal: React.FC<{
 
     // Handle batch selection
     const handleBatchChange = (batchId: string) => {
-        const batch = mockBatches.find(b => b.id === batchId);
+        const batch = batches.find(b => b.id === batchId);
         setSelectedBatch(batch || null);
         handleInputChange('batchId', batchId);
 
         if (batch) {
-            handleInputChange('fingerlingsCount', batch.remainingFingerlings);
-        } else {
             handleInputChange('fingerlingsCount', 0);
         }
     };
@@ -372,10 +328,6 @@ const DistributionFormModal: React.FC<{
                 remarks: ''
             };
 
-            if (selectedBatch) {
-                selectedBatch.remainingFingerlings -= formData.fingerlingsCount;
-            }
-
             onSave(newDistribution);
 
             // Reset form
@@ -431,9 +383,9 @@ const DistributionFormModal: React.FC<{
                                             }`}
                                     >
                                         <option value="">Select a batch</option>
-                                        {mockBatches.map(batch => (
+                                        {batches.map(batch => (
                                             <option key={batch.id} value={batch.id}>
-                                                {batch.id} - {batch.species} ({batch.location}) (Available: {batch.remainingFingerlings})
+                                                {batch.id} - {batch.species} ({batch.location})
                                             </option>
                                         ))}
                                     </select>
@@ -1235,10 +1187,57 @@ const DistributionForm: React.FC = () => {
 
     // State management
     const [distributions, setDistributions] = useState<Distribution[]>([]);
+    const [batches, setBatches] = useState<Batch[]>([]);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedDistribution, setSelectedDistribution] = useState<Distribution | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [isLoadingData, setIsLoadingData] = useState(true);
+
+    // Fetch distributions from API
+    const fetchDistributions = async () => {
+        try {
+            const response = await fetch('/api/distributions');
+            const data = await response.json();
+
+            if (data.success) {
+                setDistributions(data.data.distributions);
+            } else {
+                console.error('Failed to fetch distributions:', data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching distributions:', error);
+        }
+    };
+
+    // Fetch batches from API
+    const fetchBatches = async () => {
+        try {
+            const response = await fetch('/api/batches');
+            const data = await response.json();
+
+            if (data.success) {
+                setBatches(data.data.batches);
+            } else {
+                console.error('Failed to fetch batches:', data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching batches:', error);
+        }
+    };
+
+    // Load data on component mount
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoadingData(true);
+            await Promise.all([fetchDistributions(), fetchBatches()]);
+            setIsLoadingData(false);
+        };
+
+        if (isAuthenticated) {
+            loadData();
+        }
+    }, [isAuthenticated]);
 
     if (isLoading) {
         return (
@@ -1339,7 +1338,13 @@ const DistributionForm: React.FC = () => {
                             </div>
 
                             {/* Distribution Table/List */}
-                            {distributions.length === 0 ? (
+                            {isLoadingData ? (
+                                <div className="text-center py-12">
+                                    <FullScreenLoader />
+                                    <h3 className="text-lg font-semibold text-gray-600 mb-2 mt-4">Loading Distributions...</h3>
+                                    <p className="text-gray-500">Please wait while we fetch the data</p>
+                                </div>
+                            ) : distributions.length === 0 ? (
                                 <div className="text-center py-12">
                                     <Fish className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-lg font-semibold text-gray-600 mb-2">No Distributions Yet</h3>
@@ -1501,6 +1506,7 @@ const DistributionForm: React.FC = () => {
                         isOpen={showFormModal}
                         onClose={() => setShowFormModal(false)}
                         onSave={handleSaveDistribution}
+                        batches={batches}
                     />
 
                     {/* Detail Modal */}

@@ -57,5 +57,35 @@ export interface Batch {
   location: string; // Location field
   notes?: string; // Notes about the session
   totalFingerlings: number; // For distribution tracking
-  remainingFingerlings: number; // For distribution tracking
+}
+
+// Distribution interface for fingerling distributions
+export interface Distribution {
+  id: string;
+  beneficiaryType: "Individual" | "Organization";
+  beneficiary: string;
+  phoneNumber: string;
+  species: string;
+  batchId: string;
+  fingerlingsCount: number;
+  location: string;
+  facilityType: string;
+  date: string;
+  forecast: string;
+  harvestDate: string;
+  // Updated harvest tracking fields
+  expectedHarvestDate?: string;
+  forecastedHarvestDate?: string;
+  actualHarvestDate?: string;
+  forecastedHarvestKilos?: number;
+  actualHarvestKilos?: number;
+  remarks?:
+    | "Harvested"
+    | "Not Harvested"
+    | "Damaged"
+    | "Lost"
+    | "Disaster"
+    | "Other"
+    | "";
+  customRemarks?: string;
 }

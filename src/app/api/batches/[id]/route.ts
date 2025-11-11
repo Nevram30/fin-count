@@ -11,7 +11,6 @@ const mockBatches: Batch[] = [
     location: "Pond A1, Tagum City, Davao del Norte",
     notes: "Initial stocking session with high-quality fingerlings",
     totalFingerlings: 5000,
-    remainingFingerlings: 3500,
   },
   {
     id: "BF-20240220-002",
@@ -20,7 +19,6 @@ const mockBatches: Batch[] = [
     location: "Fish Cage B2, Davao City",
     notes: "Premium milkfish fingerlings from certified supplier",
     totalFingerlings: 3000,
-    remainingFingerlings: 2800,
   },
   {
     id: "BF-20240305-003",
@@ -29,7 +27,6 @@ const mockBatches: Batch[] = [
     location: "Pond C3, Panabo City, Davao del Norte",
     notes: "Fast-growing strain for commercial production",
     totalFingerlings: 7500,
-    remainingFingerlings: 6200,
   },
   {
     id: "BF-20240418-004",
@@ -38,7 +35,6 @@ const mockBatches: Batch[] = [
     location: "Pond D1, Samal City",
     notes: "Local hito variety, good for pond culture",
     totalFingerlings: 4200,
-    remainingFingerlings: 3800,
   },
   {
     id: "BF-20240502-005",
@@ -47,7 +43,6 @@ const mockBatches: Batch[] = [
     location: "Fish Cage E5, Digos City, Davao del Sur",
     notes: "Second batch for expansion project",
     totalFingerlings: 6000,
-    remainingFingerlings: 4500,
   },
   {
     id: "BF-20240615-006",
@@ -56,7 +51,6 @@ const mockBatches: Batch[] = [
     location: "Pond F2, Mati City, Davao Oriental",
     notes: "Coastal pond system trial batch",
     totalFingerlings: 3500,
-    remainingFingerlings: 3200,
   },
   {
     id: "BF-20240703-007",
@@ -65,7 +59,6 @@ const mockBatches: Batch[] = [
     location: "Pond G1, Tagum City, Davao del Norte",
     notes: "Common carp for polyculture system",
     totalFingerlings: 2800,
-    remainingFingerlings: 2500,
   },
   {
     id: "BF-20240820-008",
@@ -74,7 +67,6 @@ const mockBatches: Batch[] = [
     location: "Pond H3, Davao City",
     notes: "High-density stocking trial",
     totalFingerlings: 8000,
-    remainingFingerlings: 6800,
   },
   {
     id: "BF-20240912-009",
@@ -83,7 +75,6 @@ const mockBatches: Batch[] = [
     location: "Pond I4, Compostela, Davao de Oro",
     notes: "Native dalag species for local market",
     totalFingerlings: 1500,
-    remainingFingerlings: 1200,
   },
   {
     id: "BF-20241025-010",
@@ -92,7 +83,6 @@ const mockBatches: Batch[] = [
     location: "Fish Cage J6, Davao Gulf",
     notes: "Marine cage culture experiment",
     totalFingerlings: 4500,
-    remainingFingerlings: 4100,
   },
   {
     id: "BF-20241108-011",
@@ -101,7 +91,6 @@ const mockBatches: Batch[] = [
     location: "Pond K2, Bansalan, Davao del Sur",
     notes: "Cold-tolerant strain for highland areas",
     totalFingerlings: 5500,
-    remainingFingerlings: 4900,
   },
   {
     id: "BF-20241220-012",
@@ -110,7 +99,6 @@ const mockBatches: Batch[] = [
     location: "Pond L1, Malita, Davao Occidental",
     notes: "Year-end stocking for next season",
     totalFingerlings: 6500,
-    remainingFingerlings: 6500,
   },
   {
     id: "BF-20250110-013",
@@ -119,7 +107,6 @@ const mockBatches: Batch[] = [
     location: "Pond M5, Sta. Cruz, Davao del Sur",
     notes: "New year batch with improved genetics",
     totalFingerlings: 3800,
-    remainingFingerlings: 3600,
   },
   {
     id: "BF-20250225-014",
@@ -128,7 +115,6 @@ const mockBatches: Batch[] = [
     location: "Fish Cage N3, Maco, Davao de Oro",
     notes: "Premium grade for export market",
     totalFingerlings: 4000,
-    remainingFingerlings: 3850,
   },
   {
     id: "BF-20250315-015",
@@ -137,7 +123,6 @@ const mockBatches: Batch[] = [
     location: "Pond O7, Hagonoy, Davao del Sur",
     notes: "Community-based aquaculture project",
     totalFingerlings: 7200,
-    remainingFingerlings: 7000,
   },
   {
     id: "BF-20250428-016",
@@ -146,7 +131,6 @@ const mockBatches: Batch[] = [
     location: "Pond P4, Monkayo, Davao de Oro",
     notes: "Integrated fish-rice farming system",
     totalFingerlings: 2200,
-    remainingFingerlings: 2100,
   },
   {
     id: "BF-20250510-017",
@@ -155,7 +139,6 @@ const mockBatches: Batch[] = [
     location: "Pond Q8, Kapalong, Davao del Norte",
     notes: "Organic aquaculture certification trial",
     totalFingerlings: 5800,
-    remainingFingerlings: 5600,
   },
   {
     id: "BF-20250627-018",
@@ -164,7 +147,6 @@ const mockBatches: Batch[] = [
     location: "Pond R2, New Bataan, Davao de Oro",
     notes: "Latest batch with advanced breeding stock",
     totalFingerlings: 6800,
-    remainingFingerlings: 6800,
   },
 ];
 
@@ -293,22 +275,7 @@ export async function PUT(
         body.totalFingerlings !== undefined
           ? body.totalFingerlings
           : currentBatch.totalFingerlings,
-      remainingFingerlings:
-        body.remainingFingerlings !== undefined
-          ? body.remainingFingerlings
-          : currentBatch.remainingFingerlings,
     };
-
-    // Validate that remainingFingerlings doesn't exceed totalFingerlings
-    if (updatedBatch.remainingFingerlings > updatedBatch.totalFingerlings) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "remainingFingerlings cannot exceed totalFingerlings",
-        },
-        400
-      );
-    }
 
     // Update the batch in mock data
     mockBatches[batchIndex] = updatedBatch;
@@ -363,17 +330,6 @@ export async function DELETE(
 
     // Check if batch has remaining fingerlings (business logic validation)
     const batch = mockBatches[batchIndex];
-    if (batch.remainingFingerlings > 0) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "Cannot delete batch with remaining fingerlings. Please distribute all fingerlings first.",
-        },
-        400
-      );
-    }
-
     // Remove batch from mock data
     const deletedBatch = mockBatches.splice(batchIndex, 1)[0];
 
