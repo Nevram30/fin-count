@@ -122,12 +122,16 @@ module.exports = {
     }
 
     if (allDistributions.length === 0) {
+      console.log("\n⚠ No Excel files found. Skipping Excel import seeder.");
+      console.log("  This is normal for production deployments.");
       console.log(
-        "\n⚠ No Excel files found. Please place the following files in the project root:"
+        "  To import Excel data locally, place the following files in the project root:"
       );
       console.log("  - Red_Tilapia Distribution_Data.xlsx");
       console.log("  - Bangus Distribution_Data.xlsx");
-      console.log("\nThen run this seeder again.");
+      console.log(
+        "\nThen run: npx sequelize-cli db:seed --seed 20250530130001-import-excel-distributions.js"
+      );
       return;
     }
 
