@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Session from "@/server/database/models/session";
-import Batch from "@/server/database/models/batch";
+import { Op } from "sequelize";
+import models from "@/server/database/models";
+
+const { Session, Batch } = models;
 
 // Helper function for JSON responses
 function jsonResponse(data: any, status: number = 200) {
@@ -29,19 +31,18 @@ export async function GET(request: NextRequest) {
 
     if (species) {
       whereClause.species = {
-        [require("sequelize").Op.like]: `%${species}%`,
+        [Op.like]: `%${species}%`,
       };
     }
 
     if (location) {
       whereClause.location = {
-        [require("sequelize").Op.like]: `%${location}%`,
+        [Op.like]: `%${location}%`,
       };
     }
 
     // Search across multiple fields
     if (search) {
-      const { Op } = require("sequelize");
       whereClause[Op.or] = [
         { species: { [Op.like]: `%${search}%` } },
         { location: { [Op.like]: `%${search}%` } },
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (
+      !body.id ||
       !body.batchId ||
       !body.species ||
       !body.location ||
@@ -109,19 +111,30 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error:
-            "Missing required fields: batchId, species, location, timestamp, imageUrl",
+            "Missing required fields: id, batchId, species, location, timestamp, imageUrl",
         },
         400
       );
     }
 
     // Verify batch exists
+    console.log("Looking for batch with ID:", body.batchId);
     const batch = await Batch.findByPk(body.batchId);
+    console.log("Batch found:", batch ? "Yes" : "No");
+
     if (!batch) {
+      // Log all available batches for debugging
+      const allBatches = await Batch.findAll({ attributes: ["id", "name"] });
+      console.log(
+        "Available batches:",
+        allBatches.map((b) => b.id)
+      );
+
       return jsonResponse(
         {
           success: false,
           error: "Batch not found",
+          availableBatches: allBatches.map((b) => b.id),
         },
         404
       );
@@ -140,6 +153,7 @@ export async function POST(request: NextRequest) {
 
     // Create new session
     const newSession = await Session.create({
+      id: body.id,
       batchId: body.batchId,
       species: body.species,
       location: body.location,

@@ -5,6 +5,7 @@ import StaffProfile from "./staff.profile";
 import AdminProfile from "./admin.profile";
 import Batch from "./batch";
 import Session from "./session";
+import Distribution from "./distribution";
 
 // Define associations AFTER all models are imported
 User.hasMany(StaffProfile, {
@@ -23,6 +24,12 @@ User.hasMany(Batch, {
   sourceKey: "id",
   foreignKey: "userId",
   as: "batches",
+});
+
+User.hasMany(Distribution, {
+  sourceKey: "id",
+  foreignKey: "userId",
+  as: "distributions",
 });
 
 Batch.hasMany(Session, {
@@ -50,6 +57,12 @@ Batch.belongsTo(User, {
   as: "user",
 });
 
+Distribution.belongsTo(User, {
+  targetKey: "id",
+  foreignKey: "userId",
+  as: "user",
+});
+
 Session.belongsTo(Batch, {
   targetKey: "id",
   foreignKey: "batchId",
@@ -64,6 +77,7 @@ const models = {
   AdminProfile,
   Batch,
   Session,
+  Distribution,
 };
 
 export default models;

@@ -2,6 +2,12 @@ import AdminProfile from "./admin.profile";
 import { sequelize, Sequelize } from "./db";
 import StaffProfile from "./staff.profile";
 import User from "./user";
+import Batch from "./batch";
+import Session from "./session";
+import Distribution from "./distribution";
+
+// Import associations to ensure they are loaded
+import "./associations";
 
 /* -- 
  dre ma export tanan ang mga models para dali ra tawagon....
@@ -14,4 +20,7 @@ export default {
   User,
   StaffProfile,
   AdminProfile,
+  Batch,
+  Session,
+  Distribution,
 };

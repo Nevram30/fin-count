@@ -11,7 +11,7 @@ import Batch from "./batch";
 export type SessionCreationAttributes = InferCreationAttributes<
   Session,
   {
-    omit: "id" | "createdAt" | "updatedAt";
+    omit: "createdAt" | "updatedAt";
   }
 >;
 
@@ -19,9 +19,9 @@ class Session extends Model<
   InferAttributes<Session>,
   SessionCreationAttributes
 > {
-  declare readonly id: CreationOptional<number>;
+  declare readonly id: string;
 
-  declare batchId: number;
+  declare batchId: string;
   declare species: string;
   declare location: string;
   declare notes: string;
@@ -39,14 +39,13 @@ class Session extends Model<
 Session.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: false,
-      autoIncrement: true,
       primaryKey: true,
     },
     batchId: {
       allowNull: false,
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       references: {
         model: "Batches",
         key: "id",

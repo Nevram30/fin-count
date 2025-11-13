@@ -11,12 +11,12 @@ import User from "./user";
 export type BatchCreationAttributes = InferCreationAttributes<
   Batch,
   {
-    omit: "id" | "createdAt" | "updatedAt";
+    omit: "createdAt" | "updatedAt";
   }
 >;
 
 class Batch extends Model<InferAttributes<Batch>, BatchCreationAttributes> {
-  declare readonly id: CreationOptional<number>;
+  declare readonly id: string;
 
   declare name: string;
   declare description: string | null;
@@ -34,9 +34,8 @@ class Batch extends Model<InferAttributes<Batch>, BatchCreationAttributes> {
 Batch.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: false,
-      autoIncrement: true,
       primaryKey: true,
     },
     name: {

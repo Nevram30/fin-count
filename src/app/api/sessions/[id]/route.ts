@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Session from "@/server/database/models/session";
-import Batch from "@/server/database/models/batch";
+import models from "@/server/database/models";
+
+const { Session, Batch } = models;
 
 // Helper function for JSON responses
 function jsonResponse(data: any, status: number = 200) {

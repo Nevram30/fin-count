@@ -1194,14 +1194,48 @@ const DistributionForm: React.FC = () => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(true);
 
-    // Fetch distributions from API
-    const fetchDistributions = async () => {
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalDistributions, setTotalDistributions] = useState(0);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    // Fetch distributions from API (database seeded data) with pagination
+    const fetchDistributions = async (page: number = 1, limit: number = 10) => {
         try {
-            const response = await fetch('/api/distributions');
+            const response = await fetch(`/api/distributions-data?page=${page}&limit=${limit}`);
             const data = await response.json();
 
             if (data.success) {
-                setDistributions(data.data.distributions);
+                // Transform the database data to match the Distribution interface
+                const transformedData = data.data.distributions.map((dist: any) => ({
+                    id: dist.id.toString(),
+                    beneficiaryType: 'Individual' as const,
+                    beneficiary: dist.beneficiaryName,
+                    phoneNumber: '-',
+                    species: dist.species,
+                    batchId: '-',
+                    fingerlingsCount: dist.fingerlings,
+                    location: `${dist.barangay ? dist.barangay + ', ' : ''}${dist.municipality}, ${dist.province}`,
+                    facilityType: 'Pond' as const,
+                    date: new Date(dist.dateDistributed).toISOString().split('T')[0],
+                    forecast: '',
+                    harvestDate: '',
+                    forecastedHarvestDate: '',
+                    forecastedHarvestKilos: dist.harvestKilo,
+                    actualHarvestKilos: 0,
+                    remarks: '' as any,
+                    customRemarks: '',
+                    area: dist.area,
+                    survivalRate: dist.survivalRate,
+                    avgWeight: dist.avgWeight
+                }));
+                setDistributions(transformedData);
+
+                // Update pagination state
+                setTotalPages(data.data.pagination.totalPages);
+                setTotalDistributions(data.data.pagination.totalDistributions);
+                setCurrentPage(data.data.pagination.currentPage);
             } else {
                 console.error('Failed to fetch distributions:', data.error);
             }
@@ -1226,18 +1260,31 @@ const DistributionForm: React.FC = () => {
         }
     };
 
-    // Load data on component mount
+    // Load data on component mount and when page/limit changes
     useEffect(() => {
         const loadData = async () => {
             setIsLoadingData(true);
-            await Promise.all([fetchDistributions(), fetchBatches()]);
+            await Promise.all([fetchDistributions(currentPage, itemsPerPage), fetchBatches()]);
             setIsLoadingData(false);
         };
 
         if (isAuthenticated) {
             loadData();
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, currentPage, itemsPerPage]);
+
+    // Handle page change
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    // Handle items per page change
+    const handleItemsPerPageChange = (newLimit: number) => {
+        setItemsPerPage(newLimit);
+        setCurrentPage(1); // Reset to first page when changing items per page
+    };
 
     if (isLoading) {
         return (
@@ -1496,6 +1543,79 @@ const DistributionForm: React.FC = () => {
                                             />
                                         ))}
                                     </div>
+
+                                    {/* Pagination Controls */}
+                                    {totalPages > 1 && (
+                                        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-4">
+                                            <div className="text-sm text-gray-600">
+                                                Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
+                                                <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalDistributions)}</span> of{' '}
+                                                <span className="font-medium">{totalDistributions}</span> distributions
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage - 1)}
+                                                    disabled={currentPage === 1}
+                                                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Previous
+                                                </button>
+
+                                                <div className="flex gap-1">
+                                                    {[...Array(totalPages)].map((_, idx) => {
+                                                        const pageNum = idx + 1;
+                                                        if (
+                                                            pageNum === 1 ||
+                                                            pageNum === totalPages ||
+                                                            (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                                        ) {
+                                                            return (
+                                                                <button
+                                                                    key={pageNum}
+                                                                    onClick={() => handlePageChange(pageNum)}
+                                                                    className={`px-3 py-2 text-sm font-medium rounded-lg ${currentPage === pageNum
+                                                                            ? 'bg-blue-600 text-white'
+                                                                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                                                        }`}
+                                                                >
+                                                                    {pageNum}
+                                                                </button>
+                                                            );
+                                                        } else if (
+                                                            pageNum === currentPage - 2 ||
+                                                            pageNum === currentPage + 2
+                                                        ) {
+                                                            return <span key={pageNum} className="px-2 py-2 text-gray-500">...</span>;
+                                                        }
+                                                        return null;
+                                                    })}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage + 1)}
+                                                    disabled={currentPage === totalPages}
+                                                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm text-gray-600">Per page:</label>
+                                                <select
+                                                    value={itemsPerPage}
+                                                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                                                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                >
+                                                    <option value={10}>10</option>
+                                                    <option value={20}>20</option>
+                                                    <option value={50}>50</option>
+                                                    <option value={100}>100</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>

@@ -1,0 +1,236 @@
+import { NextRequest, NextResponse } from "next/server";
+import Distribution from "@/server/database/models/distribution";
+import models from "@/server/database/models";
+import { Op } from "sequelize";
+
+// Helper function for JSON responses
+function jsonResponse(data: any, status: number = 200) {
+  return NextResponse.json(data, { status });
+}
+
+// GET /api/distributions-data - Fetch distribution data from database
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    // Query parameters
+    const species = searchParams.get("species");
+    const municipality = searchParams.get("municipality");
+    const province = searchParams.get("province");
+    const search = searchParams.get("search");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+
+    // Build where clause
+    const whereClause: any = {};
+
+    // Filter by species
+    if (species) {
+      whereClause.species = species;
+    }
+
+    // Filter by municipality
+    if (municipality) {
+      whereClause.municipality = {
+        [Op.iLike]: `%${municipality}%`,
+      };
+    }
+
+    // Filter by province
+    if (province) {
+      whereClause.province = {
+        [Op.iLike]: `%${province}%`,
+      };
+    }
+
+    // Search by beneficiary name or location
+    if (search) {
+      whereClause[Op.or] = [
+        {
+          beneficiaryName: {
+            [Op.iLike]: `%${search}%`,
+          },
+        },
+        {
+          municipality: {
+            [Op.iLike]: `%${search}%`,
+          },
+        },
+        {
+          province: {
+            [Op.iLike]: `%${search}%`,
+          },
+        },
+        {
+          barangay: {
+            [Op.iLike]: `%${search}%`,
+          },
+        },
+      ];
+    }
+
+    // Filter by date range
+    if (startDate || endDate) {
+      whereClause.dateDistributed = {};
+      if (startDate) {
+        whereClause.dateDistributed[Op.gte] = new Date(startDate);
+      }
+      if (endDate) {
+        whereClause.dateDistributed[Op.lte] = new Date(endDate);
+      }
+    }
+
+    // Get total count for pagination
+    const totalDistributions = await Distribution.count({
+      where: whereClause,
+    });
+
+    // Calculate pagination
+    const totalPages = Math.ceil(totalDistributions / limit);
+    const offset = (page - 1) * limit;
+
+    // Fetch distributions with pagination
+    const distributions = await Distribution.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: models.User,
+          as: "user",
+          attributes: ["id", "email", "userType"],
+        },
+      ],
+      order: [["dateDistributed", "DESC"]],
+      limit,
+      offset,
+    });
+
+    return jsonResponse({
+      success: true,
+      data: {
+        distributions,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalDistributions,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+          limit,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Distributions Data GET API Error:", error);
+    return jsonResponse(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      500
+    );
+  }
+}
+
+// POST /api/distributions-data - Create new distribution record
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate required fields
+    const requiredFields = [
+      "dateDistributed",
+      "beneficiaryName",
+      "municipality",
+      "province",
+      "fingerlings",
+      "species",
+      "survivalRate",
+      "avgWeight",
+      "harvestKilo",
+      "userId",
+    ];
+
+    for (const field of requiredFields) {
+      if (body[field] === undefined || body[field] === null) {
+        return jsonResponse(
+          {
+            success: false,
+            error: `Missing required field: ${field}`,
+          },
+          400
+        );
+      }
+    }
+
+    // Validate species
+    if (!["Tilapia", "Bangus"].includes(body.species)) {
+      return jsonResponse(
+        {
+          success: false,
+          error: "species must be either 'Tilapia' or 'Bangus'",
+        },
+        400
+      );
+    }
+
+    // Validate fingerlings is a positive number
+    if (typeof body.fingerlings !== "number" || body.fingerlings <= 0) {
+      return jsonResponse(
+        {
+          success: false,
+          error: "fingerlings must be a positive number",
+        },
+        400
+      );
+    }
+
+    // Create new distribution
+    const newDistribution = await Distribution.create({
+      dateDistributed: new Date(body.dateDistributed),
+      beneficiaryName: body.beneficiaryName,
+      area: body.area || null,
+      barangay: body.barangay || null,
+      municipality: body.municipality,
+      province: body.province,
+      fingerlings: body.fingerlings,
+      species: body.species,
+      survivalRate: body.survivalRate,
+      avgWeight: body.avgWeight,
+      harvestKilo: body.harvestKilo,
+      userId: body.userId,
+    });
+
+    // Fetch the created distribution with user data
+    const distributionWithUser = await Distribution.findByPk(
+      newDistribution.id,
+      {
+        include: [
+          {
+            model: models.User,
+            as: "user",
+            attributes: ["id", "email", "userType"],
+          },
+        ],
+      }
+    );
+
+    return jsonResponse(
+      {
+        success: true,
+        data: distributionWithUser,
+        message: "Distribution record created successfully",
+      },
+      201
+    );
+  } catch (error) {
+    console.error("Distributions Data POST API Error:", error);
+    return jsonResponse(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      500
+    );
+  }
+}
