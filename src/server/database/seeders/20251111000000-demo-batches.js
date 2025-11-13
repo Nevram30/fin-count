@@ -3,7 +3,18 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // First, check if there are any users to associate batches with
+    // First, check if batches already exist
+    const existingBatches = await queryInterface.sequelize.query(
+      `SELECT id FROM Batches LIMIT 1;`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    if (existingBatches.length > 0) {
+      console.log("Batches already exist. Skipping batch seeding.");
+      return;
+    }
+
+    // Check if there are any users to associate batches with
     const users = await queryInterface.sequelize.query(
       `SELECT id FROM Users LIMIT 1;`,
       { type: Sequelize.QueryTypes.SELECT }
