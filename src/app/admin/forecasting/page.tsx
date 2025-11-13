@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Users, TrendingUp, Calendar, MapPin, Fish, Building2, BarChart3, Settings } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LineChart, Line, Tooltip, ComposedChart, Area, AreaChart } from "recharts";
 import AsideNavigation from "../components/aside.navigation";
@@ -693,7 +693,7 @@ const HarvestForecast: React.FC = () => {
                                 {/* Summary Statistics */}
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-5">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Summary</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                         <div className="bg-blue-50 rounded-lg p-4">
                                             <div className="text-2xl font-bold text-blue-600">
                                                 {forecastData.reduce((sum, item) => sum + item.predicted, 0).toLocaleString()} kg
@@ -717,6 +717,12 @@ const HarvestForecast: React.FC = () => {
                                                 {forecastData.length}
                                             </div>
                                             <div className="text-sm text-orange-800">Months Forecasted</div>
+                                        </div>
+                                        <div className="bg-green-50 rounded-lg p-4">
+                                            <div className="text-2xl font-bold text-green-600">
+                                                {Math.round(forecastData.reduce((sum, item) => sum + item.confidence, 0) / forecastData.length)}%
+                                            </div>
+                                            <div className="text-sm text-green-800">Avg Confidence</div>
                                         </div>
                                     </div>
                                 </div>
@@ -758,38 +764,8 @@ const HarvestForecast: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-5">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Summary</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div className="bg-blue-50 rounded-lg p-4">
-                                            <div className="text-2xl font-bold text-blue-600">
-                                                {forecastData.reduce((sum, item) => sum + item.predicted, 0).toLocaleString()}
-                                            </div>
-                                            <div className="text-sm text-blue-800">Total Predicted</div>
-                                        </div>
-                                        <div className="bg-green-50 rounded-lg p-4">
-                                            <div className="text-2xl font-bold text-green-600">
-                                                {Math.round(forecastData.reduce((sum, item) => sum + item.confidence, 0) / forecastData.length)}%
-                                            </div>
-                                            <div className="text-sm text-green-800">Avg Confidence</div>
-                                        </div>
-                                        <div className="bg-purple-50 rounded-lg p-4">
-                                            <div className="text-2xl font-bold text-purple-600">
-                                                {Math.max(...forecastData.map(item => item.predicted)).toLocaleString()}
-                                            </div>
-                                            <div className="text-sm text-purple-800">Peak Month</div>
-                                        </div>
-                                        <div className="bg-orange-50 rounded-lg p-4">
-                                            <div className="text-2xl font-bold text-orange-600">
-                                                {forecastData.length}
-                                            </div>
-                                            <div className="text-sm text-orange-800">Months Forecasted</div>
-                                        </div>
-                                    </div>
-                                </div> */}
-
                                 {/* Forecast Charts */}
-                                {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
@@ -823,17 +799,15 @@ const HarvestForecast: React.FC = () => {
                                             </ResponsiveContainer>
                                         </div>
                                     </div>
-                                </div> */}
+                                </div>
 
                                 {/* Trend Analysis Section - Three Separate Charts */}
-                                <div className="mb-8">
+                                {/* <div className="mb-8">
                                     <div className="flex items-center gap-3 mb-6">
                                         <BarChart3 className="h-5 w-5 text-purple-600" />
                                         <h3 className="text-xl font-semibold text-gray-900">Geographic Forecast Trend Analysis</h3>
                                     </div>
                                     <p className="text-sm text-gray-600 mb-6">Compare harvest trends across different geographic levels for {formData.species}</p>
-
-                                    {/* Province Level Trend */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                                         <div className="p-6">
                                             <div className="flex items-center justify-between mb-2">
@@ -874,7 +848,6 @@ const HarvestForecast: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* City Level Trend */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                                         <div className="p-6">
                                             <div className="flex items-center justify-between mb-2">
@@ -915,7 +888,6 @@ const HarvestForecast: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Barangay Level Trend */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                                         <div className="p-6">
                                             <div className="flex items-center justify-between mb-2">
@@ -955,7 +927,7 @@ const HarvestForecast: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div> */}
                             </>
                         )}
                     </div>
