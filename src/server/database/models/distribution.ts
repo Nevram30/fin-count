@@ -110,12 +110,6 @@ Distribution.init(
     batchId: {
       allowNull: true,
       type: DataTypes.STRING,
-      references: {
-        model: "Batches",
-        key: "id",
-      },
-      onUpdate: "CASCADE",
-      onDelete: "SET NULL",
     },
     createdAt: {
       allowNull: false,

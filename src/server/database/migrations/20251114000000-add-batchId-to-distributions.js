@@ -6,12 +6,6 @@ module.exports = {
     await queryInterface.addColumn("Distributions", "batchId", {
       type: Sequelize.STRING,
       allowNull: true,
-      references: {
-        model: "Batches",
-        key: "id",
-      },
-      onUpdate: "CASCADE",
-      onDelete: "SET NULL",
     });
 
     // Add index for better query performance
