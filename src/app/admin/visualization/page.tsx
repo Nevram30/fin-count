@@ -354,16 +354,128 @@ const DataVisualization: React.FC = () => {
         }));
     };
 
-    // Handle fingerlings comparison
+    // Handle fingerlings comparison - Fetch real data from API with all filters
     const handleFingerlingsCompare = async () => {
         setFingerlingsState(prev => ({ ...prev, isLoading: true }));
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const newData = generateFingerlingsData();
-        setFingerlingsState(prev => ({
-            ...prev,
-            data: newData,
-            isLoading: false
-        }));
+
+        try {
+            // Build query parameters for detailed data
+            const detailParams = new URLSearchParams();
+
+            if (fingerlingsState.dateFrom) {
+                detailParams.append('startDate', fingerlingsState.dateFrom);
+            }
+            if (fingerlingsState.dateTo) {
+                detailParams.append('endDate', fingerlingsState.dateTo);
+            }
+            if (fingerlingsState.selectedProvince !== 'all') {
+                detailParams.append('province', fingerlingsState.selectedProvince);
+            }
+            if (fingerlingsState.selectedCity !== 'all' && fingerlingsState.selectedCity !== 'All Cities') {
+                detailParams.append('municipality', fingerlingsState.selectedCity);
+            }
+            detailParams.append('limit', '1000'); // Get more records for aggregation
+
+            // Fetch detailed distribution data
+            const detailResponse = await fetch(`/api/distributions-data?${detailParams.toString()}`);
+            const detailResult = await detailResponse.json();
+
+            if (detailResult.success && detailResult.data.distributions) {
+                const distributions = detailResult.data.distributions;
+
+                // Apply additional filters (barangay and facility type) on client side
+                const filteredDistributions = distributions.filter((dist: any) => {
+                    // Barangay filter
+                    if (fingerlingsState.selectedBarangay !== 'all' &&
+                        fingerlingsState.selectedBarangay !== 'All Barangays' &&
+                        dist.barangay !== fingerlingsState.selectedBarangay) {
+                        return false;
+                    }
+
+                    // Facility type filter (if you have this field in your distribution data)
+                    // Note: Adjust this based on your actual data structure
+                    if (fingerlingsState.selectedFacilityType !== 'all' &&
+                        fingerlingsState.selectedFacilityType !== 'all_facilities') {
+                        // If you have a facilityType field in distributions, uncomment:
+                        // if (dist.facilityType && dist.facilityType.toLowerCase().replace(/\s+/g, '_') !== fingerlingsState.selectedFacilityType) {
+                        //     return false;
+                        // }
+                    }
+
+                    return true;
+                });
+
+                // Group by municipality and species
+                const municipalityMap = new Map<string, {
+                    tilapia: number;
+                    bangus: number;
+                    province: string;
+                    municipality: string;
+                    barangay: string;
+                }>();
+
+                filteredDistributions.forEach((dist: any) => {
+                    const key = dist.municipality;
+                    if (!municipalityMap.has(key)) {
+                        municipalityMap.set(key, {
+                            tilapia: 0,
+                            bangus: 0,
+                            province: dist.province,
+                            municipality: dist.municipality,
+                            barangay: dist.barangay || 'Various'
+                        });
+                    }
+                    const entry = municipalityMap.get(key)!;
+                    if (dist.species === 'Tilapia') {
+                        entry.tilapia += dist.fingerlings || 0;
+                    } else if (dist.species === 'Bangus') {
+                        entry.bangus += dist.fingerlings || 0;
+                    }
+                });
+
+                // Convert to chart data format
+                const chartData: FingerlingsData[] = [];
+                municipalityMap.forEach((value, municipality) => {
+                    chartData.push({
+                        location: municipality,
+                        tilapia: value.tilapia,
+                        bangus: value.bangus,
+                        date: fingerlingsState.dateTo,
+                        facilityType: fingerlingsState.selectedFacilityType === 'all_facilities' ? 'All Facilities' : fingerlingsState.selectedFacilityType.replace(/_/g, ' '),
+                        province: value.province,
+                        city: municipality,
+                        barangay: value.barangay
+                    });
+                });
+
+                // Sort by total fingerlings (descending) and take top 12
+                chartData.sort((a, b) => (b.tilapia + b.bangus) - (a.tilapia + a.bangus));
+                const topData = chartData.slice(0, 12);
+
+                setFingerlingsState(prev => ({
+                    ...prev,
+                    data: topData.length > 0 ? topData : generateFingerlingsData(), // Fallback to mock data if no real data
+                    isLoading: false
+                }));
+            } else {
+                // Fallback to mock data if API fails
+                const newData = generateFingerlingsData();
+                setFingerlingsState(prev => ({
+                    ...prev,
+                    data: newData,
+                    isLoading: false
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching fingerlings data:', error);
+            // Fallback to mock data on error
+            const newData = generateFingerlingsData();
+            setFingerlingsState(prev => ({
+                ...prev,
+                data: newData,
+                isLoading: false
+            }));
+        }
     };
 
     // Handle leaderboard refresh
@@ -402,6 +514,7 @@ const DataVisualization: React.FC = () => {
         handleLocationChange("Barangay");
         handleFingerlingsCompare();
         handleLeaderboardRefresh();
+        handleHarvestCompare();
     }, []);
 
     // Filter leaderboard data

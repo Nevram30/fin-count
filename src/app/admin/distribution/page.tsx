@@ -1214,7 +1214,7 @@ const DistributionForm: React.FC = () => {
                     beneficiary: dist.beneficiaryName,
                     phoneNumber: '-',
                     species: dist.species,
-                    batchId: '-',
+                    batchId: dist.batchId || '-',
                     fingerlingsCount: dist.fingerlings,
                     location: `${dist.barangay ? dist.barangay + ', ' : ''}${dist.municipality}, ${dist.province}`,
                     facilityType: 'Pond' as const,
@@ -1575,8 +1575,8 @@ const DistributionForm: React.FC = () => {
                                                                     key={pageNum}
                                                                     onClick={() => handlePageChange(pageNum)}
                                                                     className={`px-3 py-2 text-sm font-medium rounded-lg ${currentPage === pageNum
-                                                                            ? 'bg-blue-600 text-white'
-                                                                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
                                                                         }`}
                                                                 >
                                                                     {pageNum}

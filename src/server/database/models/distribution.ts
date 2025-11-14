@@ -33,6 +33,7 @@ class Distribution extends Model<
   declare avgWeight: number;
   declare harvestKilo: number;
   declare userId: number;
+  declare batchId: string | null;
 
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
@@ -105,6 +106,16 @@ Distribution.init(
       },
       onUpdate: "CASCADE",
       onDelete: "CASCADE",
+    },
+    batchId: {
+      allowNull: true,
+      type: DataTypes.STRING,
+      references: {
+        model: "Batches",
+        key: "id",
+      },
+      onUpdate: "CASCADE",
+      onDelete: "SET NULL",
     },
     createdAt: {
       allowNull: false,

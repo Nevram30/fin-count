@@ -113,14 +113,14 @@ export async function GET(request: NextRequest) {
       raw: true,
     });
 
-    // Get monthly distribution trends
+    // Get monthly distribution trends - MySQL compatible
     const monthlyTrends = await Distribution.findAll({
       attributes: [
         [
           models.sequelize.fn(
-            "DATE_TRUNC",
-            "month",
-            models.sequelize.col("dateDistributed")
+            "DATE_FORMAT",
+            models.sequelize.col("dateDistributed"),
+            "%Y-%m-01"
           ),
           "month",
         ],
@@ -138,18 +138,18 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       group: [
         models.sequelize.fn(
-          "DATE_TRUNC",
-          "month",
-          models.sequelize.col("dateDistributed")
+          "DATE_FORMAT",
+          models.sequelize.col("dateDistributed"),
+          "%Y-%m-01"
         ),
         "species",
       ],
       order: [
         [
           models.sequelize.fn(
-            "DATE_TRUNC",
-            "month",
-            models.sequelize.col("dateDistributed")
+            "DATE_FORMAT",
+            models.sequelize.col("dateDistributed"),
+            "%Y-%m-01"
           ),
           "DESC",
         ],
