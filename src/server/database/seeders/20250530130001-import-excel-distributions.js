@@ -9,16 +9,18 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     // Get a user ID to associate with distributions
     const users = await queryInterface.sequelize.query(
-      `SELECT id FROM Users LIMIT 1;`,
+      `SELECT id FROM Users ORDER BY id ASC LIMIT 1;`,
       { type: Sequelize.QueryTypes.SELECT }
     );
 
     if (users.length === 0) {
-      console.log("No users found. Please seed users first.");
-      return;
+      console.log("⚠ No users found. Please seed users first.");
+      console.log("  Skipping distribution import.");
+      return Promise.resolve();
     }
 
     const userId = users[0].id;
+    console.log(`Using userId: ${userId} for distributions and batches`);
 
     // Helper function to generate random batch ID
     const generateBatchId = () => {
@@ -202,14 +204,16 @@ module.exports = {
       console.log("\n⚠ No Excel files found. Skipping Excel import seeder.");
       console.log("  This is normal for production deployments.");
       console.log(
-        "  To import Excel data locally, place the following files in the project root:"
+        "  To import Excel data locally, place the following files in the src directory:"
       );
       console.log("  - Red_Tilapia Distribution_Data.xlsx");
       console.log("  - Bangus Distribution_Data.xlsx");
       console.log(
         "\nThen run: npx sequelize-cli db:seed --seed 20250530130001-import-excel-distributions.js"
       );
-      return;
+
+      // Exit successfully without error
+      return Promise.resolve();
     }
 
     // Check if batchId column exists in Distributions table
@@ -235,26 +239,47 @@ module.exports = {
 
       // Create batches and assign batch IDs
       const batches = [];
-      Object.keys(batchGroups).forEach((key, index) => {
-        const [date, species] = key.split("-").slice(0, 2);
-        const batchId = `BATCH-${date}-${species
-          .substring(0, 3)
-          .toUpperCase()}-${index + 1}`;
+      const batchMap = new Map(); // Track batch IDs to avoid duplicates
+
+      Object.keys(batchGroups).forEach((key) => {
+        const groups = key.split("-");
+        const year = groups[0];
+        const month = groups[1];
+        const day = groups[2];
+        const species = groups.slice(3).join("-");
+
+        const batchKey = `${year}-${month}-${species}`;
+
+        if (!batchMap.has(batchKey)) {
+          const batchIndex = batchMap.size + 1;
+          const batchId = `BATCH-${year}-${month}-${batchIndex}`;
+          batchMap.set(batchKey, batchId);
+        }
+
+        const batchId = batchMap.get(batchKey);
         const distributions = batchGroups[key];
-        const totalCount = distributions.reduce(
-          (sum, d) => sum + d.fingerlings,
-          0
-        );
 
         // Assign batch ID to all distributions in this group
         distributions.forEach((d) => {
           d.batchId = batchId;
         });
+      });
+
+      // Create batch records from the map
+      batchMap.forEach((batchId, key) => {
+        const [year, month, species] = key.split("-");
+        const relatedDistributions = allDistributions.filter(
+          (d) => d.batchId === batchId
+        );
+        const totalCount = relatedDistributions.reduce(
+          (sum, d) => sum + d.fingerlings,
+          0
+        );
 
         batches.push({
           id: batchId,
-          name: `${species} Batch ${date}`,
-          description: `Batch for ${species} distributed on ${date} (${distributions.length} distributions)`,
+          name: `${month} Batch ${year}`,
+          description: `Batch for ${month} distributed on ${year} (${relatedDistributions.length} distributions)`,
           userId: userId,
           totalCount: totalCount,
           isActive: true,
@@ -263,9 +288,22 @@ module.exports = {
         });
       });
 
-      // Insert batches first
+      // Insert batches first with validation disabled
       console.log(`\nInserting ${batches.length} batches...`);
-      await queryInterface.bulkInsert("Batches", batches, {});
+      try {
+        await queryInterface.bulkInsert("Batches", batches, {
+          validate: false,
+          ignoreDuplicates: true,
+        });
+      } catch (error) {
+        console.log(`⚠ Error inserting batches: ${error.message}`);
+        console.log("  Continuing without batches...");
+
+        // Remove batchId from distributions if batch insertion failed
+        allDistributions.forEach((dist) => {
+          delete dist.batchId;
+        });
+      }
     } else {
       console.log(
         "\n⚠ batchId column not found in Distributions table. Skipping batch creation."
