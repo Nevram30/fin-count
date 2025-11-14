@@ -34,14 +34,14 @@ export async function GET(request: NextRequest) {
     // Filter by municipality
     if (municipality) {
       whereClause.municipality = {
-        [Op.iLike]: `%${municipality}%`,
+        [Op.like]: `%${municipality}%`,
       };
     }
 
     // Filter by province
     if (province) {
       whereClause.province = {
-        [Op.iLike]: `%${province}%`,
+        [Op.like]: `%${province}%`,
       };
     }
 
@@ -50,22 +50,22 @@ export async function GET(request: NextRequest) {
       whereClause[Op.or] = [
         {
           beneficiaryName: {
-            [Op.iLike]: `%${search}%`,
+            [Op.like]: `%${search}%`,
           },
         },
         {
           municipality: {
-            [Op.iLike]: `%${search}%`,
+            [Op.like]: `%${search}%`,
           },
         },
         {
           province: {
-            [Op.iLike]: `%${search}%`,
+            [Op.like]: `%${search}%`,
           },
         },
         {
           barangay: {
-            [Op.iLike]: `%${search}%`,
+            [Op.like]: `%${search}%`,
           },
         },
       ];

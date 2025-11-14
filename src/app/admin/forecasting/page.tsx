@@ -101,8 +101,8 @@ const HarvestForecast: React.FC = () => {
 
     // Form state
     const [formData, setFormData] = useState<FormData>({
-        dateFrom: "2025-06-01",
-        dateTo: "2025-12-31",
+        dateFrom: "2023-01-01",
+        dateTo: "2024-12-31",
         species: "Red Tilapia",
         province: "Davao del Norte",
         city: "Tagum City",
@@ -229,51 +229,73 @@ const HarvestForecast: React.FC = () => {
     //     return data;
     // };
 
-    // Generate mock batch data for details modal
-    const generateBatchData = (level: 'province' | 'city' | 'barangay'): BatchData[] => {
-        const batchCount = Math.floor(Math.random() * 8) + 5; // 5-12 batches
-        const data: BatchData[] = [];
-
-        const batchNames = [
-            "Aqua Farm Alpha", "Blue Waters Beta", "Coastal Gamma", "Delta Fisheries",
-            "Echo Marine", "Freshwater Phi", "Golden Harvest", "Harbor Industries",
-            "Island Aqua", "Jade Waters", "Kelp Cultivation", "Lake Marina"
-        ];
-
-        const cities = locationData.cities[formData.province] || [];
-        const barangays = locationData.barangays[formData.city] || [];
-
-        for (let i = 0; i < batchCount; i++) {
-            const batchId = `BTC-${String(i + 1).padStart(3, '0')}-${new Date().getFullYear()}`;
-            const name = batchNames[Math.floor(Math.random() * batchNames.length)];
-            const fingerlingsCount = Math.floor(Math.random() * 8000) + 2000; // 2000-10000
-            const harvestForecasted = Math.floor(fingerlingsCount * (0.75 + Math.random() * 0.2)); // 75-95% survival rate
-
-            const batchData: BatchData = {
-                batchId,
-                name,
-                fingerlingsCount,
-                harvestForecasted
-            };
+    // Fetch real distribution data for details modal
+    const fetchDistributionDetails = async (level: 'province' | 'city' | 'barangay'): Promise<BatchData[]> => {
+        try {
+            const params = new URLSearchParams({
+                species: formData.species === "Red Tilapia" ? "Tilapia" : formData.species,
+                startDate: formData.dateFrom,
+                endDate: formData.dateTo,
+                limit: "1000"
+            });
 
             if (level === 'province') {
-                batchData.city = cities[Math.floor(Math.random() * cities.length)];
+                params.append('province', formData.province);
             } else if (level === 'city') {
-                batchData.barangay = barangays[Math.floor(Math.random() * barangays.length)];
+                params.append('province', formData.province);
+                params.append('municipality', formData.city);
+            } else if (level === 'barangay') {
+                params.append('province', formData.province);
+                params.append('municipality', formData.city);
             }
 
-            data.push(batchData);
-        }
+            const response = await fetch(`/api/distributions-data?${params.toString()}`);
 
-        return data.sort((a, b) => a.batchId.localeCompare(b.batchId));
+            if (!response.ok) {
+                throw new Error('Failed to fetch distribution details');
+            }
+
+            const result = await response.json();
+
+            if (!result.success || !result.data.distributions) {
+                throw new Error('Invalid response from distributions API');
+            }
+
+            const distributions = result.data.distributions;
+
+            // Transform distributions to BatchData format
+            const batchData: BatchData[] = distributions
+                .filter((dist: any) => {
+                    // Filter by barangay if at barangay level
+                    if (level === 'barangay') {
+                        return dist.barangay === formData.barangay;
+                    }
+                    return true;
+                })
+                .map((dist: any) => ({
+                    batchId: dist.batchId || `DIST-${dist.id}`,
+                    name: dist.beneficiaryName,
+                    city: level === 'province' ? dist.municipality : undefined,
+                    barangay: level === 'city' ? dist.barangay : undefined,
+                    fingerlingsCount: dist.fingerlings,
+                    harvestForecasted: Math.round(dist.harvestKilo)
+                }));
+
+            return batchData;
+        } catch (error) {
+            console.error(`Error fetching distribution details for ${level}:`, error);
+            return [];
+        }
     };
 
     // Handle view details modal
-    const handleViewDetails = (level: 'province' | 'city' | 'barangay') => {
-        const data = generateBatchData(level);
-        setModalData(data);
+    const handleViewDetails = async (level: 'province' | 'city' | 'barangay') => {
         setModalLevel(level);
         setShowModal(true);
+        setModalData([]); // Show loading state
+
+        const data = await fetchDistributionDetails(level);
+        setModalData(data);
     };
 
     // Close modal
@@ -282,52 +304,106 @@ const HarvestForecast: React.FC = () => {
         setModalData([]);
     };
 
-    // Generate trend data for specific geographic level
-    const generateTrendDataForLevel = (level: 'province' | 'city' | 'barangay'): TrendData[] => {
-        const dates = getDateRange(formData.dateFrom, formData.dateTo);
-        const data: TrendData[] = [];
-
-        // Different base multipliers for different levels
-        const levelMultipliers = {
-            province: 3.5, // Highest level, aggregated data
-            city: 2.0,     // Mid level
-            barangay: 1.0  // Specific location level
-        };
-
-        dates.forEach((date, index) => {
-            const dateObj = new Date(date);
-            const monthIndex = dateObj.getMonth();
-            const seasonalFactor = 0.8 + 0.4 * Math.sin((monthIndex / 12) * 2 * Math.PI);
-            const growthFactor = 1 + (index * 0.08);
-
-            // Add some variation based on facility type
-            const facilityFactor = formData.facilityType === "Fish Cage" ? 1.1 :
-                formData.facilityType === "RAS (Recirculating Aquaculture System)" ? 1.3 :
-                    formData.facilityType === "Pond System" ? 0.9 : 1.0;
-
-            // Level-specific variation
-            const levelFactor = levelMultipliers[level];
-            const levelVariation = level === 'province' ? 0.95 + Math.random() * 0.1 :
-                level === 'city' ? 0.9 + Math.random() * 0.2 :
-                    0.85 + Math.random() * 0.3;
-
-            const value = Math.round(1000 * seasonalFactor * growthFactor * facilityFactor * levelFactor * levelVariation);
-
-            // Location string based on level
-            const locationString = level === 'province' ? formData.province :
-                level === 'city' ? `${formData.city}, ${formData.province}` :
-                    `${formData.barangay}, ${formData.city}, ${formData.province}`;
-
-            data.push({
-                month: dateObj.toLocaleDateString('en-US', { month: 'short' }),
-                date,
-                value,
-                species: formData.species,
-                location: locationString
+    // Fetch real distribution data and aggregate by geographic level
+    const fetchTrendDataForLevel = async (level: 'province' | 'city' | 'barangay'): Promise<TrendData[]> => {
+        try {
+            // Build query parameters based on level
+            const params = new URLSearchParams({
+                species: formData.species === "Red Tilapia" ? "Tilapia" : formData.species,
+                startDate: formData.dateFrom,
+                endDate: formData.dateTo,
+                limit: "1000" // Get all records for aggregation
             });
-        });
 
-        return data;
+            // Add location filters based on level
+            if (level === 'province') {
+                params.append('province', formData.province);
+            } else if (level === 'city') {
+                params.append('province', formData.province);
+                params.append('municipality', formData.city);
+            } else if (level === 'barangay') {
+                params.append('province', formData.province);
+                params.append('municipality', formData.city);
+                // Note: API uses municipality field for city/municipality
+            }
+
+            const response = await fetch(`/api/distributions-data?${params.toString()}`);
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch distribution data');
+            }
+
+            const result = await response.json();
+
+            if (!result.success || !result.data.distributions) {
+                throw new Error('Invalid response from distributions API');
+            }
+
+            const distributions = result.data.distributions;
+
+            // Group distributions by month and aggregate harvest data
+            const monthlyData = new Map<string, { total: number, count: number }>();
+
+            distributions.forEach((dist: any) => {
+                const date = new Date(dist.dateDistributed);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+                // Filter by barangay if at barangay level
+                if (level === 'barangay' && dist.barangay !== formData.barangay) {
+                    return;
+                }
+
+                const harvestValue = dist.harvestKilo || 0;
+
+                if (monthlyData.has(monthKey)) {
+                    const existing = monthlyData.get(monthKey)!;
+                    existing.total += harvestValue;
+                    existing.count += 1;
+                } else {
+                    monthlyData.set(monthKey, { total: harvestValue, count: 1 });
+                }
+            });
+
+            // Generate date range and fill in data
+            const dates = getDateRange(formData.dateFrom, formData.dateTo);
+            const data: TrendData[] = dates.map(date => {
+                const dateObj = new Date(date);
+                const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                const monthData = monthlyData.get(monthKey);
+
+                // Location string based on level
+                const locationString = level === 'province' ? formData.province :
+                    level === 'city' ? `${formData.city}, ${formData.province}` :
+                        `${formData.barangay}, ${formData.city}, ${formData.province}`;
+
+                return {
+                    month: dateObj.toLocaleDateString('en-US', { month: 'short' }),
+                    date,
+                    value: monthData ? Math.round(monthData.total) : 0,
+                    species: formData.species,
+                    location: locationString
+                };
+            });
+
+            return data;
+        } catch (error) {
+            console.error(`Error fetching trend data for ${level}:`, error);
+            // Return empty data on error
+            return getDateRange(formData.dateFrom, formData.dateTo).map(date => {
+                const dateObj = new Date(date);
+                const locationString = level === 'province' ? formData.province :
+                    level === 'city' ? `${formData.city}, ${formData.province}` :
+                        `${formData.barangay}, ${formData.city}, ${formData.province}`;
+
+                return {
+                    month: dateObj.toLocaleDateString('en-US', { month: 'short' }),
+                    date,
+                    value: 0,
+                    species: formData.species,
+                    location: locationString
+                };
+            });
+        }
     };
 
     // Handle forecast generation
@@ -391,10 +467,12 @@ const HarvestForecast: React.FC = () => {
 
             setForecastData(transformedData);
 
-            // Generate trend data for different levels using the API predictions as base
-            const provinceTrend = generateTrendDataForLevel('province');
-            const cityTrend = generateTrendDataForLevel('city');
-            const barangayTrend = generateTrendDataForLevel('barangay');
+            // Fetch real trend data for different levels from distribution database
+            const [provinceTrend, cityTrend, barangayTrend] = await Promise.all([
+                fetchTrendDataForLevel('province'),
+                fetchTrendDataForLevel('city'),
+                fetchTrendDataForLevel('barangay')
+            ]);
 
             setProvinceTrendData(provinceTrend);
             setCityTrendData(cityTrend);
@@ -802,7 +880,7 @@ const HarvestForecast: React.FC = () => {
                                 </div>
 
                                 {/* Trend Analysis Section - Three Separate Charts */}
-                                {/* <div className="mb-8">
+                                <div className="mb-8">
                                     <div className="flex items-center gap-3 mb-6">
                                         <BarChart3 className="h-5 w-5 text-purple-600" />
                                         <h3 className="text-xl font-semibold text-gray-900">Geographic Forecast Trend Analysis</h3>
@@ -927,7 +1005,7 @@ const HarvestForecast: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                </div> */}
+                                </div>
                             </>
                         )}
                     </div>
