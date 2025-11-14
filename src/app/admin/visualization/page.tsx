@@ -311,34 +311,49 @@ const DataVisualization: React.FC = () => {
         });
     };
 
-    // Generate mock beneficiary data with Davao locations
-    const generateBeneficiaryData = (): BeneficiaryData[] => {
-        const names = ['Juan dela Cruz', 'Maria Santos', 'Pedro Gonzales', 'Ana Reyes', 'Carlos Martinez', 'Rosa Lopez', 'Miguel Torres', 'Elena Fernandez'];
-        const cities = ["Davao City", "Tagum City", "Panabo City", "Digos City", "Mati City", "Nabunturan", "Malita"];
-        const species: ('tilapia' | 'bangus')[] = ['tilapia', 'bangus'];
-        const facilityTypes: ('fish_cage' | 'pond')[] = ['fish_cage', 'pond'];
+    // Fetch real beneficiary data from distribution API
+    const fetchBeneficiaryData = async (): Promise<BeneficiaryData[]> => {
+        try {
+            // Build query parameters
+            const params = new URLSearchParams();
 
-        return Array.from({ length: 20 }, (_, i) => {
-            const fingerlingsReceived = Math.floor(Math.random() * 2000) + 500;
-            const harvestKg = Math.floor(fingerlingsReceived * (0.6 + Math.random() * 0.4) * (0.8 + Math.random() * 0.4));
-            const city = cities[i % cities.length];
-            const province = locationData.provinces.find(p => locationData.cities[p]?.includes(city)) || locationData.provinces[0];
-            const barangays = locationData.barangays[city] || ["Poblacion"];
+            // Add species filter if not 'all'
+            if (leaderboardState.selectedSpecies !== 'all') {
+                params.append('species', leaderboardState.selectedSpecies === 'tilapia' ? 'Tilapia' : 'Bangus');
+            }
 
-            return {
-                id: `BEN-${String(i + 1).padStart(3, '0')}`,
-                name: names[i % names.length],
-                location: city,
-                species: species[i % species.length],
-                fingerlingsReceived,
-                harvestKg,
-                facilityType: facilityTypes[i % facilityTypes.length],
-                distributionDate: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                province: province,
-                city: city,
-                barangay: barangays[i % barangays.length]
-            };
-        });
+            // Fetch a large limit to get all records for leaderboard
+            params.append('limit', '1000');
+
+            const response = await fetch(`/api/distributions-data?${params.toString()}`);
+            const result = await response.json();
+
+            if (result.success && result.data.distributions) {
+                const distributions = result.data.distributions;
+
+                // Transform distribution data to BeneficiaryData format
+                const beneficiaryData: BeneficiaryData[] = distributions.map((dist: any, index: number) => ({
+                    id: dist.id?.toString() || `BEN-${String(index + 1).padStart(3, '0')}`,
+                    name: dist.beneficiaryName || 'Unknown',
+                    location: dist.municipality || 'Unknown',
+                    species: (dist.species?.toLowerCase() || 'tilapia') as 'tilapia' | 'bangus',
+                    fingerlingsReceived: dist.fingerlings || 0,
+                    harvestKg: dist.harvestKilo || 0,
+                    facilityType: 'pond' as 'fish_cage' | 'pond', // Default to pond since facility type not in distribution data
+                    distributionDate: dist.dateDistributed ? new Date(dist.dateDistributed).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    province: dist.province || 'Unknown',
+                    city: dist.municipality || 'Unknown',
+                    barangay: dist.barangay || 'Unknown'
+                }));
+
+                return beneficiaryData;
+            }
+
+            return [];
+        } catch (error) {
+            console.error('Error fetching beneficiary data:', error);
+            return [];
+        }
     };
 
     // Handle location change
@@ -405,7 +420,7 @@ const DataVisualization: React.FC = () => {
                     return true;
                 });
 
-                // Group by municipality and species
+                // Group by municipality and species - ensure unique cities
                 const municipalityMap = new Map<string, {
                     tilapia: number;
                     bangus: number;
@@ -415,7 +430,9 @@ const DataVisualization: React.FC = () => {
                 }>();
 
                 filteredDistributions.forEach((dist: any) => {
+                    // Use municipality as the unique key
                     const key = dist.municipality;
+
                     if (!municipalityMap.has(key)) {
                         municipalityMap.set(key, {
                             tilapia: 0,
@@ -425,6 +442,7 @@ const DataVisualization: React.FC = () => {
                             barangay: dist.barangay || 'Various'
                         });
                     }
+
                     const entry = municipalityMap.get(key)!;
                     if (dist.species === 'Tilapia') {
                         entry.tilapia += dist.fingerlings || 0;
@@ -433,20 +451,17 @@ const DataVisualization: React.FC = () => {
                     }
                 });
 
-                // Convert to chart data format
-                const chartData: FingerlingsData[] = [];
-                municipalityMap.forEach((value, municipality) => {
-                    chartData.push({
-                        location: municipality,
-                        tilapia: value.tilapia,
-                        bangus: value.bangus,
-                        date: fingerlingsState.dateTo,
-                        facilityType: fingerlingsState.selectedFacilityType === 'all_facilities' ? 'All Facilities' : fingerlingsState.selectedFacilityType.replace(/_/g, ' '),
-                        province: value.province,
-                        city: municipality,
-                        barangay: value.barangay
-                    });
-                });
+                // Convert to chart data format - each city appears only once
+                const chartData: FingerlingsData[] = Array.from(municipalityMap.entries()).map(([municipality, value]) => ({
+                    location: municipality,
+                    tilapia: value.tilapia,
+                    bangus: value.bangus,
+                    date: fingerlingsState.dateTo,
+                    facilityType: fingerlingsState.selectedFacilityType === 'all_facilities' ? 'All Facilities' : fingerlingsState.selectedFacilityType.replace(/_/g, ' '),
+                    province: value.province,
+                    city: municipality,
+                    barangay: value.barangay
+                }));
 
                 // Sort by total fingerlings (descending) and take top 12
                 chartData.sort((a, b) => (b.tilapia + b.bangus) - (a.tilapia + a.bangus));
@@ -481,8 +496,7 @@ const DataVisualization: React.FC = () => {
     // Handle leaderboard refresh
     const handleLeaderboardRefresh = async () => {
         setLeaderboardState(prev => ({ ...prev, isLoading: true }));
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const newData = generateBeneficiaryData();
+        const newData = await fetchBeneficiaryData();
         setLeaderboardState(prev => ({
             ...prev,
             data: newData,
