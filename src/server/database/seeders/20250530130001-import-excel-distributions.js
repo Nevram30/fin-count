@@ -212,51 +212,71 @@ module.exports = {
       return;
     }
 
-    // Group distributions by date and species to create batches
-    const batchGroups = {};
-    allDistributions.forEach((dist) => {
-      const dateKey = dist.dateDistributed.toISOString().split("T")[0];
-      const key = `${dateKey}-${dist.species}`;
+    // Check if batchId column exists in Distributions table
+    const tableDescription = await queryInterface.describeTable(
+      "Distributions"
+    );
+    const hasBatchIdColumn = tableDescription.hasOwnProperty("batchId");
 
-      if (!batchGroups[key]) {
-        batchGroups[key] = [];
-      }
-      batchGroups[key].push(dist);
-    });
+    if (hasBatchIdColumn) {
+      console.log("\n✓ batchId column found, creating batches...");
 
-    // Create batches and assign batch IDs
-    const batches = [];
-    Object.keys(batchGroups).forEach((key, index) => {
-      const [date, species] = key.split("-").slice(0, 2);
-      const batchId = `BATCH-${date}-${species.substring(0, 3).toUpperCase()}-${
-        index + 1
-      }`;
-      const distributions = batchGroups[key];
-      const totalCount = distributions.reduce(
-        (sum, d) => sum + d.fingerlings,
-        0
+      // Group distributions by date and species to create batches
+      const batchGroups = {};
+      allDistributions.forEach((dist) => {
+        const dateKey = dist.dateDistributed.toISOString().split("T")[0];
+        const key = `${dateKey}-${dist.species}`;
+
+        if (!batchGroups[key]) {
+          batchGroups[key] = [];
+        }
+        batchGroups[key].push(dist);
+      });
+
+      // Create batches and assign batch IDs
+      const batches = [];
+      Object.keys(batchGroups).forEach((key, index) => {
+        const [date, species] = key.split("-").slice(0, 2);
+        const batchId = `BATCH-${date}-${species
+          .substring(0, 3)
+          .toUpperCase()}-${index + 1}`;
+        const distributions = batchGroups[key];
+        const totalCount = distributions.reduce(
+          (sum, d) => sum + d.fingerlings,
+          0
+        );
+
+        // Assign batch ID to all distributions in this group
+        distributions.forEach((d) => {
+          d.batchId = batchId;
+        });
+
+        batches.push({
+          id: batchId,
+          name: `${species} Batch ${date}`,
+          description: `Batch for ${species} distributed on ${date} (${distributions.length} distributions)`,
+          userId: userId,
+          totalCount: totalCount,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      });
+
+      // Insert batches first
+      console.log(`\nInserting ${batches.length} batches...`);
+      await queryInterface.bulkInsert("Batches", batches, {});
+    } else {
+      console.log(
+        "\n⚠ batchId column not found in Distributions table. Skipping batch creation."
       );
+      console.log("  Run migrations first: npx sequelize-cli db:migrate");
 
-      // Assign batch ID to all distributions in this group
-      distributions.forEach((d) => {
-        d.batchId = batchId;
+      // Remove batchId from distributions if column doesn't exist
+      allDistributions.forEach((dist) => {
+        delete dist.batchId;
       });
-
-      batches.push({
-        id: batchId,
-        name: `${species} Batch ${date}`,
-        description: `Batch for ${species} distributed on ${date} (${distributions.length} distributions)`,
-        userId: userId,
-        totalCount: totalCount,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    });
-
-    // Insert batches first
-    console.log(`\nInserting ${batches.length} batches...`);
-    await queryInterface.bulkInsert("Batches", batches, {});
+    }
 
     // Insert all distributions
     console.log(`Inserting ${allDistributions.length} distributions...`);
