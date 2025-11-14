@@ -102,7 +102,7 @@ const HarvestForecast: React.FC = () => {
     // Form state
     const [formData, setFormData] = useState<FormData>({
         dateFrom: "2023-01-01",
-        dateTo: "2024-12-31",
+        dateTo: "2023-12-31",
         species: "Red Tilapia",
         province: "Davao del Norte",
         city: "Tagum City",
@@ -129,28 +129,44 @@ const HarvestForecast: React.FC = () => {
     const locationData: LocationData = {
         provinces: ["Davao del Norte", "Davao del Sur", "Davao de Oro", "Davao Oriental", "Davao Occidental"],
         cities: {
-            "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
+            "Davao del Norte": ["Asuncion", "Boston", "Butuan City", "Carmen", "Compostela", "Davao City", "Digos City", "Dujali", "Governor Generoso", "Hinatuan", "Kapalong", "Kidapawan", "Laak", "Lianga", "Maco", "Malabalay City", "Malalag", "Maragusan", "Masao City", "Nabunturan", "New Bataan", "New Corella", "Panabo", "Panabo City", "Paquibato District", "Samal Island", "Sto Thomas", "Sto Tomas", "Sto. Thomas", "Sto. Tomas", "Tagum City"],
             "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
             "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
             "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
             "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"]
         },
         barangays: {
-            "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village"],
-            "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
-            "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
-            "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
-            "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
-            "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
-            "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
-            "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
-            "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
-            "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
-            "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
-            "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
-            "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
-            "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
-            "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"]
+            "Asuncion": ["Camoning", "Magsagana", "Magastos", "New Loon", "New Santiago", "Pag-asa", "San Vicente"],
+            "Boston": ["Cabasagan"],
+            "Butuan City": ["Sibagat"],
+            "Carmen": ["Ising", "Mabuhay", "Mabunao", "Magsaysay", "Mangalcal", "Mangalkal", "San Vicente", "Sto Nino", "Sto. Niño", "Tibulao", "Tubod"],
+            "Compostela": ["Poblacion"],
+            "Davao City": ["Bajada", "Buhangin", "Calinan", "Catalunan Grande", "Dumoy", "Libra Tambongon", "Lumiad", "Marilog", "Paradise Embac", "Paradise Embac Paquibato District", "Sasa"],
+            "Digos City": ["Tres De Mayo"],
+            "Dujali": ["Dujali", "Magupising"],
+            "Governor Generoso": ["Governor Generoso"],
+            "Hinatuan": ["Bigaan"],
+            "Kapalong": ["Maniki", "Sampao", "Samapao"],
+            "Kidapawan": ["Kidapawan"],
+            "Laak": ["Laak", "Mangloy", "Pigcawayan"],
+            "Lianga": ["Ganayon"],
+            "Maco": ["Maco"],
+            "Malabalay City": ["Malabalay City"],
+            "Malalag": ["Malalag"],
+            "Maragusan": ["Maragusan"],
+            "Masao City": ["Masao City"],
+            "Nabunturan": ["Bucal", "Magsaysay", "Nabunturan"],
+            "New Bataan": ["San Roque"],
+            "New Corella": ["New Bohol", "New Corella", "San Roque"],
+            "Panabo": ["Panabo", "Tubod"],
+            "Panabo City": ["Arguelles", "Cagangohan", "Cameling", "Camiling", "Camoning", "Canucotan", "Consolacion", "Dapco Farm 2", "Datu Abdul", "Datu Abdul Dadia", "Deco Subdivision", "Gamao", "Gredu", "Homeland", "JP Laurel", "Kasilak", "Licanan", "Little Panay", "Lower Panaga", "Mabunao", "Maduao", "Malativas", "Malitbog", "Manay", "Montivista", "Nangka", "Nanyo", "New Malitbog", "New Pandan", "New Visayas", "Pagro", "Quezon", "Quilisando", "Salvacion", "San Fernando", "San Fransisco", "San Francisco", "San Nicolas", "San Pedro", "San Vicente", "Sindaton", "Southern Davao", "Southern davao", "Sto. Niño", "Sto. Nino", "Upper Licanan"],
+            "Paquibato District": ["Paradise Embac"],
+            "Samal Island": ["Samal Island"],
+            "Sto Thomas": ["Sto Thomas"],
+            "Sto Tomas": ["Balayunan", "Bobongon", "Bulahan", "Kinamon", "Kinamayan", "Malitbog"],
+            "Sto. Thomas": ["Sto. Thomas"],
+            "Sto. Tomas": ["Sto. Tomas"],
+            "Tagum City": ["Apokon", "Bincungan", "Bingcungan", "Busaon", "Canucotan", "Dujali", "Magnum", "New Corella", "Purok 1 Brgy. Tubod", "Suwawon"]
         }
     };
 
@@ -263,12 +279,24 @@ const HarvestForecast: React.FC = () => {
 
             const distributions = result.data.distributions;
 
+            console.log(`Fetching ${level} level data:`, {
+                totalDistributions: distributions.length,
+                selectedBarangay: formData.barangay,
+                sampleBarangays: distributions.slice(0, 5).map((d: any) => d.barangay)
+            });
+
             // Transform distributions to BatchData format
             const batchData: BatchData[] = distributions
                 .filter((dist: any) => {
-                    // Filter by barangay if at barangay level
+                    // Filter by barangay if at barangay level (case-insensitive and trimmed)
                     if (level === 'barangay') {
-                        return dist.barangay === formData.barangay;
+                        const distBarangay = (dist.barangay || '').trim().toLowerCase();
+                        const selectedBarangay = formData.barangay.trim().toLowerCase();
+                        const matches = distBarangay === selectedBarangay;
+                        if (!matches && dist.barangay) {
+                            console.log('Barangay mismatch:', { distBarangay, selectedBarangay });
+                        }
+                        return matches;
                     }
                     return true;
                 })
@@ -280,6 +308,11 @@ const HarvestForecast: React.FC = () => {
                     fingerlingsCount: dist.fingerlings,
                     harvestForecasted: Math.round(dist.harvestKilo)
                 }));
+
+            console.log(`Filtered ${level} data:`, {
+                filteredCount: batchData.length,
+                sampleData: batchData.slice(0, 3)
+            });
 
             return batchData;
         } catch (error) {
@@ -348,9 +381,13 @@ const HarvestForecast: React.FC = () => {
                 const date = new Date(dist.dateDistributed);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-                // Filter by barangay if at barangay level
-                if (level === 'barangay' && dist.barangay !== formData.barangay) {
-                    return;
+                // Filter by barangay if at barangay level (case-insensitive and trimmed)
+                if (level === 'barangay') {
+                    const distBarangay = (dist.barangay || '').trim().toLowerCase();
+                    const selectedBarangay = formData.barangay.trim().toLowerCase();
+                    if (distBarangay !== selectedBarangay) {
+                        return;
+                    }
                 }
 
                 const harvestValue = dist.harvestKilo || 0;
@@ -771,7 +808,7 @@ const HarvestForecast: React.FC = () => {
                                 {/* Summary Statistics */}
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-5">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Summary</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div className="bg-blue-50 rounded-lg p-4">
                                             <div className="text-2xl font-bold text-blue-600">
                                                 {forecastData.reduce((sum, item) => sum + item.predicted, 0).toLocaleString()} kg
@@ -795,12 +832,6 @@ const HarvestForecast: React.FC = () => {
                                                 {forecastData.length}
                                             </div>
                                             <div className="text-sm text-orange-800">Months Forecasted</div>
-                                        </div>
-                                        <div className="bg-green-50 rounded-lg p-4">
-                                            <div className="text-2xl font-bold text-green-600">
-                                                {Math.round(forecastData.reduce((sum, item) => sum + item.confidence, 0) / forecastData.length)}%
-                                            </div>
-                                            <div className="text-sm text-green-800">Avg Confidence</div>
                                         </div>
                                     </div>
                                 </div>
@@ -843,7 +874,7 @@ const HarvestForecast: React.FC = () => {
                                 </div>
 
                                 {/* Forecast Charts */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
@@ -861,7 +892,7 @@ const HarvestForecast: React.FC = () => {
                                             </ResponsiveContainer>
                                         </div>
                                     </div>
-
+                                    {/* 
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Prediction Confidence</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
@@ -876,7 +907,7 @@ const HarvestForecast: React.FC = () => {
                                                 </LineChart>
                                             </ResponsiveContainer>
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </div>
 
                                 {/* Trend Analysis Section - Three Separate Charts */}
@@ -965,7 +996,7 @@ const HarvestForecast: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-
+                                    {/* 
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                                         <div className="p-6">
                                             <div className="flex items-center justify-between mb-2">
@@ -979,6 +1010,23 @@ const HarvestForecast: React.FC = () => {
                                                 </button>
                                             </div>
                                             <p className="text-sm text-gray-600 mb-4">{formData.barangay}, {formData.city}, {formData.province} - Barangay-Specific Data</p>
+                                            {barangayTrendData.length === 0 ? (
+                                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                                                    <p className="text-yellow-800 text-sm">
+                                                        No distribution data found for {formData.barangay}. This could mean:
+                                                        <br />• No distributions recorded for this barangay in the selected date range
+                                                        <br />• Barangay name spelling mismatch in the database
+                                                        <br />• Check the browser console for detailed logs
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                                                    <p className="text-green-800 text-sm font-semibold">
+                                                        ✓ Found {barangayTrendData.filter(d => d.value > 0).length} months with distribution data
+                                                    </p>
+                                                </div>
+                                            )}
+
                                             <div className="h-80">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <AreaChart data={barangayTrendData}>
@@ -1004,7 +1052,7 @@ const HarvestForecast: React.FC = () => {
                                                 </ResponsiveContainer>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </div>
                             </>
                         )}
@@ -1070,12 +1118,16 @@ const HarvestForecast: React.FC = () => {
                                     <thead>
                                         <tr className="bg-gray-50">
                                             <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Batch ID</th>
-                                            <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Name</th>
                                             {modalLevel === 'province' && (
                                                 <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">City</th>
                                             )}
                                             {modalLevel === 'city' && (
-                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Barangay</th>
+                                                <>
+                                                    <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Barangay</th>
+                                                </>
+                                            )}
+                                            {modalLevel === 'barangay' && (
+                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Name</th>
                                             )}
                                             <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Fingerlings Count</th>
                                             <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Harvest Forecasted</th>
@@ -1085,12 +1137,18 @@ const HarvestForecast: React.FC = () => {
                                         {modalData.map((batch, index) => (
                                             <tr key={batch.batchId} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                                                 <td className="border border-gray-300 px-4 py-3 font-mono text-sm">{batch.batchId}</td>
-                                                <td className="border border-gray-300 px-4 py-3">{batch.name}</td>
                                                 {modalLevel === 'province' && batch.city && (
                                                     <td className="border border-gray-300 px-4 py-3">{batch.city}</td>
                                                 )}
-                                                {modalLevel === 'city' && batch.barangay && (
-                                                    <td className="border border-gray-300 px-4 py-3">{batch.barangay}</td>
+                                                {modalLevel === 'city' && (
+                                                    <>
+                                                        {batch.barangay && (
+                                                            <td className="border border-gray-300 px-4 py-3">{batch.barangay}</td>
+                                                        )}
+                                                    </>
+                                                )}
+                                                {modalLevel === 'barangay' && (
+                                                    <td className="border border-gray-300 px-4 py-3">{batch.name}</td>
                                                 )}
                                                 <td className="border border-gray-300 px-4 py-3 text-right font-mono">
                                                     {batch.fingerlingsCount.toLocaleString()}
