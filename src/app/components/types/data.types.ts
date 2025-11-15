@@ -57,6 +57,8 @@ export interface Batch {
   location: string; // Location field
   notes?: string; // Notes about the session
   totalFingerlings: number; // For distribution tracking
+  fingerlingsCount: number; // Total count from session counts
+  imageUrl?: string; // Optional image URL from session
 }
 
 // Distribution interface for fingerling distributions

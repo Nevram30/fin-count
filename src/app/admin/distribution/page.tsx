@@ -236,7 +236,8 @@ const DistributionFormModal: React.FC<{
         handleInputChange('batchId', batchId);
 
         if (batch) {
-            handleInputChange('fingerlingsCount', 0);
+            // Auto-fill fingerlings count from the selected batch
+            handleInputChange('fingerlingsCount', batch.fingerlingsCount);
         }
     };
 
@@ -1230,6 +1231,7 @@ const DistributionForm: React.FC = () => {
                     survivalRate: dist.survivalRate,
                     avgWeight: dist.avgWeight
                 }));
+
                 setDistributions(transformedData);
 
                 // Update pagination state
@@ -1244,19 +1246,38 @@ const DistributionForm: React.FC = () => {
         }
     };
 
-    // Fetch batches from API
+    // Fetch batches from sessions API
     const fetchBatches = async () => {
         try {
-            const response = await fetch('/api/batches');
+            const response = await fetch('https://fincount-api-production.up.railway.app/api/sessions');
             const data = await response.json();
 
-            if (data.success) {
-                setBatches(data.data.batches);
+            if (data.success && data.data.sessions) {
+                // Transform sessions data to batch format
+                const transformedBatches: Batch[] = data.data.sessions.map((session: any) => {
+                    // Calculate total count from all count categories
+                    const totalCount = Object.values(session.counts || {}).reduce(
+                        (sum: number, count: any) => sum + (Number(count) || 0),
+                        0
+                    );
+
+                    return {
+                        id: session.batchId,
+                        species: session.species,
+                        location: session.location,
+                        date: new Date(session.timestamp).toISOString().split('T')[0],
+                        fingerlingsCount: totalCount,
+                        notes: session.notes || '',
+                        imageUrl: session.imageUrl || ''
+                    };
+                });
+
+                setBatches(transformedBatches);
             } else {
-                console.error('Failed to fetch batches:', data.error);
+                console.error('Failed to fetch sessions:', data.error);
             }
         } catch (error) {
-            console.error('Error fetching batches:', error);
+            console.error('Error fetching sessions:', error);
         }
     };
 

@@ -331,19 +331,63 @@ const DataVisualization: React.FC = () => {
             if (result.success && result.data.distributions) {
                 const distributions = result.data.distributions;
 
-                // Transform distribution data to BeneficiaryData format
-                const beneficiaryData: BeneficiaryData[] = distributions.map((dist: any, index: number) => ({
-                    id: dist.id?.toString() || `BEN-${String(index + 1).padStart(3, '0')}`,
-                    name: dist.beneficiaryName || 'Unknown',
-                    location: dist.municipality || 'Unknown',
-                    species: (dist.species?.toLowerCase() || 'tilapia') as 'tilapia' | 'bangus',
-                    fingerlingsReceived: dist.fingerlings || 0,
-                    harvestKg: dist.harvestKilo || 0,
-                    facilityType: 'pond' as 'fish_cage' | 'pond', // Default to pond since facility type not in distribution data
-                    distributionDate: dist.dateDistributed ? new Date(dist.dateDistributed).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                    province: dist.province || 'Unknown',
-                    city: dist.municipality || 'Unknown',
-                    barangay: dist.barangay || 'Unknown'
+                // Group by beneficiary name to aggregate their total harvest
+                const beneficiaryMap = new Map<string, {
+                    totalHarvest: number;
+                    totalFingerlings: number;
+                    species: string;
+                    location: string;
+                    province: string;
+                    barangay: string;
+                    latestDate: string;
+                    recordIds: number[];
+                }>();
+
+                distributions.forEach((dist: any) => {
+                    const name = dist.beneficiaryName || 'Unknown';
+                    const harvestKg = parseFloat(dist.harvestKilo) || 0;
+                    const fingerlings = parseInt(dist.fingerlings) || 0;
+
+                    if (!beneficiaryMap.has(name)) {
+                        beneficiaryMap.set(name, {
+                            totalHarvest: 0,
+                            totalFingerlings: 0,
+                            species: dist.species || 'Tilapia',
+                            location: dist.municipality || 'Unknown',
+                            province: dist.province || 'Unknown',
+                            barangay: dist.barangay || 'Unknown',
+                            latestDate: dist.dateDistributed || new Date().toISOString(),
+                            recordIds: []
+                        });
+                    }
+
+                    const entry = beneficiaryMap.get(name)!;
+                    entry.totalHarvest += harvestKg;
+                    entry.totalFingerlings += fingerlings;
+                    entry.recordIds.push(dist.id);
+
+                    // Keep the latest date
+                    if (new Date(dist.dateDistributed) > new Date(entry.latestDate)) {
+                        entry.latestDate = dist.dateDistributed;
+                        entry.location = dist.municipality || entry.location;
+                        entry.province = dist.province || entry.province;
+                        entry.barangay = dist.barangay || entry.barangay;
+                    }
+                });
+
+                // Transform aggregated data to BeneficiaryData format
+                const beneficiaryData: BeneficiaryData[] = Array.from(beneficiaryMap.entries()).map(([name, data]) => ({
+                    id: data.recordIds.join('-'),
+                    name: name,
+                    location: data.location,
+                    species: (data.species?.toLowerCase() || 'tilapia') as 'tilapia' | 'bangus',
+                    fingerlingsReceived: data.totalFingerlings,
+                    harvestKg: Math.round(data.totalHarvest * 100) / 100, // Round to 2 decimal places
+                    facilityType: 'pond' as 'fish_cage' | 'pond',
+                    distributionDate: new Date(data.latestDate).toISOString().split('T')[0],
+                    province: data.province,
+                    city: data.location,
+                    barangay: data.barangay
                 }));
 
                 return beneficiaryData;

@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
     });
+    console.log("🚀 ~ GET ~ distributions:", distributions);
 
     return jsonResponse({
       success: true,
