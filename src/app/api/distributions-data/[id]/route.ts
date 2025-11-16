@@ -111,9 +111,15 @@ export async function PUT(
       province: body.province ?? distribution.province,
       fingerlings: body.fingerlings ?? distribution.fingerlings,
       species: body.species ?? distribution.species,
-      survivalRate: body.survivalRate ?? distribution.survivalRate,
-      avgWeight: body.avgWeight ?? distribution.avgWeight,
-      harvestKilo: body.harvestKilo ?? distribution.harvestKilo,
+      actualHarvestDate: body.actualHarvestDate
+        ? new Date(body.actualHarvestDate)
+        : distribution.actualHarvestDate,
+      forecastedHarvestKilos:
+        body.forecastedHarvestKilos ?? distribution.forecastedHarvestKilos,
+      actualHarvestKilos:
+        body.actualHarvestKilos ?? distribution.actualHarvestKilos,
+      remarks: body.remarks ?? distribution.remarks,
+      customRemarks: body.customRemarks ?? distribution.customRemarks,
     });
 
     // Fetch updated distribution with user data

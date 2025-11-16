@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, Hash, ChevronDown, ChevronUp, Plus, Edit3 } from "lucide-react";
+import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, ChevronDown, ChevronUp, Plus, Edit3, Trash2 } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -33,8 +33,6 @@ interface DistributionForm {
     batchId: string;
     fingerlingsCount: number;
 }
-
-
 
 interface FormErrors {
     [key: string]: string;
@@ -302,48 +300,87 @@ const DistributionFormModal: React.FC<{
         setIsSubmitting(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            const dates = calculateDates(formData.date, formData.fingerlingsCount);
-            const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
-
             const beneficiaryName = formData.beneficiaryType === 'Individual'
                 ? `${formData.firstname} ${formData.lastname}`
                 : formData.organizationName;
 
-            const newDistribution: Distribution = {
-                id: `DIST-${Date.now()}`,
-                beneficiaryType: formData.beneficiaryType as 'Individual' | 'Organization',
-                beneficiary: beneficiaryName,
-                phoneNumber: formData.phoneNumber,
-                species: formData.species,
-                batchId: formData.batchId,
-                fingerlingsCount: formData.fingerlingsCount,
-                location,
-                facilityType: formData.facilityType,
-                date: formData.date,
-                forecast: dates.forecast,
-                harvestDate: dates.harvest,
-                forecastedHarvestDate: dates.forecastedHarvest,
-                forecastedHarvestKilos: dates.forecastedHarvestKilos,
-                remarks: ''
+            // Map species to match database enum
+            const speciesMapping: { [key: string]: 'Tilapia' | 'Bangus' } = {
+                'Red Tilapia': 'Tilapia',
+                'Bangus': 'Bangus'
             };
 
-            onSave(newDistribution);
+            // Prepare data for API
+            const distributionData = {
+                dateDistributed: formData.date,
+                beneficiaryName: beneficiaryName,
+                area: formData.facilityType,
+                barangay: formData.barangay,
+                municipality: formData.city,
+                province: formData.province,
+                fingerlings: formData.fingerlingsCount,
+                species: speciesMapping[formData.species] || 'Tilapia',
+                survivalRate: 0.78, // Default survival rate
+                avgWeight: 0.5, // Default average weight
+                harvestKilo: Math.round(formData.fingerlingsCount * 0.5 * 0.78), // Calculate based on fingerlings
+                userId: 1, // Hardcoded userId for new distributions
+                batchId: formData.batchId
+            };
 
-            // Reset form
-            setFormData({
-                beneficiaryType: '', firstname: '', lastname: '', organizationName: '',
-                phoneNumber: '', species: '', date: '', province: '', city: '',
-                barangay: '', street: '', facilityType: '', details: '',
-                batchId: '', fingerlingsCount: 0
+            // Call API to save to database
+            const response = await fetch('/api/distributions-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(distributionData),
             });
-            setSelectedBatch(null);
-            setErrors({});
-            onClose();
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Transform the saved data back to Distribution format for display
+                const dates = calculateDates(formData.date, formData.fingerlingsCount);
+                const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
+
+                const newDistribution: Distribution = {
+                    id: result.data.id.toString(),
+                    beneficiaryType: formData.beneficiaryType as 'Individual' | 'Organization',
+                    beneficiary: beneficiaryName,
+                    phoneNumber: formData.phoneNumber,
+                    species: formData.species,
+                    batchId: formData.batchId,
+                    fingerlingsCount: formData.fingerlingsCount,
+                    location,
+                    facilityType: formData.facilityType,
+                    date: formData.date,
+                    forecast: dates.forecast,
+                    harvestDate: dates.harvest,
+                    forecastedHarvestDate: dates.forecastedHarvest,
+                    forecastedHarvestKilos: dates.forecastedHarvestKilos,
+                    remarks: ''
+                };
+
+                onSave(newDistribution);
+
+                // Reset form
+                setFormData({
+                    beneficiaryType: '', firstname: '', lastname: '', organizationName: '',
+                    phoneNumber: '', species: '', date: '', province: '', city: '',
+                    barangay: '', street: '', facilityType: '', details: '',
+                    batchId: '', fingerlingsCount: 0
+                });
+                setSelectedBatch(null);
+                setErrors({});
+                onClose();
+            } else {
+                console.error('Failed to save distribution:', result.error);
+                alert(`Failed to save distribution: ${result.error}`);
+            }
 
         } catch (error) {
             console.error('Error saving distribution:', error);
+            alert('An error occurred while saving the distribution. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -862,23 +899,61 @@ const DetailModal: React.FC<{
         setIsSaving(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Calculate survival rate (as decimal 0-1) and average weight based on actual harvest
+            const survivalRate = editData.actualHarvestKilos && distribution.fingerlingsCount
+                ? Math.min((editData.actualHarvestKilos / (distribution.fingerlingsCount * 0.5)), 1.0)
+                : 0.78;
 
-            const updatedDistribution: Distribution = {
-                ...distribution,
-                forecastedHarvestDate: editData.forecastedHarvestDate,
-                actualHarvestDate: editData.actualHarvestDate,
-                forecastedHarvestKilos: editData.forecastedHarvestKilos,
-                actualHarvestKilos: editData.actualHarvestKilos,
-                remarks: editData.remarks as any,
-                customRemarks: editData.remarks === 'Other' ? editData.customRemarks : ''
+            const avgWeight = editData.actualHarvestKilos && distribution.fingerlingsCount
+                ? (editData.actualHarvestKilos / distribution.fingerlingsCount)
+                : 0.5;
+
+            // Prepare data for API update
+            const updateData = {
+                harvestKilo: editData.actualHarvestKilos || editData.forecastedHarvestKilos || distribution.forecastedHarvestKilos,
+                survivalRate: parseFloat(survivalRate.toFixed(4)), // Ensure it's within DECIMAL(5,4) range
+                avgWeight: parseFloat(avgWeight.toFixed(2)),
+                forecastedHarvestDate: editData.forecastedHarvestDate || null,
+                actualHarvestDate: editData.actualHarvestDate || null,
+                forecastedHarvestKilos: editData.forecastedHarvestKilos || null,
+                actualHarvestKilos: editData.actualHarvestKilos || null,
+                remarks: editData.remarks || null,
+                customRemarks: editData.remarks === 'Other' ? editData.customRemarks : null
             };
 
-            onUpdate(updatedDistribution);
-            setIsEditing(false);
-            setShowPrompt(false);
+            // Call API to update distribution in database
+            const response = await fetch(`/api/distributions-data/${distribution.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update local state with new values
+                const updatedDistribution: Distribution = {
+                    ...distribution,
+                    forecastedHarvestDate: editData.forecastedHarvestDate,
+                    actualHarvestDate: editData.actualHarvestDate,
+                    forecastedHarvestKilos: editData.forecastedHarvestKilos,
+                    actualHarvestKilos: editData.actualHarvestKilos,
+                    remarks: editData.remarks as any,
+                    customRemarks: editData.remarks === 'Other' ? editData.customRemarks : ''
+                };
+
+                onUpdate(updatedDistribution);
+                setIsEditing(false);
+                setShowPrompt(false);
+            } else {
+                console.error('Failed to update distribution:', result.error);
+                alert(`Failed to update harvest data: ${result.error}`);
+            }
         } catch (error) {
             console.error('Error updating harvest data:', error);
+            alert('An error occurred while updating harvest data. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -1181,7 +1256,7 @@ const DetailModal: React.FC<{
 
 const DistributionForm: React.FC = () => {
     const { unreadCount } = useNotification();
-    const { isLoading, isAuthenticated, logout } = withAuth({
+    const { isLoading, isAuthenticated, logout, user } = withAuth({
         userType: "admin",
         redirectTo: "/signin",
     });
@@ -1200,6 +1275,13 @@ const DistributionForm: React.FC = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [totalDistributions, setTotalDistributions] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    // Selection and delete state
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<'single' | 'multiple'>('multiple');
+    const [singleDeleteId, setSingleDeleteId] = useState<string | null>(null);
 
     // Fetch distributions from API (database seeded data) with pagination
     const fetchDistributions = async (page: number = 1, limit: number = 10) => {
@@ -1222,11 +1304,12 @@ const DistributionForm: React.FC = () => {
                     date: new Date(dist.dateDistributed).toISOString().split('T')[0],
                     forecast: '',
                     harvestDate: '',
-                    forecastedHarvestDate: '',
-                    forecastedHarvestKilos: dist.harvestKilo,
-                    actualHarvestKilos: 0,
-                    remarks: '' as any,
-                    customRemarks: '',
+                    forecastedHarvestDate: dist.forecastedHarvestDate ? new Date(dist.forecastedHarvestDate).toISOString().split('T')[0] : '',
+                    actualHarvestDate: dist.actualHarvestDate ? new Date(dist.actualHarvestDate).toISOString().split('T')[0] : '',
+                    forecastedHarvestKilos: dist.forecastedHarvestKilos || 0,
+                    actualHarvestKilos: dist.actualHarvestKilos || 0,
+                    remarks: dist.remarks || '' as any,
+                    customRemarks: dist.customRemarks || '',
                     area: dist.area,
                     survivalRate: dist.survivalRate,
                     avgWeight: dist.avgWeight
@@ -1372,6 +1455,82 @@ const DistributionForm: React.FC = () => {
         setShowDetailModal(true);
     };
 
+    // Handle checkbox selection
+    const handleSelectRow = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id)
+                ? prev.filter(selectedId => selectedId !== id)
+                : [...prev, id]
+        );
+    };
+
+    // Handle select all
+    const handleSelectAll = () => {
+        if (selectedIds.length === distributions.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(distributions.map(dist => dist.id));
+        }
+    };
+
+    // Handle delete confirmation
+    const confirmDelete = (id?: string) => {
+        if (id) {
+            setSingleDeleteId(id);
+            setDeleteTarget('single');
+        } else {
+            setDeleteTarget('multiple');
+        }
+        setShowDeleteConfirm(true);
+    };
+
+    // Handle delete action
+    const handleDelete = async () => {
+        setIsDeleting(true);
+
+        try {
+            const idsToDelete = deleteTarget === 'single' && singleDeleteId
+                ? [singleDeleteId]
+                : selectedIds;
+
+            const response = await fetch('/api/distributions-data', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ids: idsToDelete }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Remove deleted items from state
+                setDistributions(prev =>
+                    prev.filter(dist => !idsToDelete.includes(dist.id))
+                );
+                setSelectedIds([]);
+                setShowSuccess(true);
+
+                // Refresh data to update pagination
+                await fetchDistributions(currentPage, itemsPerPage);
+
+                setTimeout(() => {
+                    setShowSuccess(false);
+                }, 3000);
+            } else {
+                console.error('Failed to delete distributions:', data.error);
+                alert('Failed to delete distributions. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error deleting distributions:', error);
+            alert('An error occurred while deleting. Please try again.');
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
+            setSingleDeleteId(null);
+        }
+    };
+
     return (
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
@@ -1420,11 +1579,35 @@ const DistributionForm: React.FC = () => {
                                 </div>
                             ) : (
                                 <>
+                                    {/* Delete Selected Button */}
+                                    {selectedIds.length > 0 && (
+                                        <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <span className="text-sm font-medium text-blue-900">
+                                                {selectedIds.length} item(s) selected
+                                            </span>
+                                            <button
+                                                onClick={() => confirmDelete()}
+                                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                                Delete Selected
+                                            </button>
+                                        </div>
+                                    )}
+
                                     {/* Desktop Table - Hidden on mobile */}
                                     <div className="hidden lg:block overflow-x-auto">
                                         <table className="w-full table-auto">
                                             <thead>
                                                 <tr className="bg-gray-50">
+                                                    <th className="px-4 py-3 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedIds.length === distributions.length && distributions.length > 0}
+                                                            onChange={handleSelectAll}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        />
+                                                    </th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Beneficiary</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Species</th>
@@ -1441,6 +1624,14 @@ const DistributionForm: React.FC = () => {
                                             <tbody className="divide-y divide-gray-200">
                                                 {distributions.map((dist) => (
                                                     <tr key={dist.id} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-3 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedIds.includes(dist.id)}
+                                                                onChange={() => handleSelectRow(dist.id)}
+                                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                            />
+                                                        </td>
                                                         <td className="px-4 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
                                                         <td className="px-4 py-3 text-sm text-gray-600">{dist.beneficiaryType}</td>
                                                         <td className="px-4 py-3 text-sm text-gray-900">{dist.species}</td>
@@ -1489,13 +1680,22 @@ const DistributionForm: React.FC = () => {
                                                             )}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
-                                                            <button
-                                                                onClick={() => openDetailModal(dist)}
-                                                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
-                                                                title="View Details"
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                            </button>
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => openDetailModal(dist)}
+                                                                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye className="h-4 w-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => confirmDelete(dist.id)}
+                                                                    className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -1657,6 +1857,57 @@ const DistributionForm: React.FC = () => {
                             onClose={() => setShowDetailModal(false)}
                             onUpdate={handleUpdateDistribution}
                         />
+                    )}
+
+                    {/* Delete Confirmation Modal */}
+                    {showDeleteConfirm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                        <AlertCircle className="h-6 w-6 text-red-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900">Confirm Delete</h3>
+                                </div>
+
+                                <p className="text-gray-600 mb-6">
+                                    {deleteTarget === 'single'
+                                        ? 'Are you sure you want to delete this distribution? This action cannot be undone.'
+                                        : `Are you sure you want to delete ${selectedIds.length} distribution(s)? This action cannot be undone.`
+                                    }
+                                </p>
+
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteConfirm(false);
+                                            setSingleDeleteId(null);
+                                        }}
+                                        disabled={isDeleting}
+                                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition-colors font-medium disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleDelete}
+                                        disabled={isDeleting}
+                                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {isDeleting ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                Deleting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 className="h-4 w-4" />
+                                                Delete
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

@@ -29,11 +29,20 @@ class Distribution extends Model<
   declare province: string;
   declare fingerlings: number;
   declare species: "Tilapia" | "Bangus";
-  declare survivalRate: number;
-  declare avgWeight: number;
-  declare harvestKilo: number;
   declare userId: number;
   declare batchId: string | null;
+  declare actualHarvestDate: Date | null;
+  declare forecastedHarvestKilos: number | null;
+  declare actualHarvestKilos: number | null;
+  declare remarks:
+    | "Harvested"
+    | "Not Harvested"
+    | "Damaged"
+    | "Lost"
+    | "Disaster"
+    | "Other"
+    | null;
+  declare customRemarks: string | null;
 
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
@@ -82,34 +91,45 @@ Distribution.init(
       allowNull: false,
       type: DataTypes.ENUM("Tilapia", "Bangus"),
     },
-    survivalRate: {
-      allowNull: false,
-      type: DataTypes.DECIMAL(5, 4),
-      comment: "Survival rate as decimal (e.g., 0.78 for 78%)",
-    },
-    avgWeight: {
-      allowNull: false,
-      type: DataTypes.DECIMAL(10, 2),
-      comment: "Average weight in kilograms",
-    },
-    harvestKilo: {
-      allowNull: false,
-      type: DataTypes.DECIMAL(10, 2),
-      comment: "Total harvest in kilograms",
-    },
     userId: {
       allowNull: false,
       type: DataTypes.INTEGER,
-      references: {
-        model: "Users",
-        key: "id",
-      },
-      onUpdate: "CASCADE",
-      onDelete: "CASCADE",
     },
     batchId: {
       allowNull: true,
       type: DataTypes.STRING,
+    },
+    actualHarvestDate: {
+      allowNull: true,
+      type: DataTypes.DATE,
+      comment: "Actual harvest date",
+    },
+    forecastedHarvestKilos: {
+      allowNull: true,
+      type: DataTypes.DECIMAL(10, 2),
+      comment: "Forecasted harvest in kilograms",
+    },
+    actualHarvestKilos: {
+      allowNull: true,
+      type: DataTypes.DECIMAL(10, 2),
+      comment: "Actual harvest in kilograms",
+    },
+    remarks: {
+      allowNull: true,
+      type: DataTypes.ENUM(
+        "Harvested",
+        "Not Harvested",
+        "Damaged",
+        "Lost",
+        "Disaster",
+        "Other"
+      ),
+      comment: "Harvest status remarks",
+    },
+    customRemarks: {
+      allowNull: true,
+      type: DataTypes.TEXT,
+      comment: 'Custom remarks when remarks is "Other"',
     },
     createdAt: {
       allowNull: false,

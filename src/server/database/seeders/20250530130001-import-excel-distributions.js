@@ -146,18 +146,27 @@ module.exports = {
           parsedDate.setFullYear(2023);
         }
 
+        // Get actual harvest from Excel
+        const actualHarvestKilos =
+          parseFloat(row["Actual Harvest(Kilo)"]) || null;
+        const fingerlings = parseInt(row["Fingerlings"]) || 0;
+
+        // Calculate forecasted harvest based on fingerlings, survival rate, and avg weight
+        const forecastedHarvestKilos =
+          fingerlings * defaultSurvivalRate * defaultAvgWeight;
+
         distributions.push({
           dateDistributed: parsedDate,
           beneficiaryName: row["Beneficiary Name"] || "Unknown",
-          area: row["Area (sq.m.)"] || null,
           barangay: row["Barangay"] || null,
           municipality: row["Municipality"] || "Unknown",
           province: row["Province"] || "Unknown",
-          fingerlings: parseInt(row["Fingerlings"]) || 0,
+          fingerlings: fingerlings,
           species: species,
-          survivalRate: parseFloat(row["SurvivalRate"]) || defaultSurvivalRate,
-          avgWeight: parseFloat(row["AvgWeight"]) || defaultAvgWeight,
-          harvestKilo: parseFloat(row["Harvest(Kilo)"]) || 0,
+          forecastedHarvestKilos: forecastedHarvestKilos,
+          actualHarvestKilos: actualHarvestKilos,
+          actualHarvestDate: actualHarvestKilos ? parsedDate : null,
+          remarks: actualHarvestKilos ? "Harvested" : null,
           userId: userId,
           batchId: generateBatchId(), // Generate unique batch ID for each distribution
           createdAt: new Date(),
@@ -172,13 +181,18 @@ module.exports = {
       return distributions;
     };
 
-    // Define file paths
-    const projectRoot = path.join(__dirname, "../../..");
+    // Define file paths - files are in src directory
+    const srcDir = path.join(__dirname, "../../../..");
     const tilapiaFile = path.join(
-      projectRoot,
+      srcDir,
+      "src",
       "Red_Tilapia Distribution_Data.xlsx"
     );
-    const bangusFile = path.join(projectRoot, "Bangus Distribution_Data.xlsx");
+    const bangusFile = path.join(
+      srcDir,
+      "src",
+      "Bangus Distribution_Data.xlsx"
+    );
 
     let allDistributions = [];
 

@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const species = searchParams.get("species");
     const municipality = searchParams.get("municipality");
     const province = searchParams.get("province");
+    const barangay = searchParams.get("barangay");
     const search = searchParams.get("search");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -42,6 +43,13 @@ export async function GET(request: NextRequest) {
     if (province) {
       whereClause.province = {
         [Op.like]: `%${province}%`,
+      };
+    }
+
+    // Filter by barangay
+    if (barangay) {
+      whereClause.barangay = {
+        [Op.like]: `%${barangay}%`,
       };
     }
 
@@ -146,9 +154,6 @@ export async function POST(request: NextRequest) {
       "province",
       "fingerlings",
       "species",
-      "survivalRate",
-      "avgWeight",
-      "harvestKilo",
       "userId",
     ];
 
@@ -196,10 +201,15 @@ export async function POST(request: NextRequest) {
       province: body.province,
       fingerlings: body.fingerlings,
       species: body.species,
-      survivalRate: body.survivalRate,
-      avgWeight: body.avgWeight,
-      harvestKilo: body.harvestKilo,
       userId: body.userId,
+      batchId: body.batchId || null,
+      forecastedHarvestKilos: body.forecastedHarvestKilos || null,
+      actualHarvestKilos: body.actualHarvestKilos || null,
+      actualHarvestDate: body.actualHarvestDate
+        ? new Date(body.actualHarvestDate)
+        : null,
+      remarks: body.remarks || null,
+      customRemarks: body.customRemarks || null,
     });
 
     // Fetch the created distribution with user data
@@ -226,6 +236,49 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Distributions Data POST API Error:", error);
+    return jsonResponse(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      500
+    );
+  }
+}
+
+// DELETE /api/distributions-data - Bulk delete distributions
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { ids } = body;
+
+    // Validate ids array
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return jsonResponse(
+        {
+          success: false,
+          error: "ids must be a non-empty array",
+        },
+        400
+      );
+    }
+
+    // Delete distributions
+    const deletedCount = await Distribution.destroy({
+      where: {
+        id: {
+          [Op.in]: ids,
+        },
+      },
+    });
+
+    return jsonResponse({
+      success: true,
+      message: `Successfully deleted ${deletedCount} distribution(s)`,
+      deletedCount,
+    });
+  } catch (error) {
+    console.error("Distributions Data DELETE API Error:", error);
     return jsonResponse(
       {
         success: false,

@@ -69,7 +69,6 @@ export function withAuthLayout<P extends object>(options?: UseAuthOptions) {
                 return (
                     <div>
                         <FullScreenLoader />
-                        <p className="text-center text-gray-500">Checking Users...</p>
                     </div>
                 )
             }

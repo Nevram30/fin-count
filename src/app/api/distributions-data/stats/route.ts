@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
     const totalFingerlings = await Distribution.sum("fingerlings", {
       where: whereClause,
     });
-    const totalHarvest = await Distribution.sum("harvestKilo", {
+    const totalHarvest = await Distribution.sum("actualHarvestKilos", {
       where: whereClause,
     });
 

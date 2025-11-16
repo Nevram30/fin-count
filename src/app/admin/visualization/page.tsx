@@ -63,7 +63,7 @@ interface BeneficiaryData {
     location: string;
     species: 'tilapia' | 'bangus';
     fingerlingsReceived: number;
-    harvestKg: number;
+    actualHarvestKilos: number;
     facilityType: 'fish_cage' | 'pond';
     distributionDate: string;
     province: string;
@@ -167,8 +167,8 @@ const DataVisualization: React.FC = () => {
     });
 
     const [harvestState, setHarvestState] = useState<HarvestState>({
-        dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        dateTo: new Date().toISOString().split('T')[0],
+        dateFrom: '2023-01-01',
+        dateTo: '2024-12-31',
         selectedProvince: 'all',
         selectedCity: 'all',
         selectedBarangay: 'all',
@@ -177,43 +177,195 @@ const DataVisualization: React.FC = () => {
         isLoading: false
     });
 
-    // Generate mock harvest data with Davao locations
-    const generateHarvestData = (): HarvestData[] => {
-        const cities = ["Davao City", "Tagum City", "Panabo City", "Digos City", "Mati City", "Nabunturan", "Malita"];
-        const facilityTypes = ['Fish Cage', 'Pond'];
-        const provinces = locationData.provinces;
+    // Fetch real harvest data from distribution API
+    const fetchHarvestData = async (state: HarvestState): Promise<HarvestData[]> => {
+        try {
+            // Build query parameters - send all filters to API
+            const params = new URLSearchParams();
 
-        return Array.from({ length: 12 }, (_, i) => {
-            const city = cities[i % cities.length];
-            const province = provinces.find(p => locationData.cities[p]?.includes(city)) || provinces[0];
-            const barangays = locationData.barangays[city] || ["Poblacion"];
-            const survivalRate = 0.7 + Math.random() * 0.25; // 70-95% survival rate
-            const avgWeight = 150 + Math.random() * 100; // 150-250g average weight
+            // Date filters
+            if (state.dateFrom) {
+                params.append('startDate', state.dateFrom);
+            }
+            if (state.dateTo) {
+                params.append('endDate', state.dateTo);
+            }
 
-            return {
-                location: city,
-                tilapia: Math.floor((Math.random() * 3000 + 800) * survivalRate), // Harvest based on survival
-                bangus: Math.floor((Math.random() * 2000 + 400) * survivalRate),
-                date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                facilityType: facilityTypes[i % facilityTypes.length],
-                province: province,
-                city: city,
-                barangay: barangays[i % barangays.length],
-                survivalRate: Math.round(survivalRate * 100),
-                avgWeight: Math.round(avgWeight)
-            };
-        });
+            // Location filters - send to API
+            if (state.selectedProvince !== 'all') {
+                params.append('province', state.selectedProvince);
+            }
+            if (state.selectedCity !== 'all' && state.selectedCity !== 'All Cities') {
+                params.append('municipality', state.selectedCity);
+            }
+            if (state.selectedBarangay !== 'all' && state.selectedBarangay !== 'All Barangays') {
+                params.append('barangay', state.selectedBarangay);
+            }
+
+            // Get more records for aggregation
+            params.append('limit', '1000');
+
+            console.log('Fetching harvest data with params:', params.toString());
+
+            const response = await fetch(`/api/distributions-data?${params.toString()}`);
+            const result = await response.json();
+
+            console.log('API Response:', result);
+
+            if (result.success && result.data.distributions) {
+                const distributions = result.data.distributions;
+
+                // Filter distributions with actualHarvestKilos > 0
+                const harvestedDistributions = distributions.filter((dist: any) => {
+                    const harvestKg = parseFloat(dist.actualHarvestKilos) || 0;
+                    return harvestKg > 0;
+                });
+
+                console.log('Harvested distributions count:', harvestedDistributions.length);
+
+                if (harvestedDistributions.length === 0) {
+                    return [];
+                }
+
+                // Determine grouping level based on filters
+                let groupingKey: 'province' | 'municipality' | 'barangay' | 'beneficiary';
+
+                if (state.selectedBarangay !== 'all' && state.selectedBarangay !== 'All Barangays') {
+                    // If specific barangay is selected, group by beneficiary
+                    groupingKey = 'beneficiary';
+                } else if (state.selectedCity !== 'all' && state.selectedCity !== 'All Cities') {
+                    // If city is selected, group by barangay within that city
+                    groupingKey = 'barangay';
+                } else if (state.selectedProvince !== 'all') {
+                    // If province is selected, group by municipality
+                    groupingKey = 'municipality';
+                } else {
+                    // If "All Provinces" is selected, group by province
+                    groupingKey = 'province';
+                }
+
+                const dataMap = new Map<string, {
+                    tilapia: number;
+                    bangus: number;
+                    province: string;
+                    municipality: string;
+                    barangay: string;
+                    count: number;
+                }>();
+
+                harvestedDistributions.forEach((dist: any) => {
+                    // Use appropriate key based on grouping level
+                    let key: string;
+                    if (groupingKey === 'beneficiary') {
+                        // Group by beneficiary name when barangay is selected
+                        key = dist.beneficiaryName || 'Unknown Beneficiary';
+                    } else if (groupingKey === 'barangay') {
+                        key = dist.barangay || dist.municipality || dist.province;
+                    } else if (groupingKey === 'municipality') {
+                        key = dist.municipality || dist.province;
+                    } else {
+                        key = dist.province;
+                    }
+
+                    if (!dataMap.has(key)) {
+                        dataMap.set(key, {
+                            tilapia: 0,
+                            bangus: 0,
+                            province: dist.province || 'Unknown',
+                            municipality: dist.municipality || 'Unknown',
+                            barangay: dist.barangay || 'Various',
+                            count: 0
+                        });
+                    }
+
+                    const entry = dataMap.get(key)!;
+                    const harvestKg = parseFloat(dist.actualHarvestKilos) || 0;
+
+                    if (dist.species === 'Tilapia') {
+                        entry.tilapia += harvestKg;
+                    } else if (dist.species === 'Bangus') {
+                        entry.bangus += harvestKg;
+                    }
+
+                    entry.count += 1;
+                });
+
+                // Convert to chart data format
+                const chartData: HarvestData[] = Array.from(dataMap.entries()).map(([location, value]) => ({
+                    location: location,
+                    tilapia: Math.round(value.tilapia * 100) / 100,
+                    bangus: Math.round(value.bangus * 100) / 100,
+                    date: state.dateTo,
+                    facilityType: state.selectedFacilityType === 'all_facilities' ? 'All Facilities' : state.selectedFacilityType.replace(/_/g, ' '),
+                    province: value.province,
+                    city: value.municipality,
+                    barangay: value.barangay,
+                    survivalRate: 0,
+                    avgWeight: 0
+                }));
+
+                // Sort by total harvest (descending)
+                chartData.sort((a, b) => (b.tilapia + b.bangus) - (a.tilapia + a.bangus));
+
+                // Debug log
+                console.log('Harvest Data - groupingKey:', groupingKey);
+                console.log('Harvest Data - chartData:', chartData);
+
+                return chartData.slice(0, 12);
+            }
+
+            return [];
+        } catch (error) {
+            console.error('Error fetching harvest data:', error);
+            return [];
+        }
     };
 
     // Location options
     const locationOptions = ["Barangay", "Municipality", "Province"];
     const facilityTypes = ["All Facilities", "Fish Cage", "Pond"];
 
-    // Handle harvest comparison
+    // Handle harvest comparison - Fetch real data from API
     const handleHarvestCompare = async () => {
         setHarvestState(prev => ({ ...prev, isLoading: true }));
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const newData = generateHarvestData();
+
+        try {
+            // Get current state to pass to fetchHarvestData
+            const currentState = harvestState;
+            const newData = await fetchHarvestData(currentState);
+            setHarvestState(prev => ({
+                ...prev,
+                data: newData,
+                isLoading: false
+            }));
+        } catch (error) {
+            console.error('Error in handleHarvestCompare:', error);
+            setHarvestState(prev => ({
+                ...prev,
+                data: [],
+                isLoading: false
+            }));
+        }
+    };
+
+    // Handle province change in harvest section
+    const handleHarvestProvinceChange = async (province: string) => {
+        const newState = {
+            ...harvestState,
+            selectedProvince: province,
+            selectedCity: 'all',
+            selectedBarangay: 'all'
+        };
+        setHarvestState(prev => ({
+            ...prev,
+            selectedProvince: province,
+            selectedCity: 'all',
+            selectedBarangay: 'all',
+            isLoading: true
+        }));
+
+        // Automatically fetch data with new province filter
+        const newData = await fetchHarvestData(newState);
         setHarvestState(prev => ({
             ...prev,
             data: newData,
@@ -221,22 +373,26 @@ const DataVisualization: React.FC = () => {
         }));
     };
 
-    // Handle province change in harvest section
-    const handleHarvestProvinceChange = (province: string) => {
-        setHarvestState(prev => ({
-            ...prev,
-            selectedProvince: province,
-            selectedCity: 'all',
-            selectedBarangay: 'all'
-        }));
-    };
-
     // Handle city change in harvest section
-    const handleHarvestCityChange = (city: string) => {
+    const handleHarvestCityChange = async (city: string) => {
+        const newState = {
+            ...harvestState,
+            selectedCity: city,
+            selectedBarangay: 'all'
+        };
         setHarvestState(prev => ({
             ...prev,
             selectedCity: city,
-            selectedBarangay: 'all'
+            selectedBarangay: 'all',
+            isLoading: true
+        }));
+
+        // Automatically fetch data with new city filter
+        const newData = await fetchHarvestData(newState);
+        setHarvestState(prev => ({
+            ...prev,
+            data: newData,
+            isLoading: false
         }));
     };
 
@@ -345,7 +501,7 @@ const DataVisualization: React.FC = () => {
 
                 distributions.forEach((dist: any) => {
                     const name = dist.beneficiaryName || 'Unknown';
-                    const harvestKg = parseFloat(dist.harvestKilo) || 0;
+                    const harvestKg = parseFloat(dist.actualHarvestKilos) || 0;
                     const fingerlings = parseInt(dist.fingerlings) || 0;
 
                     if (!beneficiaryMap.has(name)) {
@@ -382,7 +538,7 @@ const DataVisualization: React.FC = () => {
                     location: data.location,
                     species: (data.species?.toLowerCase() || 'tilapia') as 'tilapia' | 'bangus',
                     fingerlingsReceived: data.totalFingerlings,
-                    harvestKg: Math.round(data.totalHarvest * 100) / 100, // Round to 2 decimal places
+                    actualHarvestKilos: Math.round(data.totalHarvest * 100) / 100, // Round to 2 decimal places
                     facilityType: 'pond' as 'fish_cage' | 'pond',
                     distributionDate: new Date(data.latestDate).toISOString().split('T')[0],
                     province: data.province,
@@ -573,7 +729,7 @@ const DataVisualization: React.FC = () => {
         handleFingerlingsCompare();
         handleLeaderboardRefresh();
         handleHarvestCompare();
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Filter leaderboard data
     const filteredLeaderboardData = leaderboardState.data
@@ -581,8 +737,9 @@ const DataVisualization: React.FC = () => {
             (leaderboardState.selectedSpecies === 'all' || item.species === leaderboardState.selectedSpecies) &&
             (leaderboardState.selectedFacilityType === 'all' || item.facilityType === leaderboardState.selectedFacilityType)
         )
-        .sort((a, b) => b.harvestKg - a.harvestKg)
+        .sort((a, b) => b.actualHarvestKilos - a.actualHarvestKilos)
         .slice(0, 10);
+    console.log("🚀 ~ DataVisualization ~ filteredLeaderboardData:", filteredLeaderboardData)
 
     // Custom tooltip for charts
     const CustomTooltip = ({ active, payload, label }: any) => {
@@ -647,20 +804,9 @@ const DataVisualization: React.FC = () => {
                                 <p className="text-gray-600">Comparative tools and fingerling distribution analysis for Davao Region</p>
                             </div>
                         </div>
-
                         {/* Tab Navigation */}
                         <div className="mb-6">
                             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-                                {/* <button
-                                    onClick={() => setActiveTab('comparative')}
-                                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'comparative'
-                                        ? 'bg-white text-blue-600 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                >
-                                    <Scale className="h-4 w-4" />
-                                    Comparative Analysis
-                                </button> */}
                                 <button
                                     onClick={() => setActiveTab('fingerlings')}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'fingerlings'
@@ -693,103 +839,6 @@ const DataVisualization: React.FC = () => {
                                 </button>
                             </div>
                         </div>
-
-                        {/* Comparative Analysis Tab */}
-                        {/* {activeTab === 'comparative' && (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="flex items-center gap-3">
-                                            <Scale className="h-5 w-5 text-blue-600" />
-                                            <h2 className="text-xl font-semibold text-gray-900">Comparative Analysis</h2>
-                                        </div>
-
-                                        <div className="flex items-center gap-4">
-                                            <select
-                                                value={forecastState.selectedLocation}
-                                                onChange={(e) => setForecastState(prev => ({ ...prev, selectedLocation: e.target.value }))}
-                                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                            >
-                                                {locationOptions.map(option => (
-                                                    <option key={option} value={option}>{option}</option>
-                                                ))}
-                                            </select>
-
-                                            <button
-                                                onClick={() => handleLocationChange(forecastState.selectedLocation)}
-                                                disabled={forecastState.isLoading}
-                                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 flex items-center gap-2"
-                                            >
-                                                {forecastState.isLoading ? (
-                                                    <>
-                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                        Loading...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <BarChart3 className="h-4 w-4" />
-                                                        Compare
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="relative">
-                                        {forecastState.isLoading ? (
-                                            <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
-                                                <div className="text-center">
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                                    <p className="text-gray-600">Loading comparative data...</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="h-96">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <BarChart data={forecastState.data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                                        <XAxis dataKey="region" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(value) => value.toLocaleString()} />
-                                                        <Tooltip content={<CustomTooltip />} />
-                                                        <Bar dataKey="value" fill="#7dd3fc" radius={[4, 4, 0, 0]} name="Current" />
-                                                        <Bar dataKey="projected" fill="#0ea5e9" radius={[4, 4, 0, 0]} name="Projected" />
-                                                    </BarChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {!forecastState.isLoading && forecastState.data.length > 0 && (
-                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                                            <div className="bg-blue-50 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-blue-600">
-                                                    {forecastState.data.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
-                                                </div>
-                                                <div className="text-sm text-blue-800">Total Current</div>
-                                            </div>
-                                            <div className="bg-green-50 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-green-600">
-                                                    {forecastState.data.reduce((sum, item) => sum + item.projected, 0).toLocaleString()}
-                                                </div>
-                                                <div className="text-sm text-green-800">Total Projected</div>
-                                            </div>
-                                            <div className="bg-purple-50 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-purple-600">
-                                                    {Math.round(forecastState.data.reduce((sum, item) => sum + item.growth, 0) / forecastState.data.length)}%
-                                                </div>
-                                                <div className="text-sm text-purple-800">Avg Growth</div>
-                                            </div>
-                                            <div className="bg-orange-50 rounded-lg p-4">
-                                                <div className="text-2xl font-bold text-orange-600">
-                                                    {forecastState.selectedLocation}
-                                                </div>
-                                                <div className="text-sm text-orange-800">Analysis Level</div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )} */}
 
                         {/* Fingerling Distribution Tab */}
                         {activeTab === 'fingerlings' && (
@@ -1012,7 +1061,26 @@ const DataVisualization: React.FC = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Barangay</label>
                                             <select
                                                 value={harvestState.selectedBarangay}
-                                                onChange={(e) => setHarvestState(prev => ({ ...prev, selectedBarangay: e.target.value }))}
+                                                onChange={async (e) => {
+                                                    const barangay = e.target.value;
+                                                    const newState = {
+                                                        ...harvestState,
+                                                        selectedBarangay: barangay
+                                                    };
+                                                    setHarvestState(prev => ({
+                                                        ...prev,
+                                                        selectedBarangay: barangay,
+                                                        isLoading: true
+                                                    }));
+
+                                                    // Automatically fetch data with new barangay filter
+                                                    const newData = await fetchHarvestData(newState);
+                                                    setHarvestState(prev => ({
+                                                        ...prev,
+                                                        data: newData,
+                                                        isLoading: false
+                                                    }));
+                                                }}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
                                                 {getAvailableBarangays(harvestState.selectedCity).map(barangay => (
@@ -1061,6 +1129,19 @@ const DataVisualization: React.FC = () => {
                                                 <div className="text-center">
                                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                                                     <p className="text-gray-600">Loading harvest data...</p>
+                                                </div>
+                                            </div>
+                                        ) : harvestState.data.length === 0 ? (
+                                            <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                                                <div className="text-center px-6">
+                                                    <Scale className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Harvest Data Available</h3>
+                                                    <p className="text-gray-600 mb-4">
+                                                        There are no harvest records with actual harvest data for the selected filters.
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">
+                                                        Try adjusting your date range or location filters, or ensure that harvest data has been recorded in the system.
+                                                    </p>
                                                 </div>
                                             </div>
                                         ) : (
@@ -1238,7 +1319,7 @@ const DataVisualization: React.FC = () => {
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-2xl font-bold text-gray-900">
-                                                            {beneficiary.harvestKg.toLocaleString()} kg
+                                                            {beneficiary.actualHarvestKilos.toLocaleString()} kg
                                                         </div>
                                                         <div className="text-sm text-gray-600">
                                                             From {beneficiary.fingerlingsReceived.toLocaleString()} fingerlings
@@ -1251,25 +1332,6 @@ const DataVisualization: React.FC = () => {
                                 </div>
                             </div>
                         )}
-
-                        {/* Action Buttons */}
-                        <div className="mt-6 flex items-center justify-between">
-                            <div className="text-sm text-gray-500">
-                                Last updated: {new Date().toLocaleString()}
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                    <RefreshCw className="h-4 w-4" />
-                                    Refresh All
-                                </button>
-
-                                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                    <Download className="h-4 w-4" />
-                                    Export Data
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
