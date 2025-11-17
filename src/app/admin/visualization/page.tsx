@@ -98,7 +98,7 @@ interface LeaderboardState {
 
 // Davao Region locations data
 const locationData: LocationData = {
-    provinces: ["Davao del Norte", "Davao del Sur", "Davao de Oro", "Davao Oriental", "Davao Occidental"],
+    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "North Cotabato"],
     cities: {
         "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
         "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
@@ -725,6 +725,13 @@ const DataVisualization: React.FC = () => {
 
     // Handle province change in fingerlings section
     const handleProvinceChange = async (province: string) => {
+        const newState = {
+            ...fingerlingsState,
+            selectedProvince: province,
+            selectedCity: 'all',
+            selectedBarangay: 'all'
+        };
+
         setFingerlingsState(prev => ({
             ...prev,
             selectedProvince: province,
@@ -733,14 +740,128 @@ const DataVisualization: React.FC = () => {
             isLoading: true
         }));
 
-        // Wait for state to update, then fetch data
-        setTimeout(async () => {
-            await handleFingerlingsCompare();
-        }, 100);
+        // Fetch data with the new state directly
+        try {
+            const detailParams = new URLSearchParams();
+
+            if (newState.dateFrom) {
+                detailParams.append('startDate', newState.dateFrom);
+            }
+            if (newState.dateTo) {
+                detailParams.append('endDate', newState.dateTo);
+            }
+            if (newState.selectedProvince !== 'all') {
+                detailParams.append('province', newState.selectedProvince);
+            }
+            if (newState.selectedCity !== 'all' && newState.selectedCity !== 'All Cities') {
+                detailParams.append('municipality', newState.selectedCity);
+            }
+            if (newState.selectedBarangay !== 'all' && newState.selectedBarangay !== 'All Barangays') {
+                detailParams.append('barangay', newState.selectedBarangay);
+            }
+            detailParams.append('limit', '1000');
+
+            const detailResponse = await fetch(`/api/distributions-data?${detailParams.toString()}`);
+            const detailResult = await detailResponse.json();
+
+            if (detailResult.success && detailResult.data.distributions) {
+                const distributions = detailResult.data.distributions;
+                const filteredDistributions = distributions;
+
+                let groupingKey: 'province' | 'municipality' | 'barangay' | 'beneficiary';
+
+                if (newState.selectedBarangay !== 'all' && newState.selectedBarangay !== 'All Barangays') {
+                    groupingKey = 'beneficiary';
+                } else if (newState.selectedCity !== 'all' && newState.selectedCity !== 'All Cities') {
+                    groupingKey = 'barangay';
+                } else if (newState.selectedProvince !== 'all') {
+                    groupingKey = 'municipality';
+                } else {
+                    groupingKey = 'province';
+                }
+
+                const dataMap = new Map<string, {
+                    tilapia: number;
+                    bangus: number;
+                    province: string;
+                    municipality: string;
+                    barangay: string;
+                }>();
+
+                filteredDistributions.forEach((dist: any) => {
+                    let key: string;
+                    if (groupingKey === 'beneficiary') {
+                        key = dist.beneficiaryName || 'Unknown Beneficiary';
+                    } else if (groupingKey === 'barangay') {
+                        key = dist.barangay || dist.municipality || dist.province;
+                    } else if (groupingKey === 'municipality') {
+                        key = dist.municipality || dist.province;
+                    } else {
+                        key = dist.province;
+                    }
+
+                    if (!dataMap.has(key)) {
+                        dataMap.set(key, {
+                            tilapia: 0,
+                            bangus: 0,
+                            province: dist.province,
+                            municipality: dist.municipality || 'Various',
+                            barangay: dist.barangay || 'Various'
+                        });
+                    }
+
+                    const entry = dataMap.get(key)!;
+                    if (dist.species === 'Tilapia') {
+                        entry.tilapia += dist.fingerlings || 0;
+                    } else if (dist.species === 'Bangus') {
+                        entry.bangus += dist.fingerlings || 0;
+                    }
+                });
+
+                const chartData: FingerlingsData[] = Array.from(dataMap.entries()).map(([location, value]) => ({
+                    location: location,
+                    tilapia: value.tilapia,
+                    bangus: value.bangus,
+                    date: newState.dateTo,
+                    facilityType: newState.selectedFacilityType === 'all_facilities' ? 'All Facilities' : newState.selectedFacilityType.replace(/_/g, ' '),
+                    province: value.province,
+                    city: value.municipality,
+                    barangay: value.barangay
+                }));
+
+                chartData.sort((a, b) => (b.tilapia + b.bangus) - (a.tilapia + a.bangus));
+                const topData = chartData.slice(0, 12);
+
+                setFingerlingsState(prev => ({
+                    ...prev,
+                    data: topData,
+                    isLoading: false
+                }));
+            } else {
+                setFingerlingsState(prev => ({
+                    ...prev,
+                    data: [],
+                    isLoading: false
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching fingerlings data:', error);
+            setFingerlingsState(prev => ({
+                ...prev,
+                data: [],
+                isLoading: false
+            }));
+        }
     };
 
     // Handle city change in fingerlings section
     const handleCityChange = async (city: string) => {
+        const newState = {
+            ...fingerlingsState,
+            selectedCity: city,
+            selectedBarangay: 'all'
+        };
+
         setFingerlingsState(prev => ({
             ...prev,
             selectedCity: city,
@@ -748,10 +869,118 @@ const DataVisualization: React.FC = () => {
             isLoading: true
         }));
 
-        // Wait for state to update, then fetch data
-        setTimeout(async () => {
-            await handleFingerlingsCompare();
-        }, 100);
+        // Fetch data with the new state directly
+        try {
+            const detailParams = new URLSearchParams();
+
+            if (newState.dateFrom) {
+                detailParams.append('startDate', newState.dateFrom);
+            }
+            if (newState.dateTo) {
+                detailParams.append('endDate', newState.dateTo);
+            }
+            if (newState.selectedProvince !== 'all') {
+                detailParams.append('province', newState.selectedProvince);
+            }
+            if (newState.selectedCity !== 'all' && newState.selectedCity !== 'All Cities') {
+                detailParams.append('municipality', newState.selectedCity);
+            }
+            if (newState.selectedBarangay !== 'all' && newState.selectedBarangay !== 'All Barangays') {
+                detailParams.append('barangay', newState.selectedBarangay);
+            }
+            detailParams.append('limit', '1000');
+
+            const detailResponse = await fetch(`/api/distributions-data?${detailParams.toString()}`);
+            const detailResult = await detailResponse.json();
+
+            if (detailResult.success && detailResult.data.distributions) {
+                const distributions = detailResult.data.distributions;
+                const filteredDistributions = distributions;
+
+                let groupingKey: 'province' | 'municipality' | 'barangay' | 'beneficiary';
+
+                if (newState.selectedBarangay !== 'all' && newState.selectedBarangay !== 'All Barangays') {
+                    groupingKey = 'beneficiary';
+                } else if (newState.selectedCity !== 'all' && newState.selectedCity !== 'All Cities') {
+                    groupingKey = 'barangay';
+                } else if (newState.selectedProvince !== 'all') {
+                    groupingKey = 'municipality';
+                } else {
+                    groupingKey = 'province';
+                }
+
+                const dataMap = new Map<string, {
+                    tilapia: number;
+                    bangus: number;
+                    province: string;
+                    municipality: string;
+                    barangay: string;
+                }>();
+
+                filteredDistributions.forEach((dist: any) => {
+                    let key: string;
+                    if (groupingKey === 'beneficiary') {
+                        key = dist.beneficiaryName || 'Unknown Beneficiary';
+                    } else if (groupingKey === 'barangay') {
+                        key = dist.barangay || dist.municipality || dist.province;
+                    } else if (groupingKey === 'municipality') {
+                        key = dist.municipality || dist.province;
+                    } else {
+                        key = dist.province;
+                    }
+
+                    if (!dataMap.has(key)) {
+                        dataMap.set(key, {
+                            tilapia: 0,
+                            bangus: 0,
+                            province: dist.province,
+                            municipality: dist.municipality || 'Various',
+                            barangay: dist.barangay || 'Various'
+                        });
+                    }
+
+                    const entry = dataMap.get(key)!;
+                    if (dist.species === 'Tilapia') {
+                        entry.tilapia += dist.fingerlings || 0;
+                    } else if (dist.species === 'Bangus') {
+                        entry.bangus += dist.fingerlings || 0;
+                    }
+                });
+
+                const chartData: FingerlingsData[] = Array.from(dataMap.entries()).map(([location, value]) => ({
+                    location: location,
+                    tilapia: value.tilapia,
+                    bangus: value.bangus,
+                    date: newState.dateTo,
+                    facilityType: newState.selectedFacilityType === 'all_facilities' ? 'All Facilities' : newState.selectedFacilityType.replace(/_/g, ' '),
+                    province: value.province,
+                    city: value.municipality,
+                    barangay: value.barangay
+                }));
+
+                chartData.sort((a, b) => (b.tilapia + b.bangus) - (a.tilapia + a.bangus));
+                const topData = chartData.slice(0, 12);
+
+                setFingerlingsState(prev => ({
+                    ...prev,
+                    data: topData,
+                    isLoading: false
+                }));
+            } else {
+                setFingerlingsState(prev => ({
+                    ...prev,
+                    data: [],
+                    isLoading: false
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching fingerlings data:', error);
+            setFingerlingsState(prev => ({
+                ...prev,
+                data: [],
+                isLoading: false
+            }));
+        }
     };
 
     // Initialize data
