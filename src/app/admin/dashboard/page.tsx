@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Users, BarChart3, Package, UserCheck, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import AsideNavigation from "../components/aside.navigation";
@@ -58,7 +58,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon: Ic
 
 // Statistics Overview Component
 const StatisticsOverview: React.FC = () => {
-    const stats: StatData[] = [
+    const [stats, setStats] = useState<StatData[]>([
         {
             title: "Total Fingerlings",
             value: "0",
@@ -69,7 +69,7 @@ const StatisticsOverview: React.FC = () => {
         },
         {
             title: "Active Batch",
-            value: "1",
+            value: "0",
             description: "Currently active fingering batches",
             icon: BarChart3,
             bgColor: "bg-cyan-50",
@@ -77,7 +77,7 @@ const StatisticsOverview: React.FC = () => {
         },
         {
             title: "Total Batch",
-            value: "1",
+            value: "0",
             description: "Total number of batch",
             icon: Package,
             bgColor: "bg-cyan-50",
@@ -85,13 +85,104 @@ const StatisticsOverview: React.FC = () => {
         },
         {
             title: "Staff Members",
-            value: "2",
+            value: "0",
             description: "Total number of staff members",
             icon: UserCheck,
             bgColor: "bg-cyan-50",
             iconColor: "text-cyan-600"
         }
-    ];
+    ]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+
+                // Fetch all batches
+                const batchesResponse = await fetch('/api/batches?limit=1000');
+                const batchesData = await batchesResponse.json();
+
+                // Fetch all users (staff members)
+                const usersResponse = await fetch('/api/user?userType=staff&limit=1000');
+                const usersData = await usersResponse.json();
+
+                // Calculate statistics
+                const totalBatches = batchesData.data?.pagination?.totalBatches || 0;
+                const activeBatches = batchesData.data?.batches?.filter((batch: any) => batch.isActive)?.length || 0;
+                const totalStaff = usersData.data?.pagination?.totalUsers || 0;
+
+                // Calculate total fingerlings from all batches
+                const totalFingerlings = batchesData.data?.batches?.reduce((sum: number, batch: any) => {
+                    return sum + (batch.totalCount || 0);
+                }, 0) || 0;
+
+                // Update stats
+                setStats([
+                    {
+                        title: "Total Fingerlings",
+                        value: totalFingerlings.toLocaleString(),
+                        description: "Total fingerlings counted across all batches",
+                        icon: Package,
+                        bgColor: "bg-cyan-50",
+                        iconColor: "text-cyan-600"
+                    },
+                    {
+                        title: "Active Batch",
+                        value: activeBatches.toString(),
+                        description: "Currently active fingering batches",
+                        icon: BarChart3,
+                        bgColor: "bg-cyan-50",
+                        iconColor: "text-cyan-600"
+                    },
+                    {
+                        title: "Total Batch",
+                        value: totalBatches.toString(),
+                        description: "Total number of batch",
+                        icon: Package,
+                        bgColor: "bg-cyan-50",
+                        iconColor: "text-cyan-600"
+                    },
+                    {
+                        title: "Staff Members",
+                        value: totalStaff.toString(),
+                        description: "Total number of staff members",
+                        icon: UserCheck,
+                        bgColor: "bg-cyan-50",
+                        iconColor: "text-cyan-600"
+                    }
+                ]);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="mb-8">
+                <div className="flex items-center mb-6">
+                    <div className="p-2 bg-blue-50 rounded-lg mr-3">
+                        <BarChart3 className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-gray-800">Statistics Overview</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                            <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-full"></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="mb-8">
@@ -242,9 +333,9 @@ const AdminDashboard: React.FC = () => {
                         <StatisticsOverview />
 
                         {/* Additional Dashboard Content */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                             {/* Recent Activity Card */}
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between py-2">
@@ -260,7 +351,7 @@ const AdminDashboard: React.FC = () => {
                                         <span className="text-xs text-gray-400">3 days ago</span>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Quick Actions Card */}
                             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
