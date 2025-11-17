@@ -9,7 +9,6 @@
     "db": "npm run db:create && npm run db:migrate && npm run db:seed",
     "db:create": "npx sequelize-cli db:create",
     "db:migrate": "npx sequelize-cli db:migrate",
-    "db:seed": "npx sequelize-cli db:seed:all",
     "lint": "next lint"
   },
   "dependencies": {

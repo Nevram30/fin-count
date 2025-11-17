@@ -149,8 +149,8 @@ const DataVisualization: React.FC = () => {
     });
 
     const [fingerlingsState, setFingerlingsState] = useState<FingerlingsState>({
-        dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        dateTo: new Date().toISOString().split('T')[0],
+        dateFrom: '2023-01-01',
+        dateTo: '2024-12-31',
         selectedProvince: 'all',
         selectedCity: 'all',
         selectedBarangay: 'all',
@@ -589,6 +589,9 @@ const DataVisualization: React.FC = () => {
             if (fingerlingsState.selectedCity !== 'all' && fingerlingsState.selectedCity !== 'All Cities') {
                 detailParams.append('municipality', fingerlingsState.selectedCity);
             }
+            if (fingerlingsState.selectedBarangay !== 'all' && fingerlingsState.selectedBarangay !== 'All Barangays') {
+                detailParams.append('barangay', fingerlingsState.selectedBarangay);
+            }
             detailParams.append('limit', '1000'); // Get more records for aggregation
 
             // Fetch detailed distribution data
@@ -598,30 +601,37 @@ const DataVisualization: React.FC = () => {
             if (detailResult.success && detailResult.data.distributions) {
                 const distributions = detailResult.data.distributions;
 
-                // Apply additional filters (barangay and facility type) on client side
-                const filteredDistributions = distributions.filter((dist: any) => {
-                    // Barangay filter
-                    if (fingerlingsState.selectedBarangay !== 'all' &&
-                        fingerlingsState.selectedBarangay !== 'All Barangays' &&
-                        dist.barangay !== fingerlingsState.selectedBarangay) {
-                        return false;
-                    }
+                // No need for client-side filtering since API already filtered by barangay
+                const filteredDistributions = distributions;
 
-                    // Facility type filter (if you have this field in your distribution data)
-                    // Note: Adjust this based on your actual data structure
-                    if (fingerlingsState.selectedFacilityType !== 'all' &&
-                        fingerlingsState.selectedFacilityType !== 'all_facilities') {
-                        // If you have a facilityType field in distributions, uncomment:
-                        // if (dist.facilityType && dist.facilityType.toLowerCase().replace(/\s+/g, '_') !== fingerlingsState.selectedFacilityType) {
-                        //     return false;
-                        // }
-                    }
+                console.log('=== FINGERLINGS DEBUG ===');
+                console.log('Selected Province:', fingerlingsState.selectedProvince);
+                console.log('Selected City:', fingerlingsState.selectedCity);
+                console.log('Selected Barangay:', fingerlingsState.selectedBarangay);
+                console.log('Filtered Distributions Count:', filteredDistributions.length);
+                console.log('Sample Distribution:', filteredDistributions[0]);
 
-                    return true;
-                });
+                // Determine grouping level based on filters
+                let groupingKey: 'province' | 'municipality' | 'barangay' | 'beneficiary';
 
-                // Group by municipality and species - ensure unique cities
-                const municipalityMap = new Map<string, {
+                if (fingerlingsState.selectedBarangay !== 'all' && fingerlingsState.selectedBarangay !== 'All Barangays') {
+                    // If specific barangay is selected, group by beneficiary
+                    groupingKey = 'beneficiary';
+                } else if (fingerlingsState.selectedCity !== 'all' && fingerlingsState.selectedCity !== 'All Cities') {
+                    // If city is selected, group by barangay within that city
+                    groupingKey = 'barangay';
+                } else if (fingerlingsState.selectedProvince !== 'all') {
+                    // If province is selected, group by municipality
+                    groupingKey = 'municipality';
+                } else {
+                    // If "All Provinces" is selected, group by province
+                    groupingKey = 'province';
+                }
+
+                console.log('Grouping Key:', groupingKey);
+
+                // Group data based on the determined grouping level
+                const dataMap = new Map<string, {
                     tilapia: number;
                     bangus: number;
                     province: string;
@@ -630,20 +640,31 @@ const DataVisualization: React.FC = () => {
                 }>();
 
                 filteredDistributions.forEach((dist: any) => {
-                    // Use municipality as the unique key
-                    const key = dist.municipality;
+                    // Use appropriate key based on grouping level
+                    let key: string;
+                    if (groupingKey === 'beneficiary') {
+                        // Group by beneficiary name when barangay is selected
+                        key = dist.beneficiaryName || 'Unknown Beneficiary';
+                    } else if (groupingKey === 'barangay') {
+                        key = dist.barangay || dist.municipality || dist.province;
+                    } else if (groupingKey === 'municipality') {
+                        key = dist.municipality || dist.province;
+                    } else {
+                        // Group by province
+                        key = dist.province;
+                    }
 
-                    if (!municipalityMap.has(key)) {
-                        municipalityMap.set(key, {
+                    if (!dataMap.has(key)) {
+                        dataMap.set(key, {
                             tilapia: 0,
                             bangus: 0,
                             province: dist.province,
-                            municipality: dist.municipality,
+                            municipality: dist.municipality || 'Various',
                             barangay: dist.barangay || 'Various'
                         });
                     }
 
-                    const entry = municipalityMap.get(key)!;
+                    const entry = dataMap.get(key)!;
                     if (dist.species === 'Tilapia') {
                         entry.tilapia += dist.fingerlings || 0;
                     } else if (dist.species === 'Bangus') {
@@ -651,15 +672,15 @@ const DataVisualization: React.FC = () => {
                     }
                 });
 
-                // Convert to chart data format - each city appears only once
-                const chartData: FingerlingsData[] = Array.from(municipalityMap.entries()).map(([municipality, value]) => ({
-                    location: municipality,
+                // Convert to chart data format
+                const chartData: FingerlingsData[] = Array.from(dataMap.entries()).map(([location, value]) => ({
+                    location: location,
                     tilapia: value.tilapia,
                     bangus: value.bangus,
                     date: fingerlingsState.dateTo,
                     facilityType: fingerlingsState.selectedFacilityType === 'all_facilities' ? 'All Facilities' : fingerlingsState.selectedFacilityType.replace(/_/g, ' '),
                     province: value.province,
-                    city: municipality,
+                    city: value.municipality,
                     barangay: value.barangay
                 }));
 
@@ -669,25 +690,23 @@ const DataVisualization: React.FC = () => {
 
                 setFingerlingsState(prev => ({
                     ...prev,
-                    data: topData.length > 0 ? topData : generateFingerlingsData(), // Fallback to mock data if no real data
+                    data: topData,
                     isLoading: false
                 }));
             } else {
-                // Fallback to mock data if API fails
-                const newData = generateFingerlingsData();
+                // No data from API
                 setFingerlingsState(prev => ({
                     ...prev,
-                    data: newData,
+                    data: [],
                     isLoading: false
                 }));
             }
         } catch (error) {
             console.error('Error fetching fingerlings data:', error);
-            // Fallback to mock data on error
-            const newData = generateFingerlingsData();
+            // Return empty data on error
             setFingerlingsState(prev => ({
                 ...prev,
-                data: newData,
+                data: [],
                 isLoading: false
             }));
         }
@@ -705,22 +724,34 @@ const DataVisualization: React.FC = () => {
     };
 
     // Handle province change in fingerlings section
-    const handleProvinceChange = (province: string) => {
+    const handleProvinceChange = async (province: string) => {
         setFingerlingsState(prev => ({
             ...prev,
             selectedProvince: province,
             selectedCity: 'all',
-            selectedBarangay: 'all'
+            selectedBarangay: 'all',
+            isLoading: true
         }));
+
+        // Wait for state to update, then fetch data
+        setTimeout(async () => {
+            await handleFingerlingsCompare();
+        }, 100);
     };
 
     // Handle city change in fingerlings section
-    const handleCityChange = (city: string) => {
+    const handleCityChange = async (city: string) => {
         setFingerlingsState(prev => ({
             ...prev,
             selectedCity: city,
-            selectedBarangay: 'all'
+            selectedBarangay: 'all',
+            isLoading: true
         }));
+
+        // Wait for state to update, then fetch data
+        setTimeout(async () => {
+            await handleFingerlingsCompare();
+        }, 100);
     };
 
     // Initialize data
@@ -900,7 +931,19 @@ const DataVisualization: React.FC = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Barangay</label>
                                             <select
                                                 value={fingerlingsState.selectedBarangay}
-                                                onChange={(e) => setFingerlingsState(prev => ({ ...prev, selectedBarangay: e.target.value }))}
+                                                onChange={async (e) => {
+                                                    const barangay = e.target.value;
+                                                    setFingerlingsState(prev => ({
+                                                        ...prev,
+                                                        selectedBarangay: barangay,
+                                                        isLoading: true
+                                                    }));
+
+                                                    // Wait for state to update, then fetch data
+                                                    setTimeout(async () => {
+                                                        await handleFingerlingsCompare();
+                                                    }, 100);
+                                                }}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
                                                 {getAvailableBarangays(fingerlingsState.selectedCity).map(barangay => (
@@ -949,6 +992,19 @@ const DataVisualization: React.FC = () => {
                                                 <div className="text-center">
                                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                                                     <p className="text-gray-600">Loading fingerling distribution data...</p>
+                                                </div>
+                                            </div>
+                                        ) : fingerlingsState.data.length === 0 ? (
+                                            <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                                                <div className="text-center px-6">
+                                                    <Fish className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Distribution Data Available</h3>
+                                                    <p className="text-gray-600 mb-4">
+                                                        There are no fingerling distribution records for the selected filters.
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">
+                                                        Try adjusting your date range or location filters, or ensure that distribution data has been recorded in the system.
+                                                    </p>
                                                 </div>
                                             </div>
                                         ) : (
