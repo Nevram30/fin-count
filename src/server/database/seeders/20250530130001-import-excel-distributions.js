@@ -20,7 +20,6 @@ module.exports = {
     }
 
     const userId = users[0].id;
-    console.log(`Using userId: ${userId} for distributions and batches`);
 
     // Helper function to generate random batch ID
     const generateBatchId = () => {
@@ -96,26 +95,19 @@ module.exports = {
         const excelEpoch = new Date(1899, 11, 30);
         return new Date(excelEpoch.getTime() + dateStr * 86400000);
       }
-
-      console.log(`Could not parse date: ${dateStr}, using current date`);
       return new Date();
     };
 
     // Function to import from Excel file
     const importFromExcel = (filePath, defaultSpecies) => {
       if (!fs.existsSync(filePath)) {
-        console.log(`File not found: ${filePath}`);
         return [];
       }
-
-      console.log(`Reading ${defaultSpecies} data from: ${filePath}`);
 
       const workbook = XLSX.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
-
-      console.log(`Found ${data.length} records in ${defaultSpecies} file`);
 
       const distributions = [];
       let skippedCount = 0;
@@ -131,9 +123,13 @@ module.exports = {
         const species = row["Species"] || defaultSpecies;
 
         // Determine default values based on species
-        const isTimapia = species.toLowerCase().includes("tilapia");
-        const defaultSurvivalRate = isTimapia ? 0.78 : 0.935;
-        const defaultAvgWeight = isTimapia ? 0.25 : 0.39;
+        const isTilapia = species.toLowerCase().includes("tilapia");
+
+        // Growth parameters - species-specific growth periods
+        // Red Tilapia: 4 months, Bangus: 3 months
+        const growthPeriodMonths = isTilapia ? 4 : 3;
+        const AverageWeightKg = isTilapia ? 0.39 : 0.25; // Tilapia: ~10g, Bangus: ~15g fingerling/ Tilapia: 250g (4 months), Bangus: 300g (3 months)
+        const survivalRate = isTilapia ? 0.935 : 0.78;
 
         const parsedDate = parseDate(row["Date Distributed"]);
 
@@ -146,14 +142,27 @@ module.exports = {
           parsedDate.setFullYear(2023);
         }
 
-        // Get actual harvest from Excel
+        // Get actual harvest from Excel (handle both column name variations)
         const actualHarvestKilos =
-          parseFloat(row["Actual Harvest(Kilo)"]) || null;
+          parseFloat(row["Harvest(kg)"] || row["Harvest(Kilo)"]) || null;
+
         const fingerlings = parseInt(row["Fingerlings"]) || 0;
 
-        // Calculate forecasted harvest based on fingerlings, survival rate, and avg weight
+        // Calculate forecasted harvest for 4-month growth period
+        // This model accounts for:
+        // 1. Number of fingerlings distributed
+        // 2. Survival rate over the growth period
+        // 3. Time-based growth rate (weight gain per month × growth period)
+        //
+        // Calculate monthly growth rate (weight gain per month)
+
+        // Calculate expected weight after the growth period
+        const expectedWeightAfterGrowth = AverageWeightKg * growthPeriodMonths;
+
+        // Total forecasted harvest accounting for growth from fingerling to harvest size
+        // Formula: fingerlings × survival rate × expected weight after growth period
         const forecastedHarvestKilos =
-          fingerlings * defaultSurvivalRate * defaultAvgWeight;
+          fingerlings * survivalRate * expectedWeightAfterGrowth;
 
         distributions.push({
           dateDistributed: parsedDate,

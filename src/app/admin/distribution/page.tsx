@@ -335,7 +335,6 @@ const DistributionFormModal: React.FC<{
             const distributionData = {
                 dateDistributed: formData.date,
                 beneficiaryName: beneficiaryName,
-                area: formData.facilityType,
                 barangay: formData.barangay,
                 municipality: formData.city,
                 province: formData.province,
@@ -1299,6 +1298,7 @@ const DistributionForm: React.FC = () => {
 
     // State management
     const [distributions, setDistributions] = useState<Distribution[]>([]);
+    console.log("🚀 ~ DistributionForm ~ distributions:", distributions)
     const [batches, setBatches] = useState<Batch[]>([]);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -1345,10 +1345,7 @@ const DistributionForm: React.FC = () => {
                     forecastedHarvestKilos: dist.forecastedHarvestKilos || 0,
                     actualHarvestKilos: dist.actualHarvestKilos || 0,
                     remarks: dist.remarks || '' as any,
-                    customRemarks: dist.customRemarks || '',
-                    area: dist.area,
-                    survivalRate: dist.survivalRate,
-                    avgWeight: dist.avgWeight
+                    customRemarks: dist.customRemarks || ''
                 }));
 
                 setDistributions(transformedData);

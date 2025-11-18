@@ -56,6 +56,7 @@ interface BeneficiaryData {
     location: string;
     species: 'tilapia' | 'bangus';
     fingerlingsReceived: number;
+    forecastedHarvestKilos: number;
     actualHarvestKilos: number;
     facilityType: 'fish_cage' | 'pond';
     distributionDate: string;
@@ -84,7 +85,7 @@ interface LeaderboardState {
 
 // Davao Region locations data (including Caraga Region provinces)
 const locationData: LocationData = {
-    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur"],
+    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur", "Bukidnon", "Compostela Valley", "Cotabato"],
     cities: {
         "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
         "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
@@ -92,10 +93,13 @@ const locationData: LocationData = {
         "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
         "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"],
         "Agusan del Sur": ["Bayugan City", "Bunawan", "Esperanza", "La Paz", "Loreto", "Prosperidad", "Rosario", "San Francisco", "San Luis", "Santa Josefa", "Sibagat", "Talacogon", "Trento", "Veruela"],
-        "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"]
+        "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"],
+        "Bukidnon": ["Malaybalay City", "Valencia City", "Baungon", "Cabanglasan", "Damulog", "Dangcagan", "Don Carlos", "Impasugong", "Kadingilan", "Kalilangan", "Kibawe", "Kitaotao", "Lantapan", "Libona", "Malitbog", "Manolo Fortich", "Maramag", "Pangantucan", "Quezon", "San Fernando", "Sumilao"],
+        "Compostela Valley": ["Nabunturan", "Mabini", "Montevista", "New Bataan", "Pantukan", "Laak", "Maco", "Maragusan", "Mawab", "Monkayo", "Compostela"],
+        "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
     },
     barangays: {
-        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village"],
+        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Brgy. Busaon", "Brgy. Liboganon"],
         "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
         "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
         "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
@@ -109,7 +113,9 @@ const locationData: LocationData = {
         "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
         "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
         "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
-        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"]
+        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
+        "Kidapawan": ["Brgy. Amas"],
+        "North Cotabato": ["Brgy. Balogo"]
     }
 };
 
@@ -149,7 +155,7 @@ const DataVisualization: React.FC = () => {
 
     const [harvestState, setHarvestState] = useState<HarvestState>({
         dateFrom: '2023-01-01',
-        dateTo: '2024-12-31',
+        dateTo: '2025-12-31',
         selectedProvince: 'all',
         selectedCity: 'all',
         selectedBarangay: 'all',
@@ -157,6 +163,7 @@ const DataVisualization: React.FC = () => {
         data: [],
         isLoading: false
     });
+    console.log("🚀 ~ DataVisualization ~ harvestState:", harvestState)
 
     // Fetch real harvest data from distribution API
     const fetchHarvestData = async (state: HarvestState): Promise<HarvestData[]> => {
@@ -267,9 +274,11 @@ const DataVisualization: React.FC = () => {
                     const entry = dataMap.get(normalizedKey)!;
                     const harvestKg = parseFloat(dist.actualHarvestKilos) || 0;
 
-                    if (dist.species === 'Tilapia') {
+                    // Case-insensitive species check
+                    const speciesLower = (dist.species || '').toLowerCase();
+                    if (speciesLower === 'tilapia' || speciesLower === 'red tilapia') {
                         entry.tilapia += harvestKg;
-                    } else if (dist.species === 'Bangus') {
+                    } else if (speciesLower === 'bangus') {
                         entry.bangus += harvestKg;
                     }
 
@@ -418,7 +427,8 @@ const DataVisualization: React.FC = () => {
 
                 // Group by beneficiary name to aggregate their total harvest
                 const beneficiaryMap = new Map<string, {
-                    totalHarvest: number;
+                    totalActualHarvest: number;
+                    totalForecastedHarvest: number;
                     totalFingerlings: number;
                     species: string;
                     location: string;
@@ -430,12 +440,14 @@ const DataVisualization: React.FC = () => {
 
                 distributions.forEach((dist: any) => {
                     const name = dist.beneficiaryName || 'Unknown';
-                    const harvestKg = parseFloat(dist.actualHarvestKilos) || 0;
+                    const actualHarvestKg = parseFloat(dist.actualHarvestKilos) || 0;
+                    const forecastedHarvestKg = parseFloat(dist.forecastedHarvestKilos) || 0;
                     const fingerlings = parseInt(dist.fingerlings) || 0;
 
                     if (!beneficiaryMap.has(name)) {
                         beneficiaryMap.set(name, {
-                            totalHarvest: 0,
+                            totalActualHarvest: 0,
+                            totalForecastedHarvest: 0,
                             totalFingerlings: 0,
                             species: dist.species || 'Tilapia',
                             location: dist.municipality || 'Unknown',
@@ -447,7 +459,8 @@ const DataVisualization: React.FC = () => {
                     }
 
                     const entry = beneficiaryMap.get(name)!;
-                    entry.totalHarvest += harvestKg;
+                    entry.totalActualHarvest += actualHarvestKg;
+                    entry.totalForecastedHarvest += forecastedHarvestKg;
                     entry.totalFingerlings += fingerlings;
                     entry.recordIds.push(dist.id);
 
@@ -467,7 +480,8 @@ const DataVisualization: React.FC = () => {
                     location: data.location,
                     species: (data.species?.toLowerCase() || 'tilapia') as 'tilapia' | 'bangus',
                     fingerlingsReceived: data.totalFingerlings,
-                    actualHarvestKilos: Math.round(data.totalHarvest * 100) / 100, // Round to 2 decimal places
+                    forecastedHarvestKilos: Math.round(data.totalForecastedHarvest * 100) / 100,
+                    actualHarvestKilos: Math.round(data.totalActualHarvest * 100) / 100,
                     facilityType: 'pond' as 'fish_cage' | 'pond',
                     distributionDate: new Date(data.latestDate).toISOString().split('T')[0],
                     province: data.province,
@@ -934,7 +948,7 @@ const DataVisualization: React.FC = () => {
             (leaderboardState.selectedSpecies === 'all' || item.species === leaderboardState.selectedSpecies) &&
             (leaderboardState.selectedFacilityType === 'all' || item.facilityType === leaderboardState.selectedFacilityType)
         )
-        .sort((a, b) => b.actualHarvestKilos - a.actualHarvestKilos)
+        .sort((a, b) => b.forecastedHarvestKilos - a.forecastedHarvestKilos)
         .slice(0, 10);
     console.log("🚀 ~ DataVisualization ~ filteredLeaderboardData:", filteredLeaderboardData)
 
@@ -1099,16 +1113,139 @@ const DataVisualization: React.FC = () => {
                                                 value={fingerlingsState.selectedBarangay}
                                                 onChange={async (e) => {
                                                     const barangay = e.target.value;
+                                                    const newState = {
+                                                        ...fingerlingsState,
+                                                        selectedBarangay: barangay
+                                                    };
+
                                                     setFingerlingsState(prev => ({
                                                         ...prev,
                                                         selectedBarangay: barangay,
                                                         isLoading: true
                                                     }));
 
-                                                    // Wait for state to update, then fetch data
-                                                    setTimeout(async () => {
-                                                        await handleFingerlingsCompare();
-                                                    }, 100);
+                                                    // Fetch data with the new state directly
+                                                    try {
+                                                        const detailParams = new URLSearchParams();
+
+                                                        if (newState.dateFrom) {
+                                                            detailParams.append('startDate', newState.dateFrom);
+                                                        }
+                                                        if (newState.dateTo) {
+                                                            detailParams.append('endDate', newState.dateTo);
+                                                        }
+                                                        if (newState.selectedProvince !== 'all') {
+                                                            detailParams.append('province', newState.selectedProvince);
+                                                        }
+                                                        if (newState.selectedCity !== 'all' && newState.selectedCity !== 'All Cities') {
+                                                            detailParams.append('municipality', newState.selectedCity);
+                                                        }
+                                                        if (newState.selectedBarangay !== 'all' && newState.selectedBarangay !== 'All Barangays') {
+                                                            detailParams.append('barangay', newState.selectedBarangay);
+                                                        }
+                                                        detailParams.append('limit', '1000');
+
+                                                        const detailResponse = await fetch(`/api/distributions-data?${detailParams.toString()}`);
+                                                        const detailResult = await detailResponse.json();
+
+                                                        if (detailResult.success && detailResult.data.distributions) {
+                                                            const distributions = detailResult.data.distributions;
+                                                            const filteredDistributions = distributions;
+
+                                                            let groupingKey: 'province' | 'municipality' | 'barangay' | 'beneficiary';
+
+                                                            if (newState.selectedBarangay !== 'all' && newState.selectedBarangay !== 'All Barangays') {
+                                                                groupingKey = 'beneficiary';
+                                                            } else if (newState.selectedCity !== 'all' && newState.selectedCity !== 'All Cities') {
+                                                                groupingKey = 'barangay';
+                                                            } else if (newState.selectedProvince !== 'all') {
+                                                                groupingKey = 'municipality';
+                                                            } else {
+                                                                groupingKey = 'province';
+                                                            }
+
+                                                            const dataMap = new Map<string, {
+                                                                tilapia: number;
+                                                                bangus: number;
+                                                                province: string;
+                                                                municipality: string;
+                                                                barangay: string;
+                                                                displayKey: string;
+                                                            }>();
+
+                                                            filteredDistributions.forEach((dist: any) => {
+                                                                let key: string;
+                                                                let normalizedKey: string;
+
+                                                                if (groupingKey === 'beneficiary') {
+                                                                    key = dist.beneficiaryName || 'Unknown Beneficiary';
+                                                                    normalizedKey = key.toLowerCase().trim();
+                                                                } else if (groupingKey === 'barangay') {
+                                                                    key = dist.barangay || dist.municipality || dist.province;
+                                                                    normalizedKey = key.toLowerCase().trim();
+                                                                } else if (groupingKey === 'municipality') {
+                                                                    key = dist.municipality || dist.province;
+                                                                    normalizedKey = key.toLowerCase().trim();
+                                                                } else {
+                                                                    key = dist.province;
+                                                                    normalizedKey = key.toLowerCase().trim();
+                                                                }
+
+                                                                if (!dataMap.has(normalizedKey)) {
+                                                                    dataMap.set(normalizedKey, {
+                                                                        tilapia: 0,
+                                                                        bangus: 0,
+                                                                        province: dist.province,
+                                                                        municipality: dist.municipality || 'Various',
+                                                                        barangay: dist.barangay || 'Various',
+                                                                        displayKey: key
+                                                                    });
+                                                                }
+
+                                                                const entry = dataMap.get(normalizedKey)!;
+                                                                if (dist.species === 'Tilapia') {
+                                                                    entry.tilapia += dist.fingerlings || 0;
+                                                                } else if (dist.species === 'Bangus') {
+                                                                    entry.bangus += dist.fingerlings || 0;
+                                                                }
+                                                            });
+
+                                                            const chartData: FingerlingsData[] = Array.from(dataMap.entries())
+                                                                .filter(([normalizedKey]) => !normalizedKey.includes('unknown'))
+                                                                .map(([normalizedKey, value]) => ({
+                                                                    location: value.displayKey,
+                                                                    tilapia: value.tilapia,
+                                                                    bangus: value.bangus,
+                                                                    date: newState.dateTo,
+                                                                    facilityType: newState.selectedFacilityType === 'all_facilities' ? 'All Facilities' : newState.selectedFacilityType.replace(/_/g, ' '),
+                                                                    province: value.province,
+                                                                    city: value.municipality,
+                                                                    barangay: value.barangay
+                                                                }));
+
+                                                            chartData.sort((a, b) => (b.tilapia + b.bangus) - (a.tilapia + a.bangus));
+                                                            const topData = chartData.slice(0, 12);
+
+                                                            setFingerlingsState(prev => ({
+                                                                ...prev,
+                                                                data: topData,
+                                                                isLoading: false
+                                                            }));
+                                                        } else {
+                                                            setFingerlingsState(prev => ({
+                                                                ...prev,
+                                                                data: [],
+                                                                isLoading: false
+                                                            }));
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Error fetching fingerlings data:', error);
+                                                        setFingerlingsState(prev => ({
+                                                            ...prev,
+                                                            data: [],
+                                                            isLoading: false
+                                                        }));
+                                                    }
                                                 }}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
@@ -1375,8 +1512,8 @@ const DataVisualization: React.FC = () => {
                                                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(value) => `${value.toLocaleString()} kg`} />
                                                         <Tooltip content={<CustomTooltip />} />
                                                         <Legend />
-                                                        <Bar dataKey="tilapia" fill="#059669" name="Tilapia (kg)" radius={[4, 4, 0, 0]} />
-                                                        <Bar dataKey="bangus" fill="#2563eb" name="Bangus (kg)" radius={[4, 4, 0, 0]} />
+                                                        <Bar dataKey="tilapia" fill="#10b981" name="Tilapia (kg)" radius={[4, 4, 0, 0]} minPointSize={5} />
+                                                        <Bar dataKey="bangus" fill="#3b82f6" name="Bangus (kg)" radius={[4, 4, 0, 0]} minPointSize={5} />
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             </div>
@@ -1531,7 +1668,7 @@ const DataVisualization: React.FC = () => {
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-2xl font-bold text-gray-900">
-                                                            {beneficiary.actualHarvestKilos.toLocaleString()} kg
+                                                            {beneficiary.forecastedHarvestKilos.toLocaleString()} kg
                                                         </div>
                                                         <div className="text-sm text-gray-600">
                                                             From {beneficiary.fingerlingsReceived.toLocaleString()} fingerlings

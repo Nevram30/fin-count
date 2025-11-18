@@ -104,7 +104,6 @@ export async function PUT(
         ? new Date(body.dateDistributed)
         : distribution.dateDistributed,
       beneficiaryName: body.beneficiaryName ?? distribution.beneficiaryName,
-      area: body.area !== undefined ? body.area : distribution.area,
       barangay:
         body.barangay !== undefined ? body.barangay : distribution.barangay,
       municipality: body.municipality ?? distribution.municipality,

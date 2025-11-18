@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
     });
+    console.log("🚀 ~ GET ~ distributions:", distributions);
 
     return jsonResponse({
       success: true,
@@ -194,7 +195,6 @@ export async function POST(request: NextRequest) {
     const newDistribution = await Distribution.create({
       dateDistributed: new Date(body.dateDistributed),
       beneficiaryName: body.beneficiaryName,
-      area: body.area || null,
       barangay: body.barangay || null,
       municipality: body.municipality,
       province: body.province,

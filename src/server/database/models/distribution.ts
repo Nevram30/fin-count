@@ -23,7 +23,6 @@ class Distribution extends Model<
 
   declare dateDistributed: Date;
   declare beneficiaryName: string;
-  declare area: string | null;
   declare barangay: string | null;
   declare municipality: string;
   declare province: string;
@@ -65,10 +64,6 @@ Distribution.init(
     },
     beneficiaryName: {
       allowNull: false,
-      type: DataTypes.STRING,
-    },
-    area: {
-      allowNull: true,
       type: DataTypes.STRING,
     },
     barangay: {

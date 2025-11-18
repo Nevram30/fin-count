@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Users, TrendingUp, Calendar, MapPin, Fish, BarChart3 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LineChart, Line, Tooltip, Area, AreaChart } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Area, AreaChart } from "recharts";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -208,38 +208,6 @@ const HarvestForecast: React.FC = () => {
         return dates;
     };
 
-    // Generate mock forecast data
-    // const generateForecastData = (): ForecastData[] => {
-    //     const dates = getDateRange(formData.dateFrom, formData.dateTo);
-    //     const data: ForecastData[] = [];
-    //     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    //     dates.forEach((date, index) => {
-    //         const dateObj = new Date(date);
-    //         const monthIndex = dateObj.getMonth();
-    //         const seasonalFactor = 0.8 + 0.4 * Math.sin((monthIndex / 12) * 2 * Math.PI);
-    //         const growthFactor = 1 + (index * 0.1);
-    //         const randomVariation = 0.9 + Math.random() * 0.2;
-
-    //         const baseQuantity = 1000;
-    //         const predicted = Math.round(baseQuantity * seasonalFactor * growthFactor * randomVariation);
-    //         const historical = Math.round(predicted * (0.85 + Math.random() * 0.3));
-    //         const confidence = Math.round(85 + Math.random() * 10);
-
-    //         data.push({
-    //             month: months[monthIndex],
-    //             date,
-    //             predicted,
-    //             historical,
-    //             confidence,
-    //             species: formData.species,
-    //             location: `${formData.province}, ${formData.city}`
-    //         });
-    //     });
-
-    //     return data;
-    // };
-
     // Fetch real distribution data for details modal
     const fetchDistributionDetails = async (level: 'province' | 'city' | 'barangay'): Promise<BatchData[]> => {
         try {
@@ -258,6 +226,10 @@ const HarvestForecast: React.FC = () => {
             } else if (level === 'barangay') {
                 params.append('province', formData.province);
                 params.append('municipality', formData.city);
+                // Add barangay filter if not "all"
+                if (formData.barangay && formData.barangay !== 'all' && formData.barangay !== 'All Barangays') {
+                    params.append('barangay', formData.barangay);
+                }
             }
 
             const response = await fetch(`/api/distributions-data?${params.toString()}`);
@@ -276,26 +248,13 @@ const HarvestForecast: React.FC = () => {
 
             // Transform distributions to BatchData format
             const batchData: BatchData[] = distributions
-                .filter((dist: any) => {
-                    // Filter by barangay if at barangay level (case-insensitive and trimmed)
-                    if (level === 'barangay') {
-                        const distBarangay = (dist.barangay || '').trim().toLowerCase();
-                        const selectedBarangay = formData.barangay.trim().toLowerCase();
-                        const matches = distBarangay === selectedBarangay;
-                        if (!matches && dist.barangay) {
-                            console.log('Barangay mismatch:', { distBarangay, selectedBarangay });
-                        }
-                        return matches;
-                    }
-                    return true;
-                })
                 .map((dist: any) => ({
                     batchId: dist.batchId || `DIST-${dist.id}`,
                     name: dist.beneficiaryName,
                     city: level === 'province' ? dist.municipality : undefined,
                     barangay: level === 'city' ? dist.barangay : undefined,
                     fingerlingsCount: dist.fingerlings,
-                    harvestForecasted: Math.round(dist.harvestKilo)
+                    harvestForecasted: Math.round(dist.forecastedHarvestKilos || 0)
                 }));
 
             return batchData;
@@ -332,18 +291,30 @@ const HarvestForecast: React.FC = () => {
                 limit: "1000" // Get all records for aggregation
             });
 
-            // Add location filters based on level
-            if (level === 'province') {
+            // Add location filters based on level - only add if not "all"
+            if (level === 'province' && formData.province !== 'all') {
                 params.append('province', formData.province);
             } else if (level === 'city') {
-                params.append('province', formData.province);
-                params.append('municipality', formData.city);
+                if (formData.province !== 'all') {
+                    params.append('province', formData.province);
+                }
+                if (formData.city !== 'all' && formData.city !== 'All Cities') {
+                    params.append('municipality', formData.city);
+                }
             } else if (level === 'barangay') {
-                params.append('province', formData.province);
-                params.append('municipality', formData.city);
-                // Note: API uses municipality field for city/municipality
+                if (formData.province !== 'all') {
+                    params.append('province', formData.province);
+                }
+                if (formData.city !== 'all' && formData.city !== 'All Cities') {
+                    params.append('municipality', formData.city);
+                }
+                // Add barangay filter if not "all"
+                if (formData.barangay && formData.barangay !== 'all' && formData.barangay !== 'All Barangays') {
+                    params.append('barangay', formData.barangay);
+                }
             }
 
+            console.log(`Fetching ${level} trend data with params:`, params.toString());
             const response = await fetch(`/api/distributions-data?${params.toString()}`);
 
             if (!response.ok) {
@@ -365,16 +336,7 @@ const HarvestForecast: React.FC = () => {
                 const date = new Date(dist.dateDistributed);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-                // Filter by barangay if at barangay level (case-insensitive and trimmed)
-                if (level === 'barangay') {
-                    const distBarangay = (dist.barangay || '').trim().toLowerCase();
-                    const selectedBarangay = formData.barangay.trim().toLowerCase();
-                    if (distBarangay !== selectedBarangay) {
-                        return;
-                    }
-                }
-
-                const harvestValue = dist.harvestKilo || 0;
+                const harvestValue = dist.forecastedHarvestKilos || 0;
 
                 if (monthlyData.has(monthKey)) {
                     const existing = monthlyData.get(monthKey)!;
@@ -732,7 +694,7 @@ const HarvestForecast: React.FC = () => {
                                             </svg>
                                             <div>
                                                 <h4 className="text-red-800 font-semibold mb-1">Error Generating Forecast</h4>
-                                                <p className="text-red-700 text-sm">{apiError}</p>
+                                                <p className="text-red-700 text-sm">Forecast will not exceed one year. Please adjust your date range.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -813,46 +775,46 @@ const HarvestForecast: React.FC = () => {
                                 </div>
 
                                 {/* Forecast Charts */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
-                                        <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
-                                        <div className="h-80">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={forecastData}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="month" />
-                                                    <YAxis />
-                                                    <Tooltip formatter={(value) => [`${value} kg`, 'Harvest']} />
-                                                    <Legend />
-                                                    <Bar dataKey="predicted" fill="#3B82F6" name="Predicted Harvest (kg)" />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
+                                            <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
+                                            <div className="h-80">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={forecastData}>
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis dataKey="month" />
+                                                        <YAxis />
+                                                        <Tooltip formatter={(value) => [`${value} kg`, 'Harvest']} />
+                                                        <Legend />
+                                                        <Bar dataKey="predicted" fill="#3B82F6" name="Predicted Harvest (kg)" />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Trend</h3>
-                                        <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
-                                        <div className="h-80">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <LineChart data={forecastData}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="month" />
-                                                    <YAxis />
-                                                    <Tooltip formatter={(value) => [`${value} kg`, 'Harvest']} />
-                                                    <Legend />
-                                                    <Line type="monotone" dataKey="predicted" stroke="#3B82F6" strokeWidth={3} name="Predicted Harvest (kg)" />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Trend</h3>
+                                            <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
+                                            <div className="h-80">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={forecastData}>
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis dataKey="month" />
+                                                        <YAxis />
+                                                        <Tooltip formatter={(value) => [`${value} kg`, 'Harvest']} />
+                                                        <Legend />
+                                                        <Line type="monotone" dataKey="predicted" stroke="#3B82F6" strokeWidth={3} name="Predicted Harvest (kg)" />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    </div> */}
 
                                 {/* Forecast Charts */}
                                 <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast Trend</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
                                         <div className="h-80">
                                             <ResponsiveContainer width="100%" height="100%">
@@ -890,7 +852,7 @@ const HarvestForecast: React.FC = () => {
                                 <div className="mb-8">
                                     <div className="flex items-center gap-3 mb-6">
                                         <BarChart3 className="h-5 w-5 text-purple-600" />
-                                        <h3 className="text-xl font-semibold text-gray-900">Geographic Forecast Trend Analysis</h3>
+                                        <h3 className="text-xl font-semibold text-gray-900">Province, City/Municipality, Barangays  Forecast Trend Analysis</h3>
                                     </div>
                                     <p className="text-sm text-gray-600 mb-6">Compare harvest trends across different geographic levels for {formData.species}</p>
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
@@ -972,7 +934,7 @@ const HarvestForecast: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    {/* 
+
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                                         <div className="p-6">
                                             <div className="flex items-center justify-between mb-2">
@@ -996,10 +958,7 @@ const HarvestForecast: React.FC = () => {
                                                     </p>
                                                 </div>
                                             ) : (
-                                                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                                                    <p className="text-green-800 text-sm font-semibold">
-                                                        ✓ Found {barangayTrendData.filter(d => d.value > 0).length} months with distribution data
-                                                    </p>
+                                                <div>
                                                 </div>
                                             )}
 
@@ -1028,7 +987,7 @@ const HarvestForecast: React.FC = () => {
                                                 </ResponsiveContainer>
                                             </div>
                                         </div>
-                                    </div> */}
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -1098,15 +1057,13 @@ const HarvestForecast: React.FC = () => {
                                                 <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">City</th>
                                             )}
                                             {modalLevel === 'city' && (
-                                                <>
-                                                    <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Barangay</th>
-                                                </>
+                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Barangay</th>
                                             )}
                                             {modalLevel === 'barangay' && (
-                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Name</th>
+                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Beneficiary Name</th>
                                             )}
                                             <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Fingerlings Count</th>
-                                            <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Harvest Forecasted</th>
+                                            <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Harvest Forecasted (kg)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1116,12 +1073,8 @@ const HarvestForecast: React.FC = () => {
                                                 {modalLevel === 'province' && batch.city && (
                                                     <td className="border border-gray-300 px-4 py-3">{batch.city}</td>
                                                 )}
-                                                {modalLevel === 'city' && (
-                                                    <>
-                                                        {batch.barangay && (
-                                                            <td className="border border-gray-300 px-4 py-3">{batch.barangay}</td>
-                                                        )}
-                                                    </>
+                                                {modalLevel === 'city' && batch.barangay && (
+                                                    <td className="border border-gray-300 px-4 py-3">{batch.barangay}</td>
                                                 )}
                                                 {modalLevel === 'barangay' && (
                                                     <td className="border border-gray-300 px-4 py-3">{batch.name}</td>
@@ -1129,8 +1082,8 @@ const HarvestForecast: React.FC = () => {
                                                 <td className="border border-gray-300 px-4 py-3 text-right font-mono">
                                                     {batch.fingerlingsCount.toLocaleString()}
                                                 </td>
-                                                <td className="border border-gray-300 px-4 py-3 text-right font-mono">
-                                                    {batch.harvestForecasted.toLocaleString()}
+                                                <td className="border border-gray-300 px-4 py-3 text-right font-mono font-semibold text-green-700">
+                                                    {batch.harvestForecasted.toLocaleString()} kg
                                                 </td>
                                             </tr>
                                         ))}
@@ -1149,16 +1102,32 @@ const HarvestForecast: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => {
-                                    const csv = [
-                                        ['Batch ID', 'Name', modalLevel === 'province' ? 'City' : modalLevel === 'city' ? 'Barangay' : '', 'Fingerlings Count', 'Harvest Forecasted'].filter(Boolean),
-                                        ...modalData.map(batch => [
-                                            batch.batchId,
-                                            batch.name,
-                                            modalLevel === 'province' ? batch.city : modalLevel === 'city' ? batch.barangay : '',
-                                            batch.fingerlingsCount,
-                                            batch.harvestForecasted
-                                        ].filter((_, i) => modalLevel === 'barangay' ? i !== 2 : true))
-                                    ].map(row => row.join(',')).join('\n');
+                                    // Build CSV headers based on modal level
+                                    const headers = ['Batch ID'];
+                                    if (modalLevel === 'province') {
+                                        headers.push('City');
+                                    } else if (modalLevel === 'city') {
+                                        headers.push('Barangay');
+                                    } else if (modalLevel === 'barangay') {
+                                        headers.push('Beneficiary Name');
+                                    }
+                                    headers.push('Fingerlings Count', 'Harvest Forecasted');
+
+                                    // Build CSV rows
+                                    const rows = modalData.map(batch => {
+                                        const row = [batch.batchId];
+                                        if (modalLevel === 'province') {
+                                            row.push(batch.city || '');
+                                        } else if (modalLevel === 'city') {
+                                            row.push(batch.barangay || '');
+                                        } else if (modalLevel === 'barangay') {
+                                            row.push(batch.name);
+                                        }
+                                        row.push(batch.fingerlingsCount.toString(), batch.harvestForecasted.toString());
+                                        return row;
+                                    });
+
+                                    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
 
                                     const blob = new Blob([csv], { type: 'text/csv' });
                                     const url = window.URL.createObjectURL(blob);
