@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Users, BarChart3, Package, UserCheck, TrendingUp } from "lucide-react";
+import { Users, BarChart3, Package, UserCheck, TrendingUp, UserPlus, FileText, Building2, ChartNoAxesCombined, ChartColumnStacked, ArrowRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { useRouter } from "next/navigation";
 import AsideNavigation from "../components/aside.navigation";
 
 import { LogoutModal } from "@/app/components/logout.modal";
@@ -273,7 +274,112 @@ const MonthlyFingerlingsChart: React.FC = () => {
     );
 };
 
+// Quick Actions Component
+interface QuickAction {
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    bgColor: string;
+    iconColor: string;
+    textColor: string;
+    hoverColor: string;
+    route: string;
+}
 
+const QuickActions: React.FC = () => {
+    const router = useRouter();
+
+    const quickActions: QuickAction[] = [
+        {
+            title: "Add Users",
+            description: "Register new staff or admin users",
+            icon: UserPlus,
+            bgColor: "bg-blue-50",
+            iconColor: "text-blue-600",
+            textColor: "text-blue-700",
+            hoverColor: "hover:bg-blue-100",
+            route: "/admin/users"
+        },
+        {
+            title: "View Reports",
+            description: "Access system reports and analytics",
+            icon: FileText,
+            bgColor: "bg-green-50",
+            iconColor: "text-green-600",
+            textColor: "text-green-700",
+            hoverColor: "hover:bg-green-100",
+            route: "/admin/reports"
+        },
+        {
+            title: "Distribution Data",
+            description: "Manage fingerling distribution records",
+            icon: Building2,
+            bgColor: "bg-purple-50",
+            iconColor: "text-purple-600",
+            textColor: "text-purple-700",
+            hoverColor: "hover:bg-purple-100",
+            route: "/admin/distribution"
+        },
+        {
+            title: "Data Visualization",
+            description: "View charts and data insights",
+            icon: ChartColumnStacked,
+            bgColor: "bg-orange-50",
+            iconColor: "text-orange-600",
+            textColor: "text-orange-700",
+            hoverColor: "hover:bg-orange-100",
+            route: "/admin/visualization"
+        },
+        {
+            title: "Forecasting",
+            description: "Predict future trends and patterns",
+            icon: ChartNoAxesCombined,
+            bgColor: "bg-cyan-50",
+            iconColor: "text-cyan-600",
+            textColor: "text-cyan-700",
+            hoverColor: "hover:bg-cyan-100",
+            route: "/admin/forecasting"
+        }
+    ];
+
+    const handleActionClick = (route: string) => {
+        router.push(route);
+    };
+
+    return (
+        <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h2 className="text-xl font-semibold text-gray-800">Quick Actions</h2>
+                    <p className="text-sm text-gray-600 mt-1">Frequently used actions for quick access</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {quickActions.map((action, index) => (
+                    <button
+                        key={index}
+                        onClick={() => handleActionClick(action.route)}
+                        className={`group relative ${action.bgColor} ${action.hoverColor} rounded-lg p-5 text-left transition-all duration-200 border border-transparent hover:border-gray-200 hover:shadow-md`}
+                    >
+                        <div className="flex items-start justify-between mb-3">
+                            <div className={`p-2.5 rounded-lg ${action.bgColor} ring-2 ring-white`}>
+                                <action.icon className={`h-5 w-5 ${action.iconColor}`} />
+                            </div>
+                            <ArrowRight className={`h-5 w-5 ${action.iconColor} opacity-0 group-hover:opacity-100 transition-opacity duration-200`} />
+                        </div>
+                        <h3 className={`text-base font-semibold ${action.textColor} mb-1`}>
+                            {action.title}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                            {action.description}
+                        </p>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const AdminDashboard: React.FC = () => {
     const { isLoading, isAuthenticated, logout } = withAuth({
@@ -332,43 +438,8 @@ const AdminDashboard: React.FC = () => {
                         {/* Statistics Overview */}
                         <StatisticsOverview />
 
-                        {/* Additional Dashboard Content */}
-                        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-                            {/* Recent Activity Card */}
-                            {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between py-2">
-                                        <span className="text-sm text-gray-600">New batch created</span>
-                                        <span className="text-xs text-gray-400">2 hours ago</span>
-                                    </div>
-                                    <div className="flex items-center justify-between py-2">
-                                        <span className="text-sm text-gray-600">Staff member added</span>
-                                        <span className="text-xs text-gray-400">1 day ago</span>
-                                    </div>
-                                    <div className="flex items-center justify-between py-2">
-                                        <span className="text-sm text-gray-600">System maintenance completed</span>
-                                        <span className="text-xs text-gray-400">3 days ago</span>
-                                    </div>
-                                </div>
-                            </div> */}
-
-                            {/* Quick Actions Card */}
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
-                                <div className="space-y-3">
-                                    <button className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
-                                        <span className="text-sm font-medium text-blue-700">Add New Batch</span>
-                                    </button>
-                                    <button className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
-                                        <span className="text-sm font-medium text-green-700">Manage Staff</span>
-                                    </button>
-                                    <button className="w-full text-left p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
-                                        <span className="text-sm font-medium text-purple-700">View Reports</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Quick Actions */}
+                        <QuickActions />
 
                         {/* Page Header */}
                         {/* <div className="mb-8 mt-10">

@@ -8,6 +8,52 @@ import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
 
+// Location Data
+interface LocationData {
+    provinces: string[];
+    cities: {
+        [key: string]: string[];
+    };
+    barangays: {
+        [key: string]: string[];
+    };
+}
+
+const locationData: LocationData = {
+    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur", "Bukidnon", "Compostela Valley", "Cotabato"],
+    cities: {
+        "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
+        "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
+        "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
+        "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
+        "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"],
+        "Agusan del Sur": ["Bayugan City", "Bunawan", "Esperanza", "La Paz", "Loreto", "Prosperidad", "Rosario", "San Francisco", "San Luis", "Santa Josefa", "Sibagat", "Talacogon", "Trento", "Veruela"],
+        "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"],
+        "Bukidnon": ["Malaybalay City", "Valencia City", "Baungon", "Cabanglasan", "Damulog", "Dangcagan", "Don Carlos", "Impasugong", "Kadingilan", "Kalilangan", "Kibawe", "Kitaotao", "Lantapan", "Libona", "Malitbog", "Manolo Fortich", "Maramag", "Pangantucan", "Quezon", "San Fernando", "Sumilao"],
+        "Compostela Valley": ["Nabunturan", "Mabini", "Montevista", "New Bataan", "Pantukan", "Laak", "Maco", "Maragusan", "Mawab", "Monkayo", "Compostela"],
+        "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
+    },
+    barangays: {
+        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Brgy. Busaon", "Brgy. Liboganon"],
+        "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
+        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
+        "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
+        "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
+        "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
+        "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
+        "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
+        "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
+        "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
+        "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
+        "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
+        "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
+        "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
+        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
+        "Kidapawan": ["Brgy. Amas"],
+        "North Cotabato": ["Brgy. Balogo"]
+    }
+};
+
 // TypeScript interfaces
 interface ReportFilters {
     reportType: string;
@@ -123,11 +169,43 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
         barangay: "All Barangays"
     });
 
+    // Get available cities based on selected province
+    const getAvailableCities = (): string[] => {
+        if (!filters.province || filters.province === "All Provinces") {
+            return [];
+        }
+        return locationData.cities[filters.province] || [];
+    };
+
+    // Get available barangays based on selected city
+    const getAvailableBarangays = (): string[] => {
+        if (!filters.city || filters.city === "All Cities") {
+            return [];
+        }
+        return locationData.barangays[filters.city] || [];
+    };
+
     const handleFilterChange = (field: keyof ReportFilters, value: string) => {
-        setFilters(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        // Handle cascading updates for location filters
+        if (field === 'province') {
+            setFilters(prev => ({
+                ...prev,
+                province: value,
+                city: "All Cities",
+                barangay: "All Barangays"
+            }));
+        } else if (field === 'city') {
+            setFilters(prev => ({
+                ...prev,
+                city: value,
+                barangay: "All Barangays"
+            }));
+        } else {
+            setFilters(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        }
     };
 
     const handleApplyFilters = () => {
@@ -149,8 +227,9 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
         onApplyFilters("Fingerling Count", resetFilters);
     };
 
-    const showLocationFilters = filters.reportType === "Beneficiaries Report" || filters.reportType === "Overdue Harvest Report";
-    const showDateFilters = filters.reportType !== "Overdue Harvest Report";
+    const showLocationFilters = filters.reportType === "Beneficiaries Report";
+    const showSpeciesFilter = filters.reportType !== "Beneficiaries Report";
+    const showDateFilters = true; // Show date filters for all report types
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -185,17 +264,15 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                                 >
                                     <option value="Fingerling Count">Fingerling Count</option>
-                                    <option value="Undistributed Batches">Undistributed Batches</option>
                                     <option value="Distributed Batches">Distributed Batches</option>
                                     <option value="Beneficiaries Report">Beneficiaries Report</option>
-                                    <option value="Overdue Harvest Report">Overdue Harvest Report</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                             </div>
                         </div>
 
-                        {/* Species */}
-                        {filters.reportType !== "Beneficiaries Report" && (
+                        {/* Species - Show for all reports except Beneficiaries Report */}
+                        {showSpeciesFilter && (
                             <div>
                                 <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                                     <Users className="h-4 w-4 mr-1 text-blue-600" />
@@ -231,10 +308,11 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                                         >
                                             <option value="All Provinces">All Provinces</option>
-                                            <option value="Laguna">Laguna</option>
-                                            <option value="Batangas">Batangas</option>
-                                            <option value="Cavite">Cavite</option>
-                                            <option value="Rizal">Rizal</option>
+                                            {locationData.provinces.map((province) => (
+                                                <option key={province} value={province}>
+                                                    {province}
+                                                </option>
+                                            ))}
                                         </select>
                                         <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                                     </div>
@@ -250,12 +328,37 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                             value={filters.city}
                                             onChange={(e) => handleFilterChange('city', e.target.value)}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                                            disabled={!filters.province || filters.province === "All Provinces"}
                                         >
                                             <option value="All Cities">All Cities</option>
-                                            <option value="Los Baños">Los Baños</option>
-                                            <option value="Calamba">Calamba</option>
-                                            <option value="Santa Rosa">Santa Rosa</option>
-                                            <option value="Biñan">Biñan</option>
+                                            {getAvailableCities().map((city) => (
+                                                <option key={city} value={city}>
+                                                    {city}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                        <MapPin className="h-4 w-4 mr-1 text-blue-600" />
+                                        Barangay
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            value={filters.barangay}
+                                            onChange={(e) => handleFilterChange('barangay', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                                            disabled={!filters.city || filters.city === "All Cities"}
+                                        >
+                                            <option value="All Barangays">All Barangays</option>
+                                            {getAvailableBarangays().map((barangay) => (
+                                                <option key={barangay} value={barangay}>
+                                                    {barangay}
+                                                </option>
+                                            ))}
                                         </select>
                                         <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                                     </div>
@@ -326,16 +429,53 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
 };
 
 // Fingerling Count Report Component
-const FingerlingsCountReportView: React.FC = () => {
-    const handleExportCSV = () => {
-        // Sample data for fingerling count report
-        const data = [
-            { date: "2025-05-30", species: "Tilapia", count: 1500 },
-            { date: "2025-05-29", species: "Catfish", count: 850 },
-            { date: "2025-05-28", species: "Carp", count: 1200 }
-        ];
-        exportToCSV(data, "fingerling_count_report");
+const FingerlingsCountReportView: React.FC<{ filters: ReportFilters }> = ({ filters }) => {
+    const [data, setData] = React.useState<any[]>([]);
+    const [summary, setSummary] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        fetchData();
+    }, [filters]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                startDate: filters.startDate,
+                endDate: filters.endDate,
+                species: filters.species,
+            });
+            const response = await fetch(`/api/reports/fingerling-count?${params}`);
+            const result = await response.json();
+            if (result.success) {
+                setData(result.data);
+                setSummary(result.summary);
+            }
+        } catch (error) {
+            console.error("Error fetching fingerling count report:", error);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleExportCSV = () => {
+        const csvData = data.map(item => ({
+            Date: item.date,
+            Species: item.species,
+            "Total Fingerlings": item.totalFingerlings,
+            "Distribution Count": item.distributionCount,
+        }));
+        exportToCSV(csvData, "fingerling_count_report");
+    };
+
+    if (loading) {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+                <FullScreenLoader />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -345,7 +485,7 @@ const FingerlingsCountReportView: React.FC = () => {
                     <h3 className="text-lg font-semibold text-gray-800">Fingerling Count Report</h3>
                     <div className="flex items-center text-sm text-gray-600 mt-1">
                         <Calendar className="h-4 w-4 mr-1" />
-                        <span>Apr 30, 2025 - May 30, 2025</span>
+                        <span>{new Date(filters.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(filters.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -363,99 +503,103 @@ const FingerlingsCountReportView: React.FC = () => {
             </div>
 
             {/* Report Content */}
-            <div className="p-6">
-                <div className="text-center py-16">
-                    <div className="mb-6">
+            <div className="overflow-x-auto">
+                {data.length > 0 ? (
+                    <table className="w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Count</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {data.map((item, index) => (
+                                <tr key={index} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.species}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.totalFingerlings.toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.distributionCount}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="text-center py-16">
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                             <FileText className="h-8 w-8 text-gray-400" />
                         </div>
                         <h4 className="text-lg font-medium text-gray-900 mb-2">No data found for the selected filters</h4>
-                        <p className="text-gray-500 mb-6">
+                        <p className="text-gray-500">
                             There are no fingerling count records available for the date range and filters you've selected.
                         </p>
-                    </div>
-
-                    {/* Empty State Table Structure */}
-                    <div className="max-w-md mx-auto">
-                        <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="text-left">
-                                <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200">
-                                    <span className="text-xs font-medium text-gray-500 uppercase">Date</span>
-                                    <span className="text-xs font-medium text-gray-500 uppercase">Fingerling Count</span>
-                                </div>
-                                <div className="space-y-2 text-sm text-gray-400">
-                                    <div className="flex justify-between">
-                                        <span>No data</span>
-                                        <span>-</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="mt-6">
+                            <p className="text-sm text-gray-500">
+                                Try adjusting your date range or species filter to see available data.
+                            </p>
                         </div>
                     </div>
-
-                    <div className="mt-6">
-                        <p className="text-sm text-gray-500">
-                            Try adjusting your date range or species filter to see available data.
-                        </p>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );
 };
 
 // Undistributed Batches Report Component
-const UndistributedBatchesReportView: React.FC = () => {
-    const sampleBatchData: BatchData[] = [
-        {
-            id: "1",
-            batchNumber: "BTH-2025-001",
-            species: "Tilapia",
-            quantity: 5000,
-            dateCreated: "2025-04-15",
-            status: "Overdue",
-            staffName: "Maria Santos",
-        },
-        {
-            id: "2",
-            batchNumber: "BTH-2025-003",
-            species: "Catfish",
-            quantity: 3000,
-            dateCreated: "2025-04-20",
-            status: "Pending",
-            staffName: "Juan Dela Cruz",
-        },
-        {
-            id: "3",
-            batchNumber: "BTH-2025-005",
-            species: "Carp",
-            quantity: 2500,
-            dateCreated: "2025-04-25",
-            status: "Overdue",
-            staffName: "Ana Rodriguez",
-        },
-        {
-            id: "4",
-            batchNumber: "BTH-2025-007",
-            species: "Tilapia",
-            quantity: 4000,
-            dateCreated: "2025-04-28",
-            status: "Pending",
-            staffName: "Carlos Mendoza",
+const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ filters }) => {
+    const [data, setData] = React.useState<any[]>([]);
+    const [summary, setSummary] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        fetchData();
+    }, [filters]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                startDate: filters.startDate,
+                endDate: filters.endDate,
+                species: filters.species,
+            });
+            const response = await fetch(`/api/reports/undistributed-batches?${params}`);
+            const result = await response.json();
+            if (result.success) {
+                setData(result.data);
+                setSummary(result.summary);
+            }
+        } catch (error) {
+            console.error("Error fetching undistributed batches report:", error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     const handleExportCSV = () => {
-        const csvData = sampleBatchData.map(batch => ({
+        const csvData = data.map(batch => ({
             "Batch Number": batch.batchNumber,
-            "Species": batch.species,
-            "Quantity": batch.quantity,
-            "Date Created": batch.dateCreated,
+            "Name": batch.name,
+            "Total Count": batch.totalCount,
+            "Distributed": batch.distributed,
+            "Remaining": batch.remaining,
+            "Date Created": new Date(batch.dateCreated).toLocaleDateString(),
             "Status": batch.status,
             "Staff Name": batch.staffName,
         }));
         exportToCSV(csvData, "undistributed_batches_report");
     };
+
+    if (loading) {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+                <FullScreenLoader />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -484,104 +628,105 @@ const UndistributedBatchesReportView: React.FC = () => {
 
             {/* Report Content */}
             <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sampleBatchData.map((batch) => (
-                            <tr key={batch.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.species}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.quantity.toLocaleString()}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.dateCreated}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${batch.status === 'Overdue'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                        {batch.status}
-                                    </span>
-                                </td>
+                {data.length > 0 ? (
+                    <table className="w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Count</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {data.map((batch: any) => (
+                                <tr key={batch.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.totalCount.toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.remaining.toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(batch.dateCreated).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${batch.status === 'Overdue'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-yellow-100 text-yellow-800'
+                                            }`}>
+                                            {batch.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="text-center py-16">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                            <AlertTriangle className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">No undistributed batches found</h4>
+                        <p className="text-gray-500">All batches have been fully distributed.</p>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
 // New Distributed Batches Report Component
-const DistributedBatchesReportView: React.FC = () => {
-    const sampleDistributedBatchData: DistributedBatchData[] = [
-        {
-            id: "1",
-            batchNumber: "BTH-2025-002",
-            species: "Tilapia",
-            quantity: 6000,
-            dateCreated: "2025-04-10",
-            distributionDate: "2025-05-10",
-            beneficiaryLocation: "Los Baños, Laguna",
-            staffName: "Elena Reyes",
-            status: "Completed"
-        },
-        {
-            id: "2",
-            batchNumber: "BTH-2025-004",
-            species: "Catfish",
-            quantity: 4500,
-            dateCreated: "2025-04-18",
-            distributionDate: "2025-05-18",
-            beneficiaryLocation: "Calamba, Laguna",
-            staffName: "Roberto Cruz",
-            status: "Completed"
-        },
-        {
-            id: "3",
-            batchNumber: "BTH-2025-006",
-            species: "Carp",
-            quantity: 3500,
-            dateCreated: "2025-04-22",
-            distributionDate: "2025-05-22",
-            beneficiaryLocation: "Tanauan, Batangas",
-            staffName: "Sofia Garcia",
-            status: "Completed"
-        },
-        {
-            id: "4",
-            batchNumber: "BTH-2025-008",
-            species: "Tilapia",
-            quantity: 5500,
-            dateCreated: "2025-04-26",
-            distributionDate: "2025-05-26",
-            beneficiaryLocation: "Santa Rosa, Laguna",
-            staffName: "Miguel Torres",
-            status: "Completed"
+const DistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ filters }) => {
+    const [data, setData] = React.useState<any[]>([]);
+    const [summary, setSummary] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        fetchData();
+    }, [filters]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                startDate: filters.startDate,
+                endDate: filters.endDate,
+                species: filters.species,
+            });
+            const response = await fetch(`/api/reports/distributed-batches?${params}`);
+            const result = await response.json();
+            if (result.success) {
+                setData(result.data);
+                setSummary(result.summary);
+            }
+        } catch (error) {
+            console.error("Error fetching distributed batches report:", error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     const handleExportCSV = () => {
-        const csvData = sampleDistributedBatchData.map(batch => ({
+        const csvData = data.map(batch => ({
             "Batch Number": batch.batchNumber,
             "Species": batch.species,
             "Quantity": batch.quantity,
-            "Date Created": batch.dateCreated,
-            "Distribution Date": batch.distributionDate,
+            "Distribution Date": batch.dateDistributed ? new Date(batch.dateDistributed).toLocaleDateString() : "N/A",
             "Beneficiary Location": batch.beneficiaryLocation,
             "Staff Name": batch.staffName,
             "Status": batch.status
         }));
         exportToCSV(csvData, "distributed_batches_report");
     };
+
+    if (loading) {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+                <FullScreenLoader />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -597,7 +742,8 @@ const DistributedBatchesReportView: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleExportCSV}
-                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
+                        disabled={data.length === 0}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Download className="h-4 w-4 mr-2" />
                         Export CSV
@@ -610,95 +756,134 @@ const DistributedBatchesReportView: React.FC = () => {
 
             {/* Report Content */}
             <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sampleDistributedBatchData.map((batch) => (
-                            <tr key={batch.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.species}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.quantity.toLocaleString()}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.dateCreated}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.distributionDate}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.beneficiaryLocation}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                        {batch.status}
-                                    </span>
-                                </td>
+                {data.length > 0 ? (
+                    <table className="w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Count</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distributed</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Date</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {data.map((batch) => (
+                                <tr key={batch.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.batchName || "N/A"}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.species}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.batchTotalCount?.toLocaleString() || "N/A"}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.distributedQuantity?.toLocaleString() || "0"}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {batch.dateCreated ? new Date(batch.dateCreated).toLocaleDateString() : "N/A"}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {batch.dateDistributed ? new Date(batch.dateDistributed).toLocaleDateString() : "N/A"}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="text-center py-16">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                            <CheckCircle className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">No distributed batches found</h4>
+                        <p className="text-gray-500">No batches have been distributed for the selected filters.</p>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
 // Beneficiaries Report Component
-const BeneficiariesReportView: React.FC = () => {
-    const sampleBeneficiaryData: BeneficiaryData[] = [
-        {
-            id: "1",
-            province: "Laguna",
-            city: "Los Baños",
-            barangay: "Baybayin",
-            beneficiaryCount: 25,
-            totalFingerlings: 12500,
-            beneficiaryName: "Farmer's Association of Baybayin"
-        },
-        {
-            id: "2",
-            province: "Laguna",
-            city: "Los Baños",
-            barangay: "Bambang",
-            beneficiaryCount: 18,
-            totalFingerlings: 9000,
-            beneficiaryName: "Bambang Aquaculture Cooperative"
-        },
-        {
-            id: "3",
-            province: "Laguna",
-            city: "Calamba",
-            barangay: "Parian",
-            beneficiaryCount: 32,
-            totalFingerlings: 16000,
-            beneficiaryName: "Parian Fish Farmers Group"
-        },
-        {
-            id: "4",
-            province: "Batangas",
-            city: "Tanauan",
-            barangay: "Poblacion",
-            beneficiaryCount: 22,
-            totalFingerlings: 11000,
-            beneficiaryName: "Tanauan Fishery Association"
+const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters }) => {
+    const [data, setData] = React.useState<any[]>([]);
+    const [summary, setSummary] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        fetchData();
+    }, [filters]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            if (filters.startDate) {
+                params.append("startDate", filters.startDate);
+            }
+            if (filters.endDate) {
+                params.append("endDate", filters.endDate);
+            }
+            if (filters.province && filters.province !== "All Provinces") {
+                params.append("province", filters.province);
+            }
+            if (filters.city && filters.city !== "All Cities") {
+                params.append("city", filters.city);
+            }
+            if (filters.barangay && filters.barangay !== "All Barangays") {
+                params.append("barangay", filters.barangay);
+            }
+
+            const response = await fetch(`/api/reports/beneficiaries?${params}`);
+            const result = await response.json();
+            if (result.success) {
+                // Flatten the data structure to show each beneficiary as a separate row
+                const flattenedData: any[] = [];
+                result.data.forEach((location: any) => {
+                    if (location.beneficiaries && location.beneficiaries.length > 0) {
+                        location.beneficiaries.forEach((beneficiary: any) => {
+                            flattenedData.push({
+                                province: location.province,
+                                city: location.municipality,
+                                barangay: location.barangay,
+                                beneficiaryName: beneficiary.beneficiaryName,
+                                totalFingerlings: beneficiary.fingerlings
+                            });
+                        });
+                    }
+                });
+                setData(flattenedData);
+                setSummary(result.summary);
+            }
+        } catch (error) {
+            console.error("Error fetching beneficiaries report:", error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    // Determine which columns to show based on filter selection
+    const showProvince = filters.barangay === "All Barangays" && filters.city === "All Cities";
+    const showCity = filters.barangay === "All Barangays" && filters.city !== "All Cities";
+    const showBarangay = filters.barangay !== "All Barangays";
 
     const handleExportCSV = () => {
-        const csvData = sampleBeneficiaryData.map(beneficiary => ({
-            "Province": beneficiary.province,
-            "City": beneficiary.city,
-            "Barangay": beneficiary.barangay,
-            "Beneficiary Count": beneficiary.beneficiaryCount,
-            "Total Fingerlings": beneficiary.totalFingerlings,
-            "Beneficiary Name": beneficiary.beneficiaryName
-        }));
+        const csvData = data.map(beneficiary => {
+            const row: any = {};
+            if (showProvince) row["Province"] = beneficiary.province;
+            if (showCity) row["City"] = beneficiary.city;
+            if (showBarangay) row["Barangay"] = beneficiary.barangay;
+            row["Beneficiary Name"] = beneficiary.beneficiaryName;
+            row["Total Fingerlings"] = beneficiary.totalFingerlings;
+            return row;
+        });
         exportToCSV(csvData, "beneficiaries_report");
     };
+
+    if (loading) {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+                <FullScreenLoader />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -727,222 +912,50 @@ const BeneficiariesReportView: React.FC = () => {
 
             {/* Report Content */}
             <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barangay</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Count</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sampleBeneficiaryData.map((beneficiary) => (
-                            <tr key={beneficiary.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.province}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.city}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.barangay}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.beneficiaryCount}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
+                {data.length > 0 ? (
+                    <table className="w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                {showProvince && (
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
+                                )}
+                                {showCity && (
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
+                                )}
+                                {showBarangay && (
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barangay</th>
+                                )}
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-};
-
-// NEW Overdue Harvest Report Component
-const OverdueHarvestReportView: React.FC = () => {
-    const sampleOverdueHarvestData: OverdueHarvestData[] = [
-        {
-            id: "1",
-            batchNumber: "BTH-2025-002",
-            species: "Tilapia",
-            quantity: 6000,
-            distributionDate: "2025-03-15",
-            expectedHarvestDate: "2025-05-15",
-            daysOverdue: 15,
-            beneficiaryLocation: "Los Baños, Laguna",
-            beneficiaryName: "Farmer's Association of Baybayin",
-            staffName: "Elena Reyes",
-            contactNumber: "+63 912 345 6789",
-            status: "Critical"
-        },
-        {
-            id: "2",
-            batchNumber: "BTH-2025-004",
-            species: "Catfish",
-            quantity: 4500,
-            distributionDate: "2025-03-20",
-            expectedHarvestDate: "2025-05-20",
-            daysOverdue: 10,
-            beneficiaryLocation: "Calamba, Laguna",
-            beneficiaryName: "Bambang Aquaculture Cooperative",
-            staffName: "Roberto Cruz",
-            contactNumber: "+63 917 234 5678",
-            status: "Overdue"
-        },
-        {
-            id: "3",
-            batchNumber: "BTH-2025-006",
-            species: "Tilapia",
-            quantity: 3500,
-            distributionDate: "2025-04-01",
-            expectedHarvestDate: "2025-05-25",
-            daysOverdue: 5,
-            beneficiaryLocation: "Tanauan, Batangas",
-            beneficiaryName: "Parian Fish Farmers Group",
-            staffName: "Sofia Garcia",
-            contactNumber: "+63 905 567 8901",
-            status: "Overdue"
-        },
-        {
-            id: "4",
-            batchNumber: "BTH-2025-008",
-            species: "Bangus",
-            quantity: 5500,
-            distributionDate: "2025-03-10",
-            expectedHarvestDate: "2025-05-10",
-            daysOverdue: 20,
-            beneficiaryLocation: "Santa Rosa, Laguna",
-            beneficiaryName: "Tanauan Fishery Association",
-            staffName: "Miguel Torres",
-            contactNumber: "+63 923 456 7890",
-            status: "Critical"
-        }
-    ];
-
-    const handleExportCSV = () => {
-        const csvData = sampleOverdueHarvestData.map(harvest => ({
-            "Batch Number": harvest.batchNumber,
-            "Species": harvest.species,
-            "Quantity": harvest.quantity,
-            "Distribution Date": harvest.distributionDate,
-            "Expected Harvest Date": harvest.expectedHarvestDate,
-            "Days Overdue": harvest.daysOverdue,
-            "Beneficiary Location": harvest.beneficiaryLocation,
-            "Beneficiary Name": harvest.beneficiaryName,
-            "Staff Name": harvest.staffName,
-            "Contact Number": harvest.contactNumber,
-            "Status": harvest.status
-        }));
-        exportToCSV(csvData, "overdue_harvest_report");
-    };
-
-    return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            {/* Report Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Overdue Harvest Report</h3>
-                    <div className="flex items-center text-sm text-gray-600 mt-1">
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span>Distributed fingerlings past expected harvest date</span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleExportCSV}
-                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
-                    >
-                        <Download className="h-4 w-4 mr-2" />
-                        Export CSV
-                    </button>
-                    <div className="p-2 bg-red-50 rounded-lg">
-                        <AlertTriangle className="h-5 w-5 text-red-600" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Summary Cards */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-red-50 p-4 rounded-lg">
-                        <div className="flex items-center">
-                            <AlertTriangle className="h-8 w-8 text-red-600 mr-3" />
-                            <div>
-                                <p className="text-sm font-medium text-red-800">Critical Overdue</p>
-                                <p className="text-lg font-bold text-red-900">
-                                    {sampleOverdueHarvestData.filter(item => item.status === 'Critical').length}
-                                </p>
-                            </div>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {data.map((beneficiary, index) => (
+                                <tr key={beneficiary.id || index} className="hover:bg-gray-50">
+                                    {showProvince && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.province}</td>
+                                    )}
+                                    {showCity && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.city}</td>
+                                    )}
+                                    {showBarangay && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.barangay}</td>
+                                    )}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="text-center py-16">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                            <MapPin className="h-8 w-8 text-gray-400" />
                         </div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">No beneficiaries found</h4>
+                        <p className="text-gray-500">No beneficiary data available for the selected filters.</p>
                     </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                        <div className="flex items-center">
-                            <Clock className="h-8 w-8 text-orange-600 mr-3" />
-                            <div>
-                                <p className="text-sm font-medium text-orange-800">Total Overdue</p>
-                                <p className="text-lg font-bold text-orange-900">{sampleOverdueHarvestData.length}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="flex items-center">
-                            <Users className="h-8 w-8 text-blue-600 mr-3" />
-                            <div>
-                                <p className="text-sm font-medium text-blue-800">Total Fingerlings</p>
-                                <p className="text-lg font-bold text-blue-900">
-                                    {sampleOverdueHarvestData.reduce((sum, item) => sum + item.quantity, 0).toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Report Content */}
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Date</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Harvest</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Overdue</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sampleOverdueHarvestData.map((harvest) => (
-                            <tr key={harvest.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{harvest.batchNumber}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.species}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.quantity.toLocaleString()}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.distributionDate}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.expectedHarvestDate}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                                    <span className={`${harvest.daysOverdue > 15 ? 'text-red-600' : 'text-orange-600'}`}>
-                                        {harvest.daysOverdue} days
-                                    </span>
-                                </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.beneficiaryLocation}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.beneficiaryName}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{harvest.contactNumber}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{harvest.staffName}</td>
-                                <td className="px-4 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${harvest.status === 'Critical'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-orange-100 text-orange-800'
-                                        }`}>
-                                        {harvest.status}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                )}
             </div>
         </div>
     );
@@ -952,17 +965,15 @@ const OverdueHarvestReportView: React.FC = () => {
 const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters }> = ({ reportType, filters }) => {
     switch (reportType) {
         case "Fingerling Count":
-            return <FingerlingsCountReportView />;
+            return <FingerlingsCountReportView filters={filters} />;
         case "Undistributed Batches":
-            return <UndistributedBatchesReportView />;
+            return <UndistributedBatchesReportView filters={filters} />;
         case "Distributed Batches":
-            return <DistributedBatchesReportView />;
+            return <DistributedBatchesReportView filters={filters} />;
         case "Beneficiaries Report":
-            return <BeneficiariesReportView />;
-        case "Overdue Harvest Report":
-            return <OverdueHarvestReportView />;
+            return <BeneficiariesReportView filters={filters} />;
         default:
-            return <FingerlingsCountReportView />;
+            return <FingerlingsCountReportView filters={filters} />;
     }
 };
 
@@ -978,10 +989,24 @@ const Reports: React.FC = () => {
         reportType: "Fingerling Count",
         species: "All Species",
         startDate: "2025-04-30",
-        endDate: "2025-05-30"
+        endDate: "2025-05-30",
+        province: "All Provinces",
+        city: "All Cities",
+        barangay: "All Barangays"
     });
+    const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
+    // Update current date and time every second
+    React.useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentDateTime(new Date());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
 
     const handleApplyFilters = (reportType: string, filters: ReportFilters) => {
+        console.log("handleApplyFilters called with:", reportType, filters);
         setCurrentReportType(reportType);
         setCurrentFilters(filters);
     };
@@ -1038,10 +1063,24 @@ const Reports: React.FC = () => {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 p-4 bg-blue-50 rounded-lg">
                             <div className="flex items-center text-blue-700 mb-2 sm:mb-0">
                                 <Calendar className="h-4 w-4 mr-2" />
-                                <span className="font-medium">Friday, May 30, 2025</span>
+                                <span className="font-medium">
+                                    {currentDateTime.toLocaleDateString('en-US', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </span>
                             </div>
                             <div className="flex items-center text-blue-700">
-                                <span className="font-medium">02:08:30 PM</span>
+                                <span className="font-medium">
+                                    {currentDateTime.toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: true
+                                    })}
+                                </span>
                             </div>
                         </div>
 

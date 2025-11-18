@@ -102,7 +102,7 @@ const HarvestForecast: React.FC = () => {
     // Form state
     const [formData, setFormData] = useState<FormData>({
         dateFrom: "2023-01-01",
-        dateTo: "2023-02-01",
+        dateTo: "2023-12-31",
         species: "Red Tilapia",
         province: "all",
         city: "all",

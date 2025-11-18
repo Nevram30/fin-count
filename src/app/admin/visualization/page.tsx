@@ -137,7 +137,7 @@ const DataVisualization: React.FC = () => {
 
     const [fingerlingsState, setFingerlingsState] = useState<FingerlingsState>({
         dateFrom: '2023-01-01',
-        dateTo: '2023-02-01',
+        dateTo: '2025-12-31',
         selectedProvince: 'all',
         selectedCity: 'all',
         selectedBarangay: 'all',
@@ -1654,10 +1654,6 @@ const DataVisualization: React.FC = () => {
                                                                 <span className="flex items-center gap-1">
                                                                     <MapPin className="h-3 w-3" />
                                                                     {beneficiary.location}
-                                                                </span>
-                                                                <span className="flex items-center gap-1">
-                                                                    <Building2 className="h-3 w-3" />
-                                                                    {beneficiary.facilityType.replace('_', ' ')}
                                                                 </span>
                                                                 <span className="flex items-center gap-1">
                                                                     <Fish className="h-3 w-3" />

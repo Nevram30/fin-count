@@ -118,21 +118,15 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                         {/* User Profile Section */}
                         <div className="p-3 bg-gray-50 rounded-lg">
                             <div className="flex items-center">
-                                {userAvatar ? (
-                                    <img
-                                        src={userAvatar}
-                                        alt={userName}
-                                        className="w-10 h-10 rounded-full mr-3 border-2 border-blue-100 flex-shrink-0"
-                                    />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 flex-shrink-0">
-                                        <User className="h-5 w-5" />
-                                    </div>
-                                )}
+                                <img
+                                    src="/image/logo.png"
+                                    alt={userName}
+                                    className="w-10 h-10 rounded-full mr-3 border-2 border-blue-100 flex-shrink-0"
+                                />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                    {/* <p className="text-sm font-medium text-gray-900 truncate">
                                         {userName}
-                                    </p>
+                                    </p> */}
                                     <p className="text-xs text-gray-500 truncate">{userRole}</p>
                                 </div>
                             </div>
@@ -246,7 +240,7 @@ const AsideNavigation: React.FC<AsideNavigationProps> = ({
                             </li>
                         </ul>
                     </nav>
-                    
+
                     {/* Profile Section */}
                     <div className="mt-auto pt-3 border-t border-gray-100">
                         <button
