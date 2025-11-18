@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import { Users, TrendingUp, Calendar, MapPin, Fish, Building2, BarChart3, Settings } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LineChart, Line, Tooltip, ComposedChart, Area, AreaChart } from "recharts";
+import { Users, TrendingUp, Calendar, MapPin, Fish, BarChart3 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LineChart, Line, Tooltip, Area, AreaChart } from "recharts";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -102,11 +102,11 @@ const HarvestForecast: React.FC = () => {
     // Form state
     const [formData, setFormData] = useState<FormData>({
         dateFrom: "2023-01-01",
-        dateTo: "2023-12-31",
+        dateTo: "2023-02-01",
         species: "Red Tilapia",
-        province: "Davao del Norte",
-        city: "Tagum City",
-        barangay: "Apokon",
+        province: "all",
+        city: "all",
+        barangay: "all",
         facilityType: "Fish Cage"
     });
 
@@ -176,11 +176,6 @@ const HarvestForecast: React.FC = () => {
         "Bangus",
     ];
 
-    const facilityTypeOptions = [
-        "Fish Cage",
-        "Pond System",
-    ];
-
     // Handle form input changes
     const handleInputChange = (field: keyof FormData, value: string) => {
         setFormData(prev => {
@@ -188,10 +183,10 @@ const HarvestForecast: React.FC = () => {
 
             // Reset dependent fields when parent changes
             if (field === 'province') {
-                newData.city = locationData.cities[value]?.[0] || '';
-                newData.barangay = '';
+                newData.city = 'all';
+                newData.barangay = 'all';
             } else if (field === 'city') {
-                newData.barangay = locationData.barangays[value]?.[0] || '';
+                newData.barangay = 'all';
             }
 
             return newData;
@@ -279,12 +274,6 @@ const HarvestForecast: React.FC = () => {
 
             const distributions = result.data.distributions;
 
-            console.log(`Fetching ${level} level data:`, {
-                totalDistributions: distributions.length,
-                selectedBarangay: formData.barangay,
-                sampleBarangays: distributions.slice(0, 5).map((d: any) => d.barangay)
-            });
-
             // Transform distributions to BatchData format
             const batchData: BatchData[] = distributions
                 .filter((dist: any) => {
@@ -308,11 +297,6 @@ const HarvestForecast: React.FC = () => {
                     fingerlingsCount: dist.fingerlings,
                     harvestForecasted: Math.round(dist.harvestKilo)
                 }));
-
-            console.log(`Filtered ${level} data:`, {
-                filteredCount: batchData.length,
-                sampleData: batchData.slice(0, 3)
-            });
 
             return batchData;
         } catch (error) {
@@ -527,12 +511,18 @@ const HarvestForecast: React.FC = () => {
 
     // Get available cities based on selected province
     const getAvailableCities = () => {
-        return locationData.cities[formData.province] || [];
+        if (formData.province === 'all' || !locationData.cities[formData.province]) {
+            return ["All Cities"];
+        }
+        return ["All Cities", ...locationData.cities[formData.province]];
     };
 
     // Get available barangays based on selected city
     const getAvailableBarangays = () => {
-        return locationData.barangays[formData.city] || [];
+        if (formData.city === 'all' || formData.city === 'All Cities' || !locationData.barangays[formData.city]) {
+            return ["All Barangays"];
+        }
+        return ["All Barangays", ...locationData.barangays[formData.city]];
     };
 
     // Generate dynamic titles based on selected parameters
@@ -647,25 +637,6 @@ const HarvestForecast: React.FC = () => {
 
                                     <div>
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                            <Building2 className="h-4 w-4" />
-                                            Facility Type:
-                                        </label>
-                                        <select
-                                            value={formData.facilityType}
-                                            onChange={(e) => handleInputChange('facilityType', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                        >
-                                            {facilityTypeOptions.map(option => (
-                                                <option key={option} value={option}>{option}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Location Hierarchy */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                             <MapPin className="h-4 w-4" />
                                             Province:
                                         </label>
@@ -674,12 +645,17 @@ const HarvestForecast: React.FC = () => {
                                             onChange={(e) => handleInputChange('province', e.target.value)}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         >
+                                            <option value="all">All Provinces</option>
                                             {locationData.provinces.map(province => (
                                                 <option key={province} value={province}>{province}</option>
                                             ))}
                                         </select>
                                     </div>
 
+                                </div>
+
+                                {/* Location Hierarchy */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <div>
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                             <MapPin className="h-4 w-4" />

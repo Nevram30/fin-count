@@ -259,7 +259,6 @@ module.exports = {
         const groups = key.split("-");
         const year = groups[0];
         const month = groups[1];
-        const day = groups[2];
         const species = groups.slice(3).join("-");
 
         const batchKey = `${year}-${month}-${species}`;

@@ -15,13 +15,6 @@ interface LocationData {
     barangays: { [key: string]: string[] };
 }
 
-interface ComparativeData {
-    region: string;
-    value: number;
-    projected: number;
-    growth: number;
-}
-
 interface HarvestData {
     location: string;
     tilapia: number;
@@ -69,13 +62,6 @@ interface BeneficiaryData {
     province: string;
     city: string;
     barangay: string;
-}
-
-interface ForecastingState {
-    selectedLocation: string;
-    data: ComparativeData[];
-    isLoading: boolean;
-    lastUpdated: Date;
 }
 
 interface FingerlingsState {
@@ -145,7 +131,7 @@ const DataVisualization: React.FC = () => {
 
     const [fingerlingsState, setFingerlingsState] = useState<FingerlingsState>({
         dateFrom: '2023-01-01',
-        dateTo: '2024-12-31',
+        dateTo: '2023-02-01',
         selectedProvince: 'all',
         selectedCity: 'all',
         selectedBarangay: 'all',
@@ -323,10 +309,6 @@ const DataVisualization: React.FC = () => {
         }
     };
 
-    // Location options
-    const locationOptions = ["Barangay", "Municipality", "Province"];
-    const facilityTypes = ["All Facilities", "Fish Cage", "Pond"];
-
     // Handle harvest comparison - Fetch real data from API
     const handleHarvestCompare = async () => {
         setHarvestState(prev => ({ ...prev, isLoading: true }));
@@ -412,37 +394,6 @@ const DataVisualization: React.FC = () => {
             return ["All Barangays"];
         }
         return ["All Barangays", ...locationData.barangays[city]];
-    };
-
-    // Generate mock comparative data
-    const generateComparativeData = (location: string): ComparativeData[] => {
-        const baseData = [
-            { region: "Q1 2024", baseValue: 1000 },
-            { region: "Q2 2024", baseValue: 1500 },
-            { region: "Q3 2024", baseValue: 1200 },
-            { region: "Q4 2024", baseValue: 900 }
-        ];
-
-        const locationMultiplier = {
-            "Barangay": 1,
-            "Municipality": 1.5,
-            "Province": 2.2,
-            "Region": 3.5,
-            "National": 5
-        }[location] || 1;
-
-        return baseData.map(item => {
-            const value = Math.round(item.baseValue * locationMultiplier * (0.8 + Math.random() * 0.4));
-            const projected = Math.round(value * (1.1 + Math.random() * 0.3));
-            const growth = Math.round(((projected - value) / value) * 100);
-
-            return {
-                region: item.region,
-                value,
-                projected,
-                growth
-            };
-        });
     };
 
     // Fetch real beneficiary data from distribution API
@@ -1045,7 +996,7 @@ const DataVisualization: React.FC = () => {
                             <div className="flex flex-col items-start gap-3 mb-2">
                                 <div className="flex items-center gap-3">
                                     <BarChart3 className="h-6 w-6 text-blue-600" />
-                                    <h1 className="text-2xl font-bold text-gray-900">Davao Region Aquaculture Data Visualization</h1>
+                                    <h1 className="text-2xl font-bold text-gray-900">Data Visualization</h1>
                                 </div>
                                 <p className="text-gray-600">Comparative tools and fingerling distribution analysis for Davao Region</p>
                             </div>
@@ -1515,16 +1466,6 @@ const DataVisualization: React.FC = () => {
                                                 <option value="all">All Species</option>
                                                 <option value="tilapia">Tilapia</option>
                                                 <option value="bangus">Bangus</option>
-                                            </select>
-
-                                            <select
-                                                value={leaderboardState.selectedFacilityType}
-                                                onChange={(e) => setLeaderboardState(prev => ({ ...prev, selectedFacilityType: e.target.value as any }))}
-                                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                            >
-                                                <option value="all">All Facilities</option>
-                                                <option value="fish_cage">Fish Cage</option>
-                                                <option value="pond">Pond</option>
                                             </select>
 
                                             <button

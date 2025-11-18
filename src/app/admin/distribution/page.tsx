@@ -46,25 +46,41 @@ const speciesOptions = [
 ];
 
 // Define type for locations
-type LocationData = {
-    [province: string]: {
-        [city: string]: string[];
-    };
-};
+interface LocationData {
+    provinces: string[];
+    cities: { [key: string]: string[] };
+    barangays: { [key: string]: string[] };
+}
 
-// Davao Region locations data
-const davaoRegionLocations = {
-    "Davao del Norte": {
+// Davao Region locations data (including Caraga Region provinces)
+const locationData: LocationData = {
+    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur"],
+    cities: {
+        "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
+        "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
+        "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
+        "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
+        "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"],
+        "Agusan del Sur": ["Bayugan City", "Bunawan", "Esperanza", "La Paz", "Loreto", "Prosperidad", "Rosario", "San Francisco", "San Luis", "Santa Josefa", "Sibagat", "Talacogon", "Trento", "Veruela"],
+        "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"]
+    },
+    barangays: {
         "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village"],
         "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
-        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Peñaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
-        // ... (keeping the rest of the location data as is)
-    },
-    "Davao del Sur": {
+        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
         "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
-        // ... (keeping the rest of the location data as is)
+        "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
+        "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
+        "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
+        "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
+        "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
+        "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
+        "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
+        "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
+        "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
+        "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
+        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"]
     }
-    // ... (keeping all other provinces as is)
 };
 
 // Mobile Card Component for Distribution
@@ -184,16 +200,18 @@ const DistributionFormModal: React.FC<{
 
     // Get available cities based on selected province
     const getAvailableCities = () => {
-        if (!formData.province || !(formData.province in davaoRegionLocations)) return [];
-        const province = formData.province as keyof typeof davaoRegionLocations;
-        return Object.keys(davaoRegionLocations[province]);
+        if (!formData.province || formData.province === 'all' || !locationData.cities[formData.province]) {
+            return ["All Cities"];
+        }
+        return ["All Cities", ...locationData.cities[formData.province]];
     };
 
     // Get available barangays based on selected city
     const getAvailableBarangays = () => {
-        if (!formData.province || !formData.city) return [];
-        const province = davaoRegionLocations[formData.province as keyof typeof davaoRegionLocations];
-        return province && formData.city in province ? province[formData.city as keyof typeof province] : [];
+        if (!formData.city || formData.city === 'all' || formData.city === 'All Cities' || !locationData.barangays[formData.city]) {
+            return ["All Barangays"];
+        }
+        return ["All Barangays", ...locationData.barangays[formData.city]];
     };
 
     // Handle input changes
@@ -259,7 +277,7 @@ const DistributionFormModal: React.FC<{
         if (!formData.city) newErrors.city = 'City is required';
         if (!formData.barangay) newErrors.barangay = 'Barangay is required';
         if (!formData.street.trim()) newErrors.street = 'Street/Purok is required';
-        if (!formData.facilityType) newErrors.facilityType = 'Facility type is required';
+        // Facility type validation removed as the field is not in the form
         if (!formData.details.trim()) newErrors.details = 'Details are required';
         if (!formData.batchId) newErrors.batchId = 'Batch ID is required';
         if (!formData.fingerlingsCount || formData.fingerlingsCount <= 0) {
@@ -672,7 +690,7 @@ const DistributionFormModal: React.FC<{
                                             }`}
                                     >
                                         <option value="">Select province</option>
-                                        {Object.keys(davaoRegionLocations).map(province => (
+                                        {locationData.provinces.map(province => (
                                             <option key={province} value={province}>{province}</option>
                                         ))}
                                     </select>
@@ -750,7 +768,7 @@ const DistributionFormModal: React.FC<{
 
                         {/* Facility and Additional Info */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
+                            {/* <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
                                     <Building2 className="h-4 w-4" />
                                     Facility Type
@@ -776,7 +794,7 @@ const DistributionFormModal: React.FC<{
                                         <span className="text-sm text-red-600">{errors.facilityType}</span>
                                     </div>
                                 )}
-                            </div>
+                            </div> */}
 
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -1613,7 +1631,7 @@ const DistributionForm: React.FC = () => {
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Species</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batch ID</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Fingerlings</th>
-                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Facility</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Location</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Forecasted (kg)</th>
                                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actual (kg)</th>
@@ -1637,7 +1655,7 @@ const DistributionForm: React.FC = () => {
                                                         <td className="px-4 py-3 text-sm text-gray-900">{dist.species}</td>
                                                         <td className="px-4 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
                                                         <td className="px-4 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
-                                                        <td className="px-4 py-3 text-sm text-gray-900">{dist.facilityType}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700">{dist.location}</td>
                                                         <td className="px-4 py-3 text-sm text-gray-900">{dist.date}</td>
                                                         <td className="px-4 py-3 text-sm">
                                                             {dist.forecastedHarvestKilos ? (
