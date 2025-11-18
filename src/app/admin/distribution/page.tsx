@@ -328,6 +328,9 @@ const DistributionFormModal: React.FC<{
                 'Bangus': 'Bangus'
             };
 
+            // Calculate forecasted harvest kilos
+            const dates = calculateDates(formData.date, formData.fingerlingsCount);
+
             // Prepare data for API
             const distributionData = {
                 dateDistributed: formData.date,
@@ -342,8 +345,12 @@ const DistributionFormModal: React.FC<{
                 avgWeight: 0.5, // Default average weight
                 harvestKilo: Math.round(formData.fingerlingsCount * 0.5 * 0.78), // Calculate based on fingerlings
                 userId: 1, // Hardcoded userId for new distributions
-                batchId: formData.batchId
+                batchId: formData.batchId,
+                forecastedHarvestKilos: dates.forecastedHarvestKilos // Add forecasted harvest kilos
             };
+
+            // Log the data being sent for debugging
+            console.log('Sending distribution data to API:', distributionData);
 
             // Call API to save to database
             const response = await fetch('/api/distributions-data', {
@@ -355,6 +362,9 @@ const DistributionFormModal: React.FC<{
             });
 
             const result = await response.json();
+
+            // Log the response from API for debugging
+            console.log('API Response:', result);
 
             if (result.success) {
                 // Transform the saved data back to Distribution format for display
@@ -483,9 +493,11 @@ const DistributionFormModal: React.FC<{
                                         <input
                                             type="number"
                                             value={formData.fingerlingsCount || ''}
-                                            readOnly
+                                            onChange={(e) => handleInputChange('fingerlingsCount', parseInt(e.target.value) || 0)}
                                             placeholder="Will be auto-filled when batch is selected"
-                                            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.fingerlingsCount ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                }`}
+                                            min="0"
                                         />
                                         {selectedBatch && (
                                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -493,6 +505,12 @@ const DistributionFormModal: React.FC<{
                                             </div>
                                         )}
                                     </div>
+                                    {errors.fingerlingsCount && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.fingerlingsCount}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="md:col-span-2">
