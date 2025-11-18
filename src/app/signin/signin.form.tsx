@@ -307,27 +307,27 @@ const LoginPage: React.FC = () => {
                         Welcome to finCount
                     </p>
                     <p className="text-white mb-8 pt-4">
-                        Your Automated fingerling Counting with Descriptive and Predictive Analytics
+                        Your Automated fingerling Counting with Forecasting.
                     </p>
                     <div className="space-y-6 text-lg text-white font-medium">
                         <div className="flex items-start">
                             <CircleCheck className="h-6 w-6 mr-3 mt-1" />
-                            <p>Real-time fingerling counting</p>
+                            <p>Fingerling counting</p>
                         </div>
 
                         <div className="flex items-start">
                             <CircleCheck className="h-6 w-6 mr-3 mt-1" />
-                            <p>Accurate harvest tracking</p>
+                            <p>Data Visualization</p>
                         </div>
 
                         <div className="flex items-start">
                             <CircleCheck className="h-6 w-6 mr-3 mt-1" />
-                            <p>Comprehensive reporting</p>
+                            <p>Comparative Yield Analysis</p>
                         </div>
 
                         <div className="flex items-start">
                             <CircleCheck className="h-6 w-6 mr-3 mt-1" />
-                            <p>Real-time Forecasting and Trends Analytics</p>
+                            <p>Forecasting and Trends Analytics</p>
                         </div>
                     </div>
                 </div>
