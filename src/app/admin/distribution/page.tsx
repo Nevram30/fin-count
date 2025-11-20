@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, ChevronDown, ChevronUp, Plus, Edit3, Trash2 } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
@@ -38,6 +38,109 @@ interface FormErrors {
     [key: string]: string;
 }
 
+// Autocomplete Input Component
+const AutocompleteInput: React.FC<{
+    value: string;
+    onChange: (value: string) => void;
+    field: string;
+    placeholder: string;
+    error?: string;
+    className?: string;
+}> = ({ value, onChange, field, placeholder, error, className }) => {
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            // Show suggestions when user types at least 1 character
+            if (value.length < 1) {
+                setSuggestions([]);
+                setShowSuggestions(false);
+                return;
+            }
+
+            setIsLoading(true);
+            try {
+                const response = await fetch(`/api/distributions-data/suggestions?field=${field}&query=${encodeURIComponent(value)}`);
+                const data = await response.json();
+
+                if (data.success && data.data.suggestions.length > 0) {
+                    setSuggestions(data.data.suggestions);
+                    setShowSuggestions(true);
+                } else {
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                }
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+                setSuggestions([]);
+                setShowSuggestions(false);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        const debounceTimer = setTimeout(fetchSuggestions, 300);
+        return () => clearTimeout(debounceTimer);
+    }, [value, field]);
+
+    return (
+        <div ref={wrapperRef} className="relative">
+            <input
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onFocus={() => {
+                    if (suggestions.length > 0) {
+                        setShowSuggestions(true);
+                    }
+                }}
+                placeholder={placeholder}
+                className={className}
+            />
+            {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {suggestions.map((suggestion, index) => (
+                        <div
+                            key={index}
+                            onClick={() => {
+                                onChange(suggestion);
+                                setShowSuggestions(false);
+                            }}
+                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700"
+                        >
+                            {suggestion}
+                        </div>
+                    ))}
+                </div>
+            )}
+            {isLoading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                </div>
+            )}
+            {error && (
+                <div className="flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-red-600">{error}</span>
+                </div>
+            )}
+        </div>
+    );
+};
 
 // Species options
 const speciesOptions = [
@@ -200,6 +303,12 @@ const DistributionFormModal: React.FC<{
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
+    const [availableBatches, setAvailableBatches] = useState<Batch[]>(batches);
+
+    // Update available batches when batches prop changes
+    useEffect(() => {
+        setAvailableBatches(batches);
+    }, [batches]);
 
     if (!isOpen) return null;
 
@@ -252,7 +361,7 @@ const DistributionFormModal: React.FC<{
 
     // Handle batch selection
     const handleBatchChange = (batchId: string) => {
-        const batch = batches.find(b => b.id === batchId);
+        const batch = availableBatches.find(b => b.id === batchId);
         setSelectedBatch(batch || null);
         handleInputChange('batchId', batchId);
 
@@ -275,7 +384,14 @@ const DistributionFormModal: React.FC<{
             if (!formData.organizationName.trim()) newErrors.organizationName = 'Organization name is required';
         }
 
-        if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
+        // Phone number validation: must be numbers only and at least 11 digits
+        if (!formData.phoneNumber.trim()) {
+            newErrors.phoneNumber = 'Phone number is required';
+        } else if (!/^\d+$/.test(formData.phoneNumber)) {
+            newErrors.phoneNumber = 'Phone number must contain only numbers';
+        } else if (formData.phoneNumber.length < 11) {
+            newErrors.phoneNumber = 'Phone number must be at least 11 digits';
+        }
         if (!formData.species) newErrors.species = 'Species is required';
         if (!formData.date) newErrors.date = 'Date is required';
         if (!formData.province) newErrors.province = 'Province is required';
@@ -395,6 +511,9 @@ const DistributionFormModal: React.FC<{
 
                 onSave(newDistribution);
 
+                // Remove the used batch from available batches
+                setAvailableBatches(prev => prev.filter(b => b.id !== formData.batchId));
+
                 // Reset form
                 setFormData({
                     beneficiaryType: '', firstname: '', lastname: '', organizationName: '',
@@ -453,7 +572,7 @@ const DistributionFormModal: React.FC<{
                                             }`}
                                     >
                                         <option value="">Select a batch</option>
-                                        {batches.map(batch => (
+                                        {availableBatches.map(batch => (
                                             <option key={batch.id} value={batch.id}>
                                                 {batch.id} - {batch.species} ({batch.location})
                                             </option>
@@ -599,38 +718,28 @@ const DistributionFormModal: React.FC<{
                                     <>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">Firstname</label>
-                                            <input
-                                                type="text"
+                                            <AutocompleteInput
                                                 value={formData.firstname}
-                                                onChange={(e) => handleInputChange('firstname', e.target.value)}
+                                                onChange={(value) => handleInputChange('firstname', value)}
+                                                field="firstname"
                                                 placeholder="Enter firstname"
+                                                error={errors.firstname}
                                                 className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.firstname ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                                     }`}
                                             />
-                                            {errors.firstname && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.firstname}</span>
-                                                </div>
-                                            )}
                                         </div>
 
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">Lastname</label>
-                                            <input
-                                                type="text"
+                                            <AutocompleteInput
                                                 value={formData.lastname}
-                                                onChange={(e) => handleInputChange('lastname', e.target.value)}
+                                                onChange={(value) => handleInputChange('lastname', value)}
+                                                field="lastname"
                                                 placeholder="Enter lastname"
+                                                error={errors.lastname}
                                                 className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.lastname ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                                     }`}
                                             />
-                                            {errors.lastname && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                                    <span className="text-sm text-red-600">{errors.lastname}</span>
-                                                </div>
-                                            )}
                                         </div>
                                     </>
                                 )}
@@ -660,8 +769,13 @@ const DistributionFormModal: React.FC<{
                                     <input
                                         type="tel"
                                         value={formData.phoneNumber}
-                                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                                        placeholder="Enter phone number"
+                                        onChange={(e) => {
+                                            // Only allow numbers and limit to 11 digits
+                                            const value = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                            handleInputChange('phoneNumber', value);
+                                        }}
+                                        placeholder="Enter phone number (11 digits)"
+                                        maxLength={11}
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.phoneNumber ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
                                     />
@@ -671,27 +785,35 @@ const DistributionFormModal: React.FC<{
                                             <span className="text-sm text-red-600">{errors.phoneNumber}</span>
                                         </div>
                                     )}
+                                    {formData.phoneNumber && !errors.phoneNumber && formData.phoneNumber.length === 11 && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                            <span className="text-sm text-green-600">
+                                                Valid phone number (11 digits)
+                                            </span>
+                                        </div>
+                                    )}
+                                    {formData.phoneNumber && !errors.phoneNumber && formData.phoneNumber.length < 11 && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                                            <span className="text-sm text-amber-600">
+                                                {formData.phoneNumber.length}/11 digits
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Species</label>
-                                    <select
+                                    <AutocompleteInput
                                         value={formData.species}
-                                        onChange={(e) => handleInputChange('species', e.target.value)}
+                                        onChange={(value) => handleInputChange('species', value)}
+                                        field="species"
+                                        placeholder="Enter or select species"
+                                        error={errors.species}
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.species ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
-                                    >
-                                        <option value="">Select species</option>
-                                        {speciesOptions.map(species => (
-                                            <option key={species} value={species}>{species}</option>
-                                        ))}
-                                    </select>
-                                    {errors.species && (
-                                        <div className="flex items-center gap-1 mt-1">
-                                            <AlertCircle className="h-4 w-4 text-red-500" />
-                                            <span className="text-sm text-red-600">{errors.species}</span>
-                                        </div>
-                                    )}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -705,67 +827,41 @@ const DistributionFormModal: React.FC<{
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
-                                    <select
+                                    <AutocompleteInput
                                         value={formData.province}
-                                        onChange={(e) => handleInputChange('province', e.target.value)}
+                                        onChange={(value) => handleInputChange('province', value)}
+                                        field="province"
+                                        placeholder="Enter or select province"
+                                        error={errors.province}
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.province ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
-                                    >
-                                        <option value="">Select province</option>
-                                        {locationData.provinces.map(province => (
-                                            <option key={province} value={province}>{province}</option>
-                                        ))}
-                                    </select>
-                                    {errors.province && (
-                                        <div className="flex items-center gap-1 mt-1">
-                                            <AlertCircle className="h-4 w-4 text-red-500" />
-                                            <span className="text-sm text-red-600">{errors.province}</span>
-                                        </div>
-                                    )}
+                                    />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                                    <select
+                                    <AutocompleteInput
                                         value={formData.city}
-                                        onChange={(e) => handleInputChange('city', e.target.value)}
-                                        disabled={!formData.province}
+                                        onChange={(value) => handleInputChange('city', value)}
+                                        field="city"
+                                        placeholder="Enter or select city"
+                                        error={errors.city}
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                            } ${!formData.province ? 'bg-gray-100' : ''}`}
-                                    >
-                                        <option value="">Select city</option>
-                                        {getAvailableCities().map(city => (
-                                            <option key={city} value={city}>{city}</option>
-                                        ))}
-                                    </select>
-                                    {errors.city && (
-                                        <div className="flex items-center gap-1 mt-1">
-                                            <AlertCircle className="h-4 w-4 text-red-500" />
-                                            <span className="text-sm text-red-600">{errors.city}</span>
-                                        </div>
-                                    )}
+                                            }`}
+                                    />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Barangay</label>
-                                    <select
+                                    <AutocompleteInput
                                         value={formData.barangay}
-                                        onChange={(e) => handleInputChange('barangay', e.target.value)}
-                                        disabled={!formData.city}
+                                        onChange={(value) => handleInputChange('barangay', value)}
+                                        field="barangay"
+                                        placeholder="Enter or select barangay"
+                                        error={errors.barangay}
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.barangay ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                            } ${!formData.city ? 'bg-gray-100' : ''}`}
-                                    >
-                                        <option value="">Select barangay</option>
-                                        {getAvailableBarangays().map((barangay: string) => (
-                                            <option key={barangay} value={barangay}>{barangay}</option>
-                                        ))}
-                                    </select>
-                                    {errors.barangay && (
-                                        <div className="flex items-center gap-1 mt-1">
-                                            <AlertCircle className="h-4 w-4 text-red-500" />
-                                            <span className="text-sm text-red-600">{errors.barangay}</span>
-                                        </div>
-                                    )}
+                                            }`}
+                                    />
                                 </div>
 
                                 <div>
@@ -889,7 +985,7 @@ const DistributionFormModal: React.FC<{
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
