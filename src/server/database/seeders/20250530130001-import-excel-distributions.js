@@ -172,7 +172,7 @@ module.exports = {
           province: row["Province"] || "Unknown",
           fingerlings: fingerlings,
           species: species,
-          forecastedHarvestKilos: forecastedHarvestKilos,
+          forecastedHarvestKilos: forecastedHarvestKilos || null,
           actualHarvestKilos: actualHarvestKilos,
           actualHarvestDate: actualHarvestKilos ? parsedDate : null,
           remarks: actualHarvestKilos ? "Harvested" : null,
@@ -195,12 +195,12 @@ module.exports = {
     const tilapiaFile = path.join(
       srcDir,
       "src",
-      "Red_Tilapia Distribution_Data.xlsx"
+      "Red_Tilapia_Distribution_Cleaned.xlsx"
     );
     const bangusFile = path.join(
       srcDir,
       "src",
-      "Bangus Distribution_Data.xlsx"
+      "Bangus_Distribution_Cleaned.xlsx"
     );
 
     let allDistributions = [];

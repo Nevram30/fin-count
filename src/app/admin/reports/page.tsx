@@ -162,8 +162,8 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
     const [filters, setFilters] = useState<ReportFilters>({
         reportType: "Fingerling Count",
         species: "All Species",
-        startDate: "2025-04-30",
-        endDate: "2025-05-30",
+        startDate: "2023-01-01",
+        endDate: "2025-12-30",
         province: "All Provinces",
         city: "All Cities",
         barangay: "All Barangays"
@@ -264,6 +264,7 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                                 >
                                     <option value="Fingerling Count">Fingerling Count</option>
+                                    <option value="Undistributed Batches">Undistributed Batches</option>
                                     <option value="Distributed Batches">Distributed Batches</option>
                                     <option value="Beneficiaries Report">Beneficiaries Report</option>
                                 </select>
@@ -466,6 +467,17 @@ const FingerlingsCountReportView: React.FC<{ filters: ReportFilters }> = ({ filt
             "Total Fingerlings": item.totalFingerlings,
             "Distribution Count": item.distributionCount,
         }));
+
+        // Add total row to CSV export
+        if (summary) {
+            csvData.push({
+                Date: "Overall Total",
+                Species: "",
+                "Total Fingerlings": summary.grandTotal || 0,
+                "Distribution Count": summary.totalDistributions || 0,
+            });
+        }
+
         exportToCSV(csvData, "fingerling_count_report");
     };
 
@@ -526,6 +538,19 @@ const FingerlingsCountReportView: React.FC<{ filters: ReportFilters }> = ({ filt
                                 </tr>
                             ))}
                         </tbody>
+                        <tfoot className="bg-blue-50 border-t-2 border-blue-200">
+                            <tr>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" colSpan={2}>
+                                    Overall Total
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-700">
+                                    {summary?.grandTotal ? summary.grandTotal.toLocaleString() : '0'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-700">
+                                    {summary?.totalDistributions ? summary.totalDistributions.toLocaleString() : '0'}
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 ) : (
                     <div className="text-center py-16">
@@ -681,9 +706,12 @@ const DistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ fi
     const [data, setData] = React.useState<any[]>([]);
     const [summary, setSummary] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const [itemsPerPage] = React.useState(10);
 
     React.useEffect(() => {
         fetchData();
+        setCurrentPage(1); // Reset to first page when filters change
     }, [filters]);
 
     const fetchData = async () => {
@@ -707,15 +735,36 @@ const DistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ fi
         }
     };
 
+    // Flatten data for pagination
+    const flattenedData = React.useMemo(() => {
+        const flattened: any[] = [];
+        data.forEach(batch => {
+            if (batch.distributions && batch.distributions.length > 0) {
+                batch.distributions.forEach((dist: any) => {
+                    flattened.push({
+                        batchId: batch.batchNumber,
+                        beneficiaryName: dist.beneficiaryName,
+                        species: batch.species,
+                        totalCount: batch.batchTotalCount || 0,
+                    });
+                });
+            }
+        });
+        return flattened;
+    }, [data]);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(flattenedData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentData = flattenedData.slice(startIndex, endIndex);
+
     const handleExportCSV = () => {
-        const csvData = data.map(batch => ({
-            "Batch Number": batch.batchNumber,
-            "Species": batch.species,
-            "Quantity": batch.quantity,
-            "Distribution Date": batch.dateDistributed ? new Date(batch.dateDistributed).toLocaleDateString() : "N/A",
-            "Beneficiary Location": batch.beneficiaryLocation,
-            "Staff Name": batch.staffName,
-            "Status": batch.status
+        const csvData = flattenedData.map(item => ({
+            "Batch ID": item.batchId,
+            "Beneficiaries Name": item.beneficiaryName,
+            "Species": item.species,
+            "Total Count": item.totalCount,
         }));
         exportToCSV(csvData, "distributed_batches_report");
     };
@@ -756,37 +805,70 @@ const DistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ fi
 
             {/* Report Content */}
             <div className="overflow-x-auto">
-                {data.length > 0 ? (
-                    <table className="w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Count</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distributed</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Date</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {data.map((batch) => (
-                                <tr key={batch.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.batchName || "N/A"}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.species}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.batchTotalCount?.toLocaleString() || "N/A"}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.distributedQuantity?.toLocaleString() || "0"}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {batch.dateCreated ? new Date(batch.dateCreated).toLocaleDateString() : "N/A"}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {batch.dateDistributed ? new Date(batch.dateDistributed).toLocaleDateString() : "N/A"}
-                                    </td>
+                {flattenedData.length > 0 ? (
+                    <>
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiaries Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Count</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {currentData.map((item, index) => (
+                                    <tr key={`${item.batchId}-${index}`} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.batchId}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.beneficiaryName}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.species}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.totalCount.toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                                <div className="text-sm text-gray-700">
+                                    Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(endIndex, flattenedData.length)}</span> of{' '}
+                                    <span className="font-medium">{flattenedData.length}</span> results
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Previous
+                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-700">Page</span>
+                                        <select
+                                            value={currentPage}
+                                            onChange={(e) => setCurrentPage(Number(e.target.value))}
+                                            className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                        >
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                                <option key={page} value={page}>
+                                                    {page}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <span className="text-sm text-gray-700">of {totalPages}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="text-center py-16">
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
@@ -806,6 +888,11 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
     const [data, setData] = React.useState<any[]>([]);
     const [summary, setSummary] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    const [filterConfig, setFilterConfig] = React.useState<any>({
+        hasProvince: true,
+        hasCity: true,
+        hasBarangay: true,
+    });
 
     React.useEffect(() => {
         fetchData();
@@ -834,23 +921,9 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
             const response = await fetch(`/api/reports/beneficiaries?${params}`);
             const result = await response.json();
             if (result.success) {
-                // Flatten the data structure to show each beneficiary as a separate row
-                const flattenedData: any[] = [];
-                result.data.forEach((location: any) => {
-                    if (location.beneficiaries && location.beneficiaries.length > 0) {
-                        location.beneficiaries.forEach((beneficiary: any) => {
-                            flattenedData.push({
-                                province: location.province,
-                                city: location.municipality,
-                                barangay: location.barangay,
-                                beneficiaryName: beneficiary.beneficiaryName,
-                                totalFingerlings: beneficiary.fingerlings
-                            });
-                        });
-                    }
-                });
-                setData(flattenedData);
+                setData(result.data);
                 setSummary(result.summary);
+                setFilterConfig(result.filters);
             }
         } catch (error) {
             console.error("Error fetching beneficiaries report:", error);
@@ -860,18 +933,37 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
     };
 
     // Determine which columns to show based on filter selection
-    const showProvince = filters.barangay === "All Barangays" && filters.city === "All Cities";
-    const showCity = filters.barangay === "All Barangays" && filters.city !== "All Cities";
-    const showBarangay = filters.barangay !== "All Barangays";
+    const showProvince = filters.province === "All Provinces";
+    const showMunicipality = filters.province !== "All Provinces" && filters.city === "All Cities";
+    const showBarangay = filters.city !== "All Cities" && filters.barangay === "All Barangays";
+    const showAllLocations = filters.barangay !== "All Barangays";
 
     const handleExportCSV = () => {
         const csvData = data.map(beneficiary => {
             const row: any = {};
-            if (showProvince) row["Province"] = beneficiary.province;
-            if (showCity) row["City"] = beneficiary.city;
-            if (showBarangay) row["Barangay"] = beneficiary.barangay;
+
+            // Add columns based on filter selection
+            if (showProvince) {
+                row["Province"] = beneficiary.province;
+            } else if (showMunicipality) {
+                row["Province"] = beneficiary.province;
+                row["Municipality"] = beneficiary.municipality;
+            } else if (showBarangay) {
+                row["Province"] = beneficiary.province;
+                row["Municipality"] = beneficiary.municipality;
+                row["Barangay"] = beneficiary.barangay;
+            } else if (showAllLocations) {
+                row["Province"] = beneficiary.province;
+                row["Municipality"] = beneficiary.municipality;
+                row["Barangay"] = beneficiary.barangay;
+            }
+
             row["Beneficiary Name"] = beneficiary.beneficiaryName;
+            row["Species"] = beneficiary.species;
+            row["Contact Number"] = beneficiary.contactNumber;
             row["Total Fingerlings"] = beneficiary.totalFingerlings;
+            row["Date Distributed"] = new Date(beneficiary.dateDistributed).toLocaleDateString();
+
             return row;
         });
         exportToCSV(csvData, "beneficiaries_report");
@@ -919,14 +1011,17 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
                                 {showProvince && (
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
                                 )}
-                                {showCity && (
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
+                                {(showMunicipality || showBarangay || showAllLocations) && (
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Municipality</th>
                                 )}
-                                {showBarangay && (
+                                {(showBarangay || showAllLocations) && (
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barangay</th>
                                 )}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Distributed</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -935,14 +1030,19 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
                                     {showProvince && (
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.province}</td>
                                     )}
-                                    {showCity && (
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.city}</td>
+                                    {(showMunicipality || showBarangay || showAllLocations) && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.municipality}</td>
                                     )}
-                                    {showBarangay && (
+                                    {(showBarangay || showAllLocations) && (
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.barangay}</td>
                                     )}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.species}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.contactNumber}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {new Date(beneficiary.dateDistributed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

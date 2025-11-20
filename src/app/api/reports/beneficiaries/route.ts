@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Op } from "sequelize";
-import Distribution from "@/server/database/models/distribution";
-import { sequelize } from "@/server/database/models/db";
+import models from "@/server/database/models";
+
+const { Distribution, StaffProfile, sequelize } = models;
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,102 +36,131 @@ export async function GET(request: NextRequest) {
       whereClause.barangay = barangay;
     }
 
-    // Query for beneficiaries grouped by location
+    // Determine grouping based on filters
+    const groupByFields: string[] = [];
+    const selectFields: any[] = [
+      "beneficiaryName",
+      "species",
+      "dateDistributed",
+    ];
+
+    // Add location fields based on what's filtered
+    if (!province || province === "All Provinces") {
+      groupByFields.push("province");
+      selectFields.push("province");
+    } else {
+      selectFields.push("province");
+      groupByFields.push("province");
+    }
+
+    if (!city || city === "All Cities") {
+      groupByFields.push("municipality");
+      selectFields.push("municipality");
+    } else if (province && province !== "All Provinces") {
+      selectFields.push("municipality");
+      groupByFields.push("municipality");
+    }
+
+    if (!barangay || barangay === "All Barangays") {
+      groupByFields.push("barangay");
+      selectFields.push("barangay");
+    } else if (city && city !== "All Cities") {
+      selectFields.push("barangay");
+      groupByFields.push("barangay");
+    }
+
+    // Add beneficiary-specific grouping
+    groupByFields.push(
+      "beneficiaryName",
+      "species",
+      "dateDistributed",
+      "userId"
+    );
+
+    // Query for detailed beneficiary records
     const beneficiariesData: any[] = await Distribution.findAll({
       attributes: [
-        "province",
-        "municipality",
-        "barangay",
-        [
-          sequelize.fn(
-            "COUNT",
-            sequelize.fn("DISTINCT", sequelize.col("beneficiaryName"))
-          ),
-          "beneficiaryCount",
-        ],
+        ...selectFields,
+        "userId",
         [sequelize.fn("SUM", sequelize.col("fingerlings")), "totalFingerlings"],
-        [sequelize.fn("COUNT", sequelize.col("id")), "distributionCount"],
       ],
       where: whereClause,
-      group: ["province", "municipality", "barangay"],
+      group: groupByFields,
       order: [
         ["province", "ASC"],
         ["municipality", "ASC"],
         ["barangay", "ASC"],
+        ["beneficiaryName", "ASC"],
       ],
       raw: true,
     });
 
-    // Get unique beneficiaries per location with their names
-    const beneficiariesWithNames = [];
+    // Get unique user IDs to fetch contact numbers
+    const userIds = Array.from(
+      new Set(beneficiariesData.map((record: any) => record.userId))
+    );
 
-    for (const location of beneficiariesData) {
-      // Get unique beneficiary names for this location
-      const locationWhere: any = {
-        province: location.province,
-        municipality: location.municipality,
+    // Fetch phone numbers from StaffProfile for all users
+    const staffProfiles = await StaffProfile.findAll({
+      where: {
+        userId: {
+          [Op.in]: userIds,
+        },
+      },
+      attributes: ["userId", "phoneNumber"],
+      raw: true,
+    });
+
+    // Create a map of userId to phoneNumber
+    const userContactMap = new Map(
+      staffProfiles.map((profile: any) => [profile.userId, profile.phoneNumber])
+    );
+
+    // Format the data with contact numbers
+    const formattedData = beneficiariesData.map((record: any) => {
+      return {
+        province: record.province,
+        municipality: record.municipality,
+        barangay: record.barangay || "N/A",
+        beneficiaryName: record.beneficiaryName,
+        species: record.species,
+        contactNumber: userContactMap.get(record.userId) || "N/A",
+        totalFingerlings: parseInt(record.totalFingerlings) || 0,
+        dateDistributed: record.dateDistributed,
       };
-
-      if (location.barangay) {
-        locationWhere.barangay = location.barangay;
-      }
-
-      // Apply date filter if exists
-      if (startDate && endDate) {
-        locationWhere.dateDistributed = {
-          [Op.between]: [new Date(startDate), new Date(endDate)],
-        };
-      }
-
-      const beneficiaries = await Distribution.findAll({
-        attributes: [
-          "beneficiaryName",
-          [sequelize.fn("SUM", sequelize.col("fingerlings")), "fingerlings"],
-        ],
-        where: locationWhere,
-        group: ["beneficiaryName"],
-        raw: true,
-      });
-
-      beneficiariesWithNames.push({
-        province: location.province,
-        municipality: location.municipality,
-        barangay: location.barangay || "N/A",
-        beneficiaryCount: location.beneficiaryCount,
-        totalFingerlings: location.totalFingerlings,
-        distributionCount: location.distributionCount,
-        beneficiaries: beneficiaries,
-      });
-    }
+    });
 
     // Calculate summary statistics
     const summary = {
-      totalLocations: beneficiariesWithNames.length,
-      totalBeneficiaries: beneficiariesWithNames.reduce(
-        (sum, loc) => sum + parseInt(loc.beneficiaryCount as any),
-        0
-      ),
-      totalFingerlings: beneficiariesWithNames.reduce(
-        (sum, loc) => sum + parseInt(loc.totalFingerlings as any),
-        0
-      ),
-      totalDistributions: beneficiariesWithNames.reduce(
-        (sum, loc) => sum + parseInt(loc.distributionCount as any),
+      totalBeneficiaries: formattedData.length,
+      totalFingerlings: formattedData.reduce(
+        (sum, record) => sum + record.totalFingerlings,
         0
       ),
     };
 
     return NextResponse.json({
       success: true,
-      data: beneficiariesWithNames,
+      data: formattedData,
       summary: summary,
+      filters: {
+        hasProvince: !province || province === "All Provinces",
+        hasCity: !city || city === "All Cities",
+        hasBarangay: !barangay || barangay === "All Barangays",
+      },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching beneficiaries report:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
     return NextResponse.json(
       {
         success: false,
         error: "Failed to fetch beneficiaries report",
+        details: error.message,
       },
       { status: 500 }
     );
