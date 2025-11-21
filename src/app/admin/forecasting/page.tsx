@@ -839,146 +839,158 @@ const HarvestForecast: React.FC = () => {
                                     </div> */}
                                 </div>
 
-                                {/* Trend Analysis Section - Three Separate Charts */}
+                                {/* Trend Analysis Section - Dynamic Based on Selection */}
                                 <div className="mb-8">
                                     <div className="flex items-center gap-3 mb-6">
                                         <BarChart3 className="h-5 w-5 text-purple-600" />
-                                        <h3 className="text-xl font-semibold text-gray-900">Province, City/Municipality, Barangays  Forecast Trend Analysis</h3>
+                                        <h3 className="text-xl font-semibold text-gray-900">Geographic Level Forecast Trend Analysis</h3>
                                     </div>
-                                    <p className="text-sm text-gray-600 mb-6">Compare harvest trends across different geographic levels for {formData.species}</p>
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-                                        <div className="p-6">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h4 className="text-lg font-semibold text-gray-900">Province Level Trend</h4>
-                                                <button
-                                                    onClick={() => handleViewDetails('province')}
-                                                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
-                                                >
-                                                    <BarChart3 className="h-4 w-4" />
-                                                    View Details
-                                                </button>
-                                            </div>
-                                            <p className="text-sm text-gray-600 mb-4">{formData.province} - Aggregated Provincial Data</p>
-                                            <div className="h-80">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <AreaChart data={provinceTrendData}>
-                                                        <CartesianGrid strokeDasharray="3 3" />
-                                                        <XAxis dataKey="month" />
-                                                        <YAxis />
-                                                        <Tooltip
-                                                            formatter={(value) => [
-                                                                value?.toLocaleString(),
-                                                                'Harvest Volume (kg)'
-                                                            ]}
-                                                            labelFormatter={(label) => `Month: ${label}`}
-                                                        />
-                                                        <Area
-                                                            type="monotone"
-                                                            dataKey="value"
-                                                            stroke="#8B5CF6"
-                                                            fill="#8B5CF6"
-                                                            fillOpacity={0.3}
-                                                            strokeWidth={2}
-                                                        />
-                                                    </AreaChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <p className="text-sm text-gray-600 mb-6">
+                                        Compare harvest trends across different geographic levels for {formData.species}
+                                    </p>
 
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-                                        <div className="p-6">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h4 className="text-lg font-semibold text-gray-900">City/Municipality Level Trend</h4>
-                                                <button
-                                                    onClick={() => handleViewDetails('city')}
-                                                    className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors text-sm flex items-center gap-2"
-                                                >
-                                                    <BarChart3 className="h-4 w-4" />
-                                                    View Details
-                                                </button>
-                                            </div>
-                                            <p className="text-sm text-gray-600 mb-4">{formData.city}, {formData.province} - City-Level Data</p>
-                                            <div className="h-80">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <AreaChart data={cityTrendData}>
-                                                        <CartesianGrid strokeDasharray="3 3" />
-                                                        <XAxis dataKey="month" />
-                                                        <YAxis />
-                                                        <Tooltip
-                                                            formatter={(value) => [
-                                                                value?.toLocaleString(),
-                                                                'Harvest Volume (kg)'
-                                                            ]}
-                                                            labelFormatter={(label) => `Month: ${label}`}
-                                                        />
-                                                        <Area
-                                                            type="monotone"
-                                                            dataKey="value"
-                                                            stroke="#06B6D4"
-                                                            fill="#06B6D4"
-                                                            fillOpacity={0.3}
-                                                            strokeWidth={2}
-                                                        />
-                                                    </AreaChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                                        <div className="p-6">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h4 className="text-lg font-semibold text-gray-900">Barangay Level Trend</h4>
-                                                <button
-                                                    onClick={() => handleViewDetails('barangay')}
-                                                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
-                                                >
-                                                    <BarChart3 className="h-4 w-4" />
-                                                    View Details
-                                                </button>
-                                            </div>
-                                            <p className="text-sm text-gray-600 mb-4">{formData.barangay}, {formData.city}, {formData.province} - Barangay-Specific Data</p>
-                                            {barangayTrendData.length === 0 ? (
-                                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                                                    <p className="text-yellow-800 text-sm">
-                                                        No distribution data found for {formData.barangay}. This could mean:
-                                                        <br />• No distributions recorded for this barangay in the selected date range
-                                                        <br />• Barangay name spelling mismatch in the database
-                                                        <br />• Check the browser console for detailed logs
-                                                    </p>
+                                    {/* Province Level Trend - Always show when province is selected */}
+                                    {formData.province !== 'all' && (
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                                            <div className="p-6">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-lg font-semibold text-gray-900">Province Level Trend</h4>
+                                                    <button
+                                                        onClick={() => handleViewDetails('province')}
+                                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
+                                                    >
+                                                        <BarChart3 className="h-4 w-4" />
+                                                        View Details
+                                                    </button>
                                                 </div>
-                                            ) : (
-                                                <div>
+                                                <p className="text-sm text-gray-600 mb-4">{formData.province} - Aggregated Provincial Data</p>
+                                                <div className="h-80">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <AreaChart data={provinceTrendData}>
+                                                            <CartesianGrid strokeDasharray="3 3" />
+                                                            <XAxis dataKey="month" />
+                                                            <YAxis />
+                                                            <Tooltip
+                                                                formatter={(value) => [
+                                                                    value?.toLocaleString(),
+                                                                    'Harvest Volume (kg)'
+                                                                ]}
+                                                                labelFormatter={(label) => `Month: ${label}`}
+                                                            />
+                                                            <Area
+                                                                type="monotone"
+                                                                dataKey="value"
+                                                                stroke="#8B5CF6"
+                                                                fill="#8B5CF6"
+                                                                fillOpacity={0.3}
+                                                                strokeWidth={2}
+                                                            />
+                                                        </AreaChart>
+                                                    </ResponsiveContainer>
                                                 </div>
-                                            )}
-
-                                            <div className="h-80">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <AreaChart data={barangayTrendData}>
-                                                        <CartesianGrid strokeDasharray="3 3" />
-                                                        <XAxis dataKey="month" />
-                                                        <YAxis />
-                                                        <Tooltip
-                                                            formatter={(value) => [
-                                                                value?.toLocaleString(),
-                                                                'Harvest Volume (kg)'
-                                                            ]}
-                                                            labelFormatter={(label) => `Month: ${label}`}
-                                                        />
-                                                        <Area
-                                                            type="monotone"
-                                                            dataKey="value"
-                                                            stroke="#10B981"
-                                                            fill="#10B981"
-                                                            fillOpacity={0.3}
-                                                            strokeWidth={2}
-                                                        />
-                                                    </AreaChart>
-                                                </ResponsiveContainer>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {/* City/Municipality Level Trend - Show when city is selected */}
+                                    {formData.city !== 'all' && formData.city !== 'All Cities' && (
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                                            <div className="p-6">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-lg font-semibold text-gray-900">City/Municipality Level Trend</h4>
+                                                    <button
+                                                        onClick={() => handleViewDetails('city')}
+                                                        className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors text-sm flex items-center gap-2"
+                                                    >
+                                                        <BarChart3 className="h-4 w-4" />
+                                                        View Details
+                                                    </button>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-4">{formData.city}, {formData.province} - City-Level Data</p>
+                                                <div className="h-80">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <AreaChart data={cityTrendData}>
+                                                            <CartesianGrid strokeDasharray="3 3" />
+                                                            <XAxis dataKey="month" />
+                                                            <YAxis />
+                                                            <Tooltip
+                                                                formatter={(value) => [
+                                                                    value?.toLocaleString(),
+                                                                    'Harvest Volume (kg)'
+                                                                ]}
+                                                                labelFormatter={(label) => `Month: ${label}`}
+                                                            />
+                                                            <Area
+                                                                type="monotone"
+                                                                dataKey="value"
+                                                                stroke="#06B6D4"
+                                                                fill="#06B6D4"
+                                                                fillOpacity={0.3}
+                                                                strokeWidth={2}
+                                                            />
+                                                        </AreaChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Barangay Level Trend - Show when specific barangay is selected */}
+                                    {formData.barangay !== 'all' && formData.barangay !== 'All Barangays' && (
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                                            <div className="p-6">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-lg font-semibold text-gray-900">Barangay Level Trend</h4>
+                                                    <button
+                                                        onClick={() => handleViewDetails('barangay')}
+                                                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+                                                    >
+                                                        <BarChart3 className="h-4 w-4" />
+                                                        View Details
+                                                    </button>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-4">{formData.barangay}, {formData.city}, {formData.province} - Barangay-Specific Data</p>
+                                                {barangayTrendData.length === 0 ? (
+                                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                                                        <p className="text-yellow-800 text-sm">
+                                                            No distribution data found for {formData.barangay}. This could mean:
+                                                            <br />• No distributions recorded for this barangay in the selected date range
+                                                            <br />• Barangay name spelling mismatch in the database
+                                                            <br />• Check the browser console for detailed logs
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                    </div>
+                                                )}
+
+                                                <div className="h-80">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <AreaChart data={barangayTrendData}>
+                                                            <CartesianGrid strokeDasharray="3 3" />
+                                                            <XAxis dataKey="month" />
+                                                            <YAxis />
+                                                            <Tooltip
+                                                                formatter={(value) => [
+                                                                    value?.toLocaleString(),
+                                                                    'Harvest Volume (kg)'
+                                                                ]}
+                                                                labelFormatter={(label) => `Month: ${label}`}
+                                                            />
+                                                            <Area
+                                                                type="monotone"
+                                                                dataKey="value"
+                                                                stroke="#10B981"
+                                                                fill="#10B981"
+                                                                fillOpacity={0.3}
+                                                                strokeWidth={2}
+                                                            />
+                                                        </AreaChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}

@@ -164,6 +164,11 @@ module.exports = {
         const forecastedHarvestKilos =
           fingerlings * survivalRate * expectedWeightAfterGrowth;
 
+        // Normalize species name to match ENUM in model
+        const normalizedSpecies = species.toLowerCase().includes("tilapia")
+          ? "Tilapia"
+          : "Bangus";
+
         distributions.push({
           dateDistributed: parsedDate,
           beneficiaryName: row["Beneficiary Name"] || "Unknown",
@@ -171,7 +176,7 @@ module.exports = {
           municipality: row["Municipality"] || "Unknown",
           province: row["Province"] || "Unknown",
           fingerlings: fingerlings,
-          species: species,
+          species: normalizedSpecies,
           forecastedHarvestKilos: forecastedHarvestKilos || null,
           actualHarvestKilos: actualHarvestKilos,
           actualHarvestDate: actualHarvestKilos ? parsedDate : null,
