@@ -360,7 +360,7 @@ const DistributionFormModal: React.FC<{
     };
 
     // Handle batch selection
-    const handleBatchChange = (batchId: string) => {
+    const handleBatchChange = async (batchId: string) => {
         const batch = availableBatches.find(b => b.id === batchId);
         setSelectedBatch(batch || null);
         handleInputChange('batchId', batchId);
@@ -488,10 +488,32 @@ const DistributionFormModal: React.FC<{
 
             const result = await response.json();
 
-            // Log the response from API for debugging
-            console.log('API Response:', result);
-
             if (result.success) {
+                // Delete the session from Railway API after successful distribution save
+                if (selectedBatch?.sessionId) {
+                    try {
+                        const deleteSessionResponse = await fetch(
+                            `https://fincount-api-production.up.railway.app/api/sessions/${selectedBatch.sessionId}`,
+                            {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                            }
+                        );
+
+                        // Check if the response is OK (status 200-299)
+                        if (deleteSessionResponse.ok) {
+                            console.log('Session deleted successfully from Railway API. Session ID:', selectedBatch.sessionId, 'Batch ID:', formData.batchId);
+                        } else {
+                            const deleteSessionResult = await deleteSessionResponse.json();
+                            console.error('Failed to delete session from Railway API:', deleteSessionResult);
+                        }
+                    } catch (sessionDeleteError) {
+                        console.error('Error deleting session from Railway API:', sessionDeleteError);
+                    }
+                }
+
                 // Transform the saved data back to Distribution format for display
                 const dates = calculateDates(formData.date, formData.fingerlingsCount);
                 const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
@@ -1474,6 +1496,11 @@ const DistributionForm: React.FC = () => {
             const data = await response.json();
 
             if (data.success && data.data.sessions) {
+                // Log the first session to see the actual structure
+                if (data.data.sessions.length > 0) {
+                    console.log('Sample session from API:', data.data.sessions[0]);
+                }
+
                 // Transform sessions data to batch format
                 const transformedBatches: Batch[] = data.data.sessions.map((session: any) => {
                     // Calculate total count from all count categories
@@ -1482,8 +1509,12 @@ const DistributionForm: React.FC = () => {
                         0
                     );
 
+                    // Try multiple possible field names for session ID
+                    const sessionId = session.session_id || session.sessionId || session.id || session._id;
+
                     return {
                         id: session.batchId,
+                        sessionId: sessionId, // Store session_id for deletion (try multiple field names)
                         species: session.species,
                         location: session.location,
                         date: new Date(session.timestamp).toISOString().split('T')[0],
@@ -1493,6 +1524,7 @@ const DistributionForm: React.FC = () => {
                     };
                 });
 
+                console.log('Transformed batches with sessionIds:', transformedBatches.map(b => ({ id: b.id, sessionId: b.sessionId })));
                 setBatches(transformedBatches);
             } else {
                 console.error('Failed to fetch sessions:', data.error);

@@ -77,14 +77,6 @@ const StatisticsOverview: React.FC = () => {
             iconColor: "text-cyan-600"
         },
         {
-            title: "Total Batch",
-            value: "0",
-            description: "Total number of batch",
-            icon: Package,
-            bgColor: "bg-cyan-50",
-            iconColor: "text-cyan-600"
-        },
-        {
             title: "Staff Members",
             value: "0",
             description: "Total number of staff members",
@@ -100,7 +92,10 @@ const StatisticsOverview: React.FC = () => {
             try {
                 setLoading(true);
 
-                // Fetch all batches
+                // Fetch sessions from external Railway API
+                const sessionsResponse = await fetch('https://fincount-api-production.up.railway.app/api/sessions');
+                const sessionsData = await sessionsResponse.json();
+
                 const batchesResponse = await fetch('/api/batches?limit=1000');
                 const batchesData = await batchesResponse.json();
 
@@ -108,9 +103,10 @@ const StatisticsOverview: React.FC = () => {
                 const usersResponse = await fetch('/api/user?userType=staff&limit=1000');
                 const usersData = await usersResponse.json();
 
-                // Calculate statistics
-                const totalBatches = batchesData.data?.pagination?.totalBatches || 0;
-                const activeBatches = batchesData.data?.batches?.filter((batch: any) => batch.isActive)?.length || 0;
+                // Process sessions data
+                const sessions = sessionsData.success && sessionsData.data?.sessions ? sessionsData.data.sessions : [];
+
+                const activeSessions = sessions.length; // All sessions from the API are considered active
                 const totalStaff = usersData.data?.pagination?.totalUsers || 0;
 
                 // Calculate total fingerlings from all batches
@@ -123,27 +119,20 @@ const StatisticsOverview: React.FC = () => {
                     {
                         title: "Total Fingerlings",
                         value: totalFingerlings.toLocaleString(),
-                        description: "Total fingerlings counted across all batches",
+                        description: "Total fingerlings counted across all sessions",
                         icon: Package,
                         bgColor: "bg-cyan-50",
                         iconColor: "text-cyan-600"
                     },
                     {
                         title: "Active Batch",
-                        value: activeBatches.toString(),
+                        value: activeSessions.toString(),
                         description: "Currently active fingering batches",
                         icon: BarChart3,
                         bgColor: "bg-cyan-50",
                         iconColor: "text-cyan-600"
                     },
-                    {
-                        title: "Total Batch",
-                        value: totalBatches.toString(),
-                        description: "Total number of batch",
-                        icon: Package,
-                        bgColor: "bg-cyan-50",
-                        iconColor: "text-cyan-600"
-                    },
+
                     {
                         title: "Staff Members",
                         value: totalStaff.toString(),
@@ -172,8 +161,8 @@ const StatisticsOverview: React.FC = () => {
                     </div>
                     <h2 className="text-xl font-semibold text-gray-800">Statistics Overview</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4].map((i) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
                         <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
                             <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
                             <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
@@ -193,7 +182,7 @@ const StatisticsOverview: React.FC = () => {
                 </div>
                 <h2 className="text-xl font-semibold text-gray-800">Statistics Overview</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {stats.map((stat, index) => (
                     <StatCard key={index} {...stat} />
                 ))}
@@ -440,45 +429,6 @@ const AdminDashboard: React.FC = () => {
 
                         {/* Quick Actions */}
                         <QuickActions />
-
-                        {/* Page Header */}
-                        {/* <div className="mb-8 mt-10">
-                            <div className="flex items-center mb-4">
-                                <div className="p-2 bg-blue-50 rounded-lg mr-3">
-                                    <TrendingUp className="h-6 w-6 text-blue-600" />
-                                </div>
-                                <h1 className="text-2xl font-bold text-gray-900">Data Visualization</h1>
-                            </div>
-                            <p className="text-gray-600">
-                                Comprehensive insights and analytics for your fingerling production data
-                            </p>
-                        </div> */}
-
-                        {/* Chart Section */}
-                        {/* <div className="space-y-8">
-                            <MonthlyFingerlingsChart />
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Batch Performance</h3>
-                                    <div className="h-48 flex items-center justify-center text-gray-500">
-                                        <div className="text-center">
-                                            <TrendingUp className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                            <p className="text-sm">Batch performance chart will be displayed here</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Production Trends</h3>
-                                    <div className="h-48 flex items-center justify-center text-gray-500">
-                                        <div className="text-center">
-                                            <TrendingUp className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                            <p className="text-sm">Production trends chart will be displayed here</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
                     </div>
                 </div>
             </div>

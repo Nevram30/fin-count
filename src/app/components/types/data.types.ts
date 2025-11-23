@@ -51,7 +51,8 @@ export type FormErrorsState = {
 
 // Batch interface based on mobile app session form
 export interface Batch {
-  id: string; // Format: BF-YYYYMMDD-XXX
+  id: string; // Format: BF-YYYYMMDD-XXX (batchId)
+  sessionId?: string; // session_id from Railway API for deletion
   date: string; // Session date
   species: string; // Fish species
   location: string; // Location field
