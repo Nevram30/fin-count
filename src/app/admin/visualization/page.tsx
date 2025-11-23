@@ -948,7 +948,7 @@ const DataVisualization: React.FC = () => {
             (leaderboardState.selectedSpecies === 'all' || item.species === leaderboardState.selectedSpecies) &&
             (leaderboardState.selectedFacilityType === 'all' || item.facilityType === leaderboardState.selectedFacilityType)
         )
-        .sort((a, b) => b.forecastedHarvestKilos - a.forecastedHarvestKilos)
+        .sort((a, b) => b.actualHarvestKilos - a.actualHarvestKilos)
         .slice(0, 10);
     console.log("🚀 ~ DataVisualization ~ filteredLeaderboardData:", filteredLeaderboardData)
 
@@ -1628,7 +1628,7 @@ const DataVisualization: React.FC = () => {
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-2xl font-bold text-gray-900">
-                                                            {beneficiary.forecastedHarvestKilos.toLocaleString()} kg
+                                                            {beneficiary.actualHarvestKilos.toLocaleString()} kg
                                                         </div>
                                                         <div className="text-sm text-gray-600">
                                                             From {beneficiary.fingerlingsReceived.toLocaleString()} fingerlings
