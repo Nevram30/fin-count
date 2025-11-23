@@ -1544,42 +1544,6 @@ const DataVisualization: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* Performance Insights */}
-                                    {!harvestState.isLoading && harvestState.data.length > 0 && (
-                                        <div className="mt-6 bg-gray-50 rounded-lg p-6">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Insights</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div>
-                                                    <h4 className="font-medium text-gray-700 mb-2">Top Performing Location</h4>
-                                                    <p className="text-sm text-gray-600">
-                                                        {harvestState.data.reduce((max, item) =>
-                                                            (item.tilapia + item.bangus) > (max.tilapia + max.bangus) ? item : max
-                                                        ).location} - {harvestState.data.reduce((max, item) =>
-                                                            (item.tilapia + item.bangus) > (max.tilapia + max.bangus) ? item : max
-                                                        ).tilapia + harvestState.data.reduce((max, item) =>
-                                                            (item.tilapia + item.bangus) > (max.tilapia + max.bangus) ? item : max
-                                                        ).bangus} kg total harvest
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-medium text-gray-700 mb-2">Best Facility Type</h4>
-                                                    <p className="text-sm text-gray-600">
-                                                        {harvestState.data.filter(item => item.facilityType === 'Fish Cage').length > 0 &&
-                                                            harvestState.data.filter(item => item.facilityType === 'Pond').length > 0 ?
-                                                            (harvestState.data.filter(item => item.facilityType === 'Fish Cage')
-                                                                .reduce((sum, item) => sum + item.tilapia + item.bangus, 0) /
-                                                                harvestState.data.filter(item => item.facilityType === 'Fish Cage').length) >
-                                                                (harvestState.data.filter(item => item.facilityType === 'Pond')
-                                                                    .reduce((sum, item) => sum + item.tilapia + item.bangus, 0) /
-                                                                    harvestState.data.filter(item => item.facilityType === 'Pond').length) ?
-                                                                'Fish Cage facilities show higher average yield' :
-                                                                'Pond facilities show higher average yield' :
-                                                            'Insufficient data for comparison'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}

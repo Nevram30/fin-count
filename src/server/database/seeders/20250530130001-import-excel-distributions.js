@@ -125,11 +125,12 @@ module.exports = {
         // Determine default values based on species
         const isTilapia = species.toLowerCase().includes("tilapia");
 
-        // Growth parameters - species-specific growth periods
-        // Red Tilapia: 4 months, Bangus: 3 months
-        const growthPeriodMonths = isTilapia ? 4 : 3;
-        const AverageWeightKg = isTilapia ? 0.39 : 0.25; // Tilapia: ~10g, Bangus: ~15g fingerling/ Tilapia: 250g (4 months), Bangus: 300g (3 months)
-        const survivalRate = isTilapia ? 0.935 : 0.78;
+        // Growth parameters - species-specific final weights
+        // Based on expert specifications:
+        // Red Tilapia: 0.3 kg after 4 months growth period, 78% survival rate
+        // Bangus: 0.39 kg after 3 months growth period, 93.5% survival rate
+        const expectedWeightAfterGrowth = isTilapia ? 0.3 : 0.39;
+        const survivalRate = isTilapia ? 0.78 : 0.935;
 
         const parsedDate = parseDate(row["Date Distributed"]);
 
@@ -148,19 +149,13 @@ module.exports = {
 
         const fingerlings = parseInt(row["Fingerlings"]) || 0;
 
-        // Calculate forecasted harvest for 4-month growth period
+        // Calculate forecasted harvest using realistic growth parameters
         // This model accounts for:
         // 1. Number of fingerlings distributed
-        // 2. Survival rate over the growth period
-        // 3. Time-based growth rate (weight gain per month × growth period)
+        // 2. Survival rate over the growth period (93.5% for Tilapia, 78% for Bangus)
+        // 3. Expected final weight at harvest (0.3 kg for Tilapia, 0.39 kg for Bangus)
         //
-        // Calculate monthly growth rate (weight gain per month)
-
-        // Calculate expected weight after the growth period
-        const expectedWeightAfterGrowth = AverageWeightKg * growthPeriodMonths;
-
-        // Total forecasted harvest accounting for growth from fingerling to harvest size
-        // Formula: fingerlings × survival rate × expected weight after growth period
+        // Formula: fingerlings × survival rate × expected weight at harvest
         const forecastedHarvestKilos =
           fingerlings * survivalRate * expectedWeightAfterGrowth;
 
