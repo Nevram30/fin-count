@@ -832,15 +832,25 @@ const DistributionFormModal: React.FC<{
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Species</label>
-                                    <AutocompleteInput
+                                    <select
                                         value={formData.species}
-                                        onChange={(value) => handleInputChange('species', value)}
-                                        field="species"
-                                        placeholder="Enter or select species"
-                                        error={errors.species}
+                                        onChange={(e) => handleInputChange('species', e.target.value)}
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.species ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
-                                    />
+                                    >
+                                        <option value="">Select Species</option>
+                                        {speciesOptions.map((species) => (
+                                            <option key={species} value={species}>
+                                                {species}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.species && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.species}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -854,41 +864,73 @@ const DistributionFormModal: React.FC<{
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
-                                    <AutocompleteInput
+                                    <select
                                         value={formData.province}
-                                        onChange={(value) => handleInputChange('province', value)}
-                                        field="province"
-                                        placeholder="Enter or select province"
-                                        error={errors.province}
+                                        onChange={(e) => handleInputChange('province', e.target.value)}
                                         className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.province ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
-                                    />
+                                    >
+                                        <option value="">Select Province</option>
+                                        {locationData.provinces.map((province) => (
+                                            <option key={province} value={province}>
+                                                {province}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.province && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.province}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                                    <AutocompleteInput
+                                    <select
                                         value={formData.city}
-                                        onChange={(value) => handleInputChange('city', value)}
-                                        field="city"
-                                        placeholder="Enter or select city"
-                                        error={errors.city}
-                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                        onChange={(e) => handleInputChange('city', e.target.value)}
+                                        disabled={!formData.province}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
-                                    />
+                                    >
+                                        <option value="">Select City</option>
+                                        {getAvailableCities().filter(city => city !== "All Cities").map((city) => (
+                                            <option key={city} value={city}>
+                                                {city}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.city && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.city}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Barangay</label>
-                                    <AutocompleteInput
+                                    <select
                                         value={formData.barangay}
-                                        onChange={(value) => handleInputChange('barangay', value)}
-                                        field="barangay"
-                                        placeholder="Enter or select barangay"
-                                        error={errors.barangay}
-                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.barangay ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                        onChange={(e) => handleInputChange('barangay', e.target.value)}
+                                        disabled={!formData.city}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${errors.barangay ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
-                                    />
+                                    >
+                                        <option value="">Select Barangay</option>
+                                        {getAvailableBarangays().filter(barangay => barangay !== "All Barangays").map((barangay) => (
+                                            <option key={barangay} value={barangay}>
+                                                {barangay}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.barangay && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.barangay}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
