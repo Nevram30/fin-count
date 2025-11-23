@@ -101,7 +101,7 @@ const HarvestForecast: React.FC = () => {
 
     // Form state
     const [formData, setFormData] = useState<FormData>({
-        dateFrom: "2023-01-01",
+        dateFrom: "2023-09-01",
         dateTo: "2023-12-31",
         species: "Red Tilapia",
         province: "all",
@@ -178,6 +178,19 @@ const HarvestForecast: React.FC = () => {
                 newData.barangay = 'all';
             } else if (field === 'city') {
                 newData.barangay = 'all';
+            }
+
+            // Adjust date range based on species selection
+            if (field === 'species') {
+                if (value === 'Red Tilapia') {
+                    // Set default dates for Tilapia: 09/01/2025 to 12/01/2025
+                    newData.dateFrom = '2025-09-01';
+                    newData.dateTo = '2025-12-01';
+                } else if (value === 'Bangus') {
+                    // Set default dates for Bangus: 09/01/2025 to 11/01/2025
+                    newData.dateFrom = '2025-09-01';
+                    newData.dateTo = '2025-11-01';
+                }
             }
 
             return newData;
@@ -380,8 +393,49 @@ const HarvestForecast: React.FC = () => {
         }
     };
 
+    // Validate date range based on species
+    const validateDateRange = (): { isValid: boolean; errorMessage: string } => {
+        const startDate = new Date(formData.dateFrom);
+        const endDate = new Date(formData.dateTo);
+
+        // Calculate the difference in months (inclusive of both start and end months)
+        const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+            (endDate.getMonth() - startDate.getMonth()) + 1;
+
+        console.log('Validation Check:', {
+            species: formData.species,
+            dateFrom: formData.dateFrom,
+            dateTo: formData.dateTo,
+            monthsDiff: monthsDiff
+        });
+
+        // Check species-specific limits
+        if (formData.species === 'Red Tilapia' && monthsDiff > 5) {
+            return {
+                isValid: false,
+                errorMessage: `Red Tilapia forecast period cannot exceed 5 months. Current selection: ${monthsDiff} months. Please adjust your date range.`
+            };
+        }
+
+        if (formData.species === 'Bangus' && monthsDiff > 4) {
+            return {
+                isValid: false,
+                errorMessage: `Bangus forecast period cannot exceed 4 months. Current selection: ${monthsDiff} months. Please adjust your date range.`
+            };
+        }
+
+        return { isValid: true, errorMessage: '' };
+    };
+
     // Handle forecast generation
     const handleGenerateForecast = async () => {
+        // Validate date range before proceeding
+        const validation = validateDateRange();
+        if (!validation.isValid) {
+            setApiError(validation.errorMessage);
+            return;
+        }
+
         setIsGenerating(true);
         setApiError(null);
 
@@ -685,7 +739,7 @@ const HarvestForecast: React.FC = () => {
                                             </svg>
                                             <div>
                                                 <h4 className="text-red-800 font-semibold mb-1">Error Generating Forecast</h4>
-                                                <p className="text-red-700 text-sm">Forecast will not exceed one year. Please adjust your date range.</p>
+                                                <p className="text-red-700 text-sm">{apiError}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1055,7 +1109,6 @@ const HarvestForecast: React.FC = () => {
                                 <table className="w-full border-collapse border border-gray-300">
                                     <thead>
                                         <tr className="bg-gray-50">
-                                            <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Batch ID</th>
                                             {modalLevel === 'province' && (
                                                 <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">City</th>
                                             )}
@@ -1072,7 +1125,6 @@ const HarvestForecast: React.FC = () => {
                                     <tbody>
                                         {modalData.map((batch, index) => (
                                             <tr key={batch.batchId} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                                <td className="border border-gray-300 px-4 py-3 font-mono text-sm">{batch.batchId}</td>
                                                 {modalLevel === 'province' && batch.city && (
                                                     <td className="border border-gray-300 px-4 py-3">{batch.city}</td>
                                                 )}

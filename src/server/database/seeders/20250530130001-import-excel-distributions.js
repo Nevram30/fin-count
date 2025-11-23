@@ -172,7 +172,7 @@ module.exports = {
           province: row["Province"] || "Unknown",
           fingerlings: fingerlings,
           species: normalizedSpecies,
-          forecastedHarvestKilos: forecastedHarvestKilos || null,
+          forecastedHarvestKilos: null,
           actualHarvestKilos: actualHarvestKilos,
           actualHarvestDate: actualHarvestKilos ? parsedDate : null,
           remarks: actualHarvestKilos ? "Harvested" : null,

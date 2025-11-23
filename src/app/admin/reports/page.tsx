@@ -228,7 +228,7 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
     };
 
     const showLocationFilters = filters.reportType === "Beneficiaries Report";
-    const showSpeciesFilter = filters.reportType !== "Beneficiaries Report";
+    const showSpeciesFilter = true; // Show species filter for all report types
     const showDateFilters = true; // Show date filters for all report types
 
     return (
@@ -287,7 +287,7 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
                                     >
                                         <option value="All Species">All Species</option>
                                         <option value="Tilapia">Red Tilapia</option>
-                                        <option value="Catfish">Bangus</option>
+                                        <option value="Bangus">Bangus</option>
                                     </select>
                                     <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                                 </div>
@@ -605,15 +605,15 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
     };
 
     const handleExportCSV = () => {
-        const csvData = data.map(batch => ({
-            "Batch Number": batch.batchNumber,
-            "Name": batch.name,
-            "Total Count": batch.totalCount,
-            "Distributed": batch.distributed,
-            "Remaining": batch.remaining,
-            "Date Created": new Date(batch.dateCreated).toLocaleDateString(),
-            "Status": batch.status,
-            "Staff Name": batch.staffName,
+        const csvData = data.map(session => ({
+            "ID": session.id,
+            "Batch ID": session.batch_id,
+            "User ID": session.user_id,
+            "Species": session.species,
+            "Location": session.location,
+            "Notes": session.notes,
+            "Counts": session.counts,
+            "Timestamp": new Date(session.timestamp).toLocaleString(),
         }));
         exportToCSV(csvData, "undistributed_batches_report");
     };
@@ -634,13 +634,14 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
                     <h3 className="text-lg font-semibold text-gray-800">Undistributed Batches Report</h3>
                     <div className="flex items-center text-sm text-gray-600 mt-1">
                         <Calendar className="h-4 w-4 mr-1" />
-                        <span>Batches pending distribution</span>
+                        <span>Session data from external API</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleExportCSV}
-                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none"
+                        disabled={data.length === 0}
+                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors focus:ring-4 focus:ring-green-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Download className="h-4 w-4 mr-2" />
                         Export CSV
@@ -651,37 +652,58 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
                 </div>
             </div>
 
+            {/* Summary Stats */}
+            {summary && (
+                <div className="px-6 py-4 bg-blue-50 border-b border-gray-200">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-sm text-gray-600">Total Sessions</p>
+                            <p className="text-2xl font-bold text-blue-700">{summary.totalSessions}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-600">Total Count</p>
+                            <p className="text-2xl font-bold text-blue-700">{summary.totalCount.toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Report Content */}
             <div className="overflow-x-auto">
                 {data.length > 0 ? (
                     <table className="w-full">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Count</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Counts</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {data.map((batch: any) => (
-                                <tr key={batch.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{batch.batchNumber}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.totalCount.toLocaleString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{batch.remaining.toLocaleString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(batch.dateCreated).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{batch.staffName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${batch.status === 'Overdue'
-                                            ? 'bg-red-100 text-red-800'
-                                            : 'bg-yellow-100 text-yellow-800'
-                                            }`}>
-                                            {batch.status}
-                                        </span>
+                            {data.map((session: any) => (
+                                <tr key={session.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{session.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.batch_id || '-'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.user_id || '-'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.species}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.location}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title={session.notes}>
+                                        {session.notes || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{session.counts.toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {new Date(session.timestamp).toLocaleString('en-US', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
                                     </td>
                                 </tr>
                             ))}
@@ -692,8 +714,8 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                             <AlertTriangle className="h-8 w-8 text-gray-400" />
                         </div>
-                        <h4 className="text-lg font-medium text-gray-900 mb-2">No undistributed batches found</h4>
-                        <p className="text-gray-500">All batches have been fully distributed.</p>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">No sessions found</h4>
+                        <p className="text-gray-500">No session data available for the selected filters.</p>
                     </div>
                 )}
             </div>
@@ -916,6 +938,9 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
             }
             if (filters.barangay && filters.barangay !== "All Barangays") {
                 params.append("barangay", filters.barangay);
+            }
+            if (filters.species && filters.species !== "All Species") {
+                params.append("species", filters.species);
             }
 
             const response = await fetch(`/api/reports/beneficiaries?${params}`);

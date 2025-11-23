@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const province = searchParams.get("province");
     const city = searchParams.get("city");
     const barangay = searchParams.get("barangay");
+    const species = searchParams.get("species");
 
     // Build where clause
     const whereClause: any = {};
@@ -34,6 +35,13 @@ export async function GET(request: NextRequest) {
 
     if (barangay && barangay !== "All Barangays") {
       whereClause.barangay = barangay;
+    }
+
+    // Species filter
+    if (species && species !== "All Species") {
+      whereClause.species = {
+        [Op.like]: `%${species}%`,
+      };
     }
 
     // Determine grouping based on filters

@@ -37,61 +37,30 @@ export async function GET(request: NextRequest) {
 
       sessions = sessions.filter((session: any) => {
         const sessionDate = new Date(
-          session.created_at || session.createdAt
+          session.created_at || session.createdAt || session.timestamp
         ).getTime();
         const inRange = sessionDate >= start && sessionDate <= end;
-        if (!inRange && sessions.indexOf(session) < 3) {
-          console.log(
-            `Session ${session.id} date ${
-              session.created_at || session.createdAt
-            } is outside range`
-          );
-        }
         return inRange;
       });
     }
 
     console.log(`Processing ${sessions.length} sessions after date filter`);
 
-    // Group sessions by batch_id and calculate totals
-    const batchMap = new Map();
+    // Apply species filter if specified
+    if (species && species !== "All Species") {
+      sessions = sessions.filter((session: any) => {
+        const sessionSpecies = (session.species || "").toLowerCase();
+        const speciesLower = species.toLowerCase();
+        return sessionSpecies.includes(speciesLower);
+      });
+    }
 
-    for (const session of sessions) {
-      const batchId = session.batch_id || session.batchId;
-
-      if (!batchId) {
-        console.log("Session without batch_id:", session.id);
-        continue;
-      }
-
-      if (!batchMap.has(batchId)) {
-        // Get staff name from batch user
-        const batch = session.batch;
-        const user = batch?.user;
-        const staffProfile = user?.staffsProfile?.[0];
-        const staffName = staffProfile
-          ? `${staffProfile.firstName} ${staffProfile.lastName}`
-          : "Unknown Staff";
-
-        batchMap.set(batchId, {
-          id: session.id,
-          batchNumber: batchId,
-          name: session.species || "Unknown Species",
-          location: session.location || "Unknown Location",
-          totalCount: 0,
-          sessionCount: 0,
-          dateCreated: session.created_at || session.createdAt,
-          staffName: staffName,
-          sessions: [],
-        });
-      }
-
-      const batchData = batchMap.get(batchId);
-
+    // Transform sessions to match the display format
+    const transformedSessions = sessions.map((session: any) => {
       // Calculate total count from counts object
-      let sessionTotal = 0;
+      let totalCount = 0;
       if (session.counts && typeof session.counts === "object") {
-        sessionTotal = Object.values(session.counts).reduce(
+        totalCount = Object.values(session.counts).reduce(
           (sum: number, val: any) => {
             return sum + (typeof val === "number" ? val : 0);
           },
@@ -99,62 +68,33 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      batchData.totalCount += sessionTotal;
-      batchData.sessionCount += 1;
-      batchData.sessions.push({
-        id: session.id,
-        location: session.location,
-        notes: session.notes,
-        count: sessionTotal,
-        timestamp: session.timestamp,
-        imageUrl: session.image_url || session.imageUrl,
-      });
-    }
-
-    // Convert map to array and calculate status
-    let undistributedBatches = Array.from(batchMap.values()).map((batch) => {
-      // Calculate status based on creation date
-      const daysSinceCreation = Math.floor(
-        (Date.now() - new Date(batch.dateCreated).getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-      const status = daysSinceCreation > 30 ? "Overdue" : "Pending";
-
       return {
-        ...batch,
-        remaining: batch.totalCount, // All are undistributed in sessions
-        distributed: 0,
-        status: status,
-        daysSinceCreation: daysSinceCreation,
+        id: session.id,
+        batch_id: session.batch_id || session.batchId,
+        user_id: session.user_id || session.userId,
+        species: session.species || "Unknown",
+        location: session.location || "Unknown",
+        notes: session.notes || "",
+        counts: totalCount,
+        timestamp: session.timestamp || session.created_at || session.createdAt,
       };
     });
 
-    // Apply species filter if specified
-    if (species && species !== "All Species") {
-      undistributedBatches = undistributedBatches.filter((batch) => {
-        const batchName = batch.name.toLowerCase();
-        const speciesLower = species.toLowerCase();
-        return batchName.includes(speciesLower);
-      });
-    }
-
-    // Sort by date created (newest first)
-    undistributedBatches.sort(
-      (a, b) =>
-        new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
+    // Sort by timestamp (newest first)
+    transformedSessions.sort(
+      (a: any, b: any) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
     return NextResponse.json({
       success: true,
-      data: undistributedBatches,
+      data: transformedSessions,
       summary: {
-        totalBatches: undistributedBatches.length,
-        totalRemaining: undistributedBatches.reduce(
-          (sum, b) => sum + b.remaining,
+        totalSessions: transformedSessions.length,
+        totalCount: transformedSessions.reduce(
+          (sum: number, s: any) => sum + s.counts,
           0
         ),
-        overdueCount: undistributedBatches.filter((b) => b.status === "Overdue")
-          .length,
       },
     });
   } catch (error) {
