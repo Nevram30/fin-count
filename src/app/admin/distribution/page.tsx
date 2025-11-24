@@ -318,10 +318,10 @@ const DistributionFormModal: React.FC<{
             const date = new Date(formData.date);
             const isTilapia = formData.species.toLowerCase().includes('tilapia');
             const growthMonths = isTilapia ? 4 : 3;
-            
+
             const forecastedDate = new Date(date);
             forecastedDate.setMonth(date.getMonth() + growthMonths);
-            
+
             setCalculatedHarvestDate(forecastedDate.toISOString().split('T')[0]);
         } else {
             setCalculatedHarvestDate('');
@@ -478,7 +478,7 @@ const DistributionFormModal: React.FC<{
             };
 
             // Calculate forecasted harvest kilos
-            const dates = calculateDates(formData.date, formData.fingerlingsCount, formData.species);
+            const dates = calculateDates(formData.date, formData.fingerlingsCount);
 
             // Prepare data for API
             const distributionData = {
@@ -538,7 +538,7 @@ const DistributionFormModal: React.FC<{
                 }
 
                 // Transform the saved data back to Distribution format for display
-                const dates = calculateDates(formData.date, formData.fingerlingsCount, formData.species);
+                const dates = calculateDates(formData.date, formData.fingerlingsCount);
                 const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
 
                 const newDistribution: Distribution = {
