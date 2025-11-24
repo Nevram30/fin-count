@@ -77,9 +77,9 @@ const StatisticsOverview: React.FC = () => {
             iconColor: "text-cyan-600"
         },
         {
-            title: "Staff Members",
+            title: "Admin Members",
             value: "0",
-            description: "Total number of staff members",
+            description: "Total number of admin members",
             icon: UserCheck,
             bgColor: "bg-cyan-50",
             iconColor: "text-cyan-600"
@@ -134,9 +134,9 @@ const StatisticsOverview: React.FC = () => {
                     },
 
                     {
-                        title: "Staff Members",
+                        title: "Admin Members",
                         value: totalStaff.toString(),
-                        description: "Total number of staff members",
+                        description: "Total number of admin members",
                         icon: UserCheck,
                         bgColor: "bg-cyan-50",
                         iconColor: "text-cyan-600"
