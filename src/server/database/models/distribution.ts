@@ -30,6 +30,7 @@ class Distribution extends Model<
   declare species: "Tilapia" | "Bangus";
   declare userId: number;
   declare batchId: string | null;
+  declare forecastedHarvestDate: Date | null;
   declare actualHarvestDate: Date | null;
   declare forecastedHarvestKilos: number | null;
   declare actualHarvestKilos: number | null;
@@ -37,7 +38,7 @@ class Distribution extends Model<
     | "Harvested"
     | "Not Harvested"
     | "Damaged"
-    | "Lost"
+    | "Ongoing"
     | "Disaster"
     | "Other"
     | null;
@@ -94,6 +95,12 @@ Distribution.init(
       allowNull: true,
       type: DataTypes.STRING,
     },
+    forecastedHarvestDate: {
+      allowNull: true,
+      type: DataTypes.DATE,
+      comment:
+        "Expected harvest date based on species (Bangus: 3 months, Tilapia: 4 months)",
+    },
     actualHarvestDate: {
       allowNull: true,
       type: DataTypes.DATE,
@@ -115,7 +122,7 @@ Distribution.init(
         "Harvested",
         "Not Harvested",
         "Damaged",
-        "Lost",
+        "Ongoing",
         "Disaster",
         "Other"
       ),

@@ -24,7 +24,7 @@ interface Distribution {
     | "Harvested"
     | "Not Harvested"
     | "Damaged"
-    | "Lost"
+    | "Ongoing"
     | "Disaster"
     | "Other"
     | "";
@@ -242,10 +242,12 @@ export async function POST(request: NextRequest) {
     // Calculate forecasted harvest based on species-specific growth parameters
     // Red Tilapia: 0.3 kg after 4 months, 78% survival rate
     // Bangus: 0.39 kg after 3 months, 93.5% survival rate
-    const isTilapia = body.species.toLowerCase().includes('tilapia');
+    const isTilapia = body.species.toLowerCase().includes("tilapia");
     const expectedWeightAfterGrowth = isTilapia ? 0.3 : 0.39;
     const survivalRate = isTilapia ? 0.78 : 0.935;
-    const forecastedHarvestKilos = Math.round(body.fingerlingsCount * survivalRate * expectedWeightAfterGrowth);
+    const forecastedHarvestKilos = Math.round(
+      body.fingerlingsCount * survivalRate * expectedWeightAfterGrowth
+    );
 
     // Create new distribution
     const newDistribution: Distribution = {

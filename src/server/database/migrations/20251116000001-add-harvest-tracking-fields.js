@@ -32,7 +32,7 @@ module.exports = {
         "Harvested",
         "Not Harvested",
         "Damaged",
-        "Lost",
+        "Ongoing",
         "Disaster",
         "Other"
       ),

@@ -86,7 +86,7 @@ export interface Distribution {
     | "Harvested"
     | "Not Harvested"
     | "Damaged"
-    | "Lost"
+    | "Ongoing"
     | "Disaster"
     | "Other"
     | "";

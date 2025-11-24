@@ -427,23 +427,23 @@ const DistributionFormModal: React.FC<{
         return Object.keys(newErrors).length === 0;
     };
 
-    // Calculate forecast and harvest dates
-    const calculateDates = (distributionDate: string, fingerlingsCount: number, species: string) => {
+    // Calculate forecast and harvest dates based on species
+    const calculateDates = (distributionDate: string, fingerlingsCount: number) => {
         const date = new Date(distributionDate);
+
+        // Determine if species is Tilapia or Bangus
+        const isTilapia = formData.species.toLowerCase().includes('tilapia');
+
+        // Forecasted Harvest Date: Bangus = 3 months, Tilapia = 4 months
+        const forecastedHarvestDate = new Date(date);
+        const monthsToHarvest = isTilapia ? 4 : 3;
+        forecastedHarvestDate.setMonth(date.getMonth() + monthsToHarvest);
+
         const forecastDate = new Date(date);
         forecastDate.setMonth(date.getMonth() + 3); // 3 months for forecast
 
         const harvestDate = new Date(date);
         harvestDate.setMonth(date.getMonth() + 6); // 6 months for harvest
-
-        // Calculate forecasted harvest date based on species
-        // Red Tilapia: 4 months growth period
-        // Bangus: 3 months growth period
-        const isTilapia = species.toLowerCase().includes('tilapia');
-        const growthMonths = isTilapia ? 4 : 3;
-        
-        const forecastedHarvestDate = new Date(date);
-        forecastedHarvestDate.setMonth(date.getMonth() + growthMonths);
 
         // Calculate forecasted harvest based on species-specific growth parameters
         // Red Tilapia: 0.3 kg after 4 months, 78% survival rate
@@ -1453,7 +1453,7 @@ const DetailModal: React.FC<{
                                             <option value="Harvested">Harvested</option>
                                             <option value="Not Harvested">Not Harvested</option>
                                             <option value="Damaged">Damaged</option>
-                                            <option value="Lost">Lost</option>
+                                            <option value="Ongoing">Ongoing</option>
                                             <option value="Disaster">Disaster</option>
                                             <option value="Other">Other</option>
                                         </select>
@@ -1928,7 +1928,7 @@ const DistributionForm: React.FC = () => {
                                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${dist.remarks === 'Harvested' ? 'bg-green-100 text-green-800' :
                                                                     dist.remarks === 'Not Harvested' ? 'bg-yellow-100 text-yellow-800' :
                                                                         dist.remarks === 'Damaged' ? 'bg-red-100 text-red-800' :
-                                                                            dist.remarks === 'Lost' ? 'bg-red-100 text-red-800' :
+                                                                            dist.remarks === 'Ongoing' ? 'bg-blue-100 text-blue-800' :
                                                                                 dist.remarks === 'Disaster' ? 'bg-red-100 text-red-800' :
                                                                                     'bg-gray-100 text-gray-800'
                                                                     }`}>
