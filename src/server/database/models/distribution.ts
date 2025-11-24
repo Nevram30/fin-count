@@ -37,7 +37,7 @@ class Distribution extends Model<
     | "Harvested"
     | "Not Harvested"
     | "Damaged"
-    | "Lost"
+    | "Ongoing"
     | "Disaster"
     | "Other"
     | null;
@@ -115,7 +115,7 @@ Distribution.init(
         "Harvested",
         "Not Harvested",
         "Damaged",
-        "Lost",
+        "Ongoing",
         "Disaster",
         "Other"
       ),

@@ -1399,7 +1399,7 @@ const DetailModal: React.FC<{
                                             <option value="Harvested">Harvested</option>
                                             <option value="Not Harvested">Not Harvested</option>
                                             <option value="Damaged">Damaged</option>
-                                            <option value="Lost">Lost</option>
+                                            <option value="Ongoing">Ongoing</option>
                                             <option value="Disaster">Disaster</option>
                                             <option value="Other">Other</option>
                                         </select>
@@ -1874,7 +1874,7 @@ const DistributionForm: React.FC = () => {
                                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${dist.remarks === 'Harvested' ? 'bg-green-100 text-green-800' :
                                                                     dist.remarks === 'Not Harvested' ? 'bg-yellow-100 text-yellow-800' :
                                                                         dist.remarks === 'Damaged' ? 'bg-red-100 text-red-800' :
-                                                                            dist.remarks === 'Lost' ? 'bg-red-100 text-red-800' :
+                                                                            dist.remarks === 'Ongoing' ? 'bg-blue-100 text-blue-800' :
                                                                                 dist.remarks === 'Disaster' ? 'bg-red-100 text-red-800' :
                                                                                     'bg-gray-100 text-gray-800'
                                                                     }`}>
