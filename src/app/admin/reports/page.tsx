@@ -34,7 +34,7 @@ const locationData: LocationData = {
         "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
     },
     barangays: {
-        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Brgy. Busaon", "Brgy. Liboganon"],
+        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Busaon", "Liboganon"],
         "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
         "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
         "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
@@ -49,8 +49,8 @@ const locationData: LocationData = {
         "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
         "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
         "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
-        "Kidapawan": ["Brgy. Amas"],
-        "North Cotabato": ["Brgy. Balogo"]
+        "Kidapawan": ["Amas"],
+        "North Cotabato": ["Balogo"]
     }
 };
 
@@ -606,9 +606,7 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
 
     const handleExportCSV = () => {
         const csvData = data.map(session => ({
-            "ID": session.id,
             "Batch ID": session.batch_id,
-            "User ID": session.user_id,
             "Species": session.species,
             "Location": session.location,
             "Notes": session.notes,
@@ -652,21 +650,6 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
                 </div>
             </div>
 
-            {/* Summary Stats */}
-            {summary && (
-                <div className="px-6 py-4 bg-blue-50 border-b border-gray-200">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-sm text-gray-600">Total Sessions</p>
-                            <p className="text-2xl font-bold text-blue-700">{summary.totalSessions}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Total Count</p>
-                            <p className="text-2xl font-bold text-blue-700">{summary.totalCount.toLocaleString()}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Report Content */}
             <div className="overflow-x-auto">
@@ -674,9 +657,7 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
                     <table className="w-full">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
@@ -687,9 +668,7 @@ const UndistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ 
                         <tbody className="bg-white divide-y divide-gray-200">
                             {data.map((session: any) => (
                                 <tr key={session.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{session.id}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.batch_id || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.user_id || '-'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.species}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.location}</td>
                                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title={session.notes}>

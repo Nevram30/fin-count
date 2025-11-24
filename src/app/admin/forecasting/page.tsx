@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Users, TrendingUp, Calendar, MapPin, Fish, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Area, AreaChart } from "recharts";
 import AsideNavigation from "../components/aside.navigation";
@@ -101,8 +101,8 @@ const HarvestForecast: React.FC = () => {
 
     // Form state
     const [formData, setFormData] = useState<FormData>({
-        dateFrom: "2023-09-01",
-        dateTo: "2023-12-31",
+        dateFrom: "2025-09-01",
+        dateTo: "2025-12-01",
         species: "Red Tilapia",
         province: "all",
         city: "all",
@@ -119,6 +119,7 @@ const HarvestForecast: React.FC = () => {
     const [showResults, setShowResults] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [predictionResponse, setPredictionResponse] = useState<PredictionResponse | null>(null);
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     // Modal states
     const [showModal, setShowModal] = useState(false);
@@ -141,7 +142,7 @@ const HarvestForecast: React.FC = () => {
             "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
         },
         barangays: {
-            "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Brgy. Busaon", "Brgy. Liboganon"],
+            "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Busaon", "Liboganon"],
             "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
             "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
             "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
@@ -151,13 +152,27 @@ const HarvestForecast: React.FC = () => {
             "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
             "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
             "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
+            "Cagwait": ["Bagsac", "Basyagan", "Bolod", "East Cabagtas", "East Tupa", "La Purisima", "Magroyong", "Pili", "Tan-awan", "Tupaz "],
             "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
             "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
             "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
+            "Mabini": ["Anitapan", "Cabuyan", "Cuambog", "Del Pilar", "Golden Valley", "Libodon", "Pangibiran", "Pindasan", "San Antonio", "Tagnanan"],
+            "Kiblawan": ["Abnate","Bagong Negros","Bagong Silang","Bagumbayan","Balasiao","Bonifacio","Bunot","Cogon-Bacaca","Dapok","Ihan","Kibongbong","Kimlawis","Kisulan","Lati-an","Manual","Maraga-a","Molopolo","New Sibonga","Panaglib","Pasig","Poblacion","Pocaleel","San Isidro","San Jose","San Pedro","Santo Niño","Tacub","Tacul","Waterfall","Bulol-Salo"],
+            "Magsaysay": ["Poblacion","Bacungan","Balnate","Barayong","Blocon","Dalawinon","Dalumay","Glamang","Kanapolo","Kasuga","Lower Bala","Mabini","Malawanit","Malongon","New Ilocos","New Opon","San Isidro","San Miguel","Tacul","Tagaytay","Upper Bala","Maibo"],
+            "Malalag": ["Bagumbayan","Baybay","Bolton","Bulacan","Caputian","Ibo","Kiblagon","Lapu-Lapu","Mabini","New Baclayon","Pitu","Poblacion","Rizal","San Isidro","Tagansule"],
+            "Matanao": ["Asbang","Asinan","Bagumbayan","Bangkal","Buas","Buri","Cabligan (Managa)","Camanchiles","Ceboza","Colonsabak","Dongan-Pekong","Kabasagan","Kapok","Kauswagan","Kibao","La Suerte","Langa-an","Lower Marber","Manga","New Katipunan","New Murcia","New Visayas","Poblacion","Saub","San Jose","San Miguel","San Vicente","Savoy","Sinaragan","Sinawilan","Tamlangon","Tibongbong","Towak"],
+            "Padada": ["Almendras (Poblacion)","Don Sergio Osmeña, Sr.","Harada Butai","Lower Katipunan","Lower Limonzo","Lower Malinao","N C Ordaneza (Poblacion)","Northern Paligue","Palili","Piape","Punta Piape","Quirino (Poblacion)","San Isidro","Southern Paligue","Tulugan","Upper Limonzo","Upper Malinao"],
+            "Santa Cruz": ["Astorga","Bato","Coronon","Darong","Inawayan","Jose Rizal","Matutungan","Melilia","Zone I (Poblacion)","Zone II (Poblacion)","Zone III (Poblacion)","Zone IV (Poblacion)","Sibulan","Sinoron","Tagabuli","Tibolo","Tuban","Saliducon"],
+            "Sulop": ["Balasinon","Buguis","Carre","Clib","Harada Butai","Katipunan","Kiblagon","Labon","Laperas","Lapla","Litos","Luparan","McKinley","New Cebu","Osmeña","Palili","Parame","Poblacion","Roxas","Solongvale","Tagolilong","Tala-o","Talas","Tanwalang","Waterfall"],
+            "Kapalong": ["Semong", "Florida", "Gabuyan", "Gupitan", "Capungagan", "Katipunan", "Luna", "Mabantao", "Mamacao", "Pag-asa", "Maniki (Poblacion)", "Sampao", "Sua-on", "Tiburcia"],
+            "New Corella": ["Cabidianan", "Carcor", "Del Monte", "Del Pilar", "El Salvador", "Limba-an", "Macgum", "Mambing", "Mesaoy", "New Bohol", "New Cortez", "New Sambog", "Patrocenio", "Poblacion", "San Roque", "Santa Cruz", "Santa Fe", "Santo Niño", "Suawon", "San Jose"],
+            "San Isidro": ["Dacudao", "Datu Balong", "Igangon", "Kipalili", "Libuton", "Linao", "Mamangan", "Monte Dujali", "Pinamuno", "Sabangan", "San Miguel", "Santo Niño", "Sawata (Poblacion)"],
+            "Santo Tomas": ["Balagunan", "Bobongon", "Casig-Ang", "Esperanza", "Kimamon", "Kinamayan", "La Libertad", "Lungaog", "Magwawa", "New Katipunan", "New Visayas", "Pantaron", "Salvacion", "San Jose", "San Miguel", "San Vicente", "Talomo", "Tibal-og", "Tulalian"],
+            "Talaingod": ["Dagohoy", "Palma Gil", "Santo Niño"],
             "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
             "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
-            "Kidapawan": ["Brgy. Amas"],
-            "North Cotabato": ["Brgy. Balogo"]
+            "Kidapawan": ["Amas"],
+            "North Cotabato": ["Balogo"]
         }
     };
 
@@ -166,6 +181,16 @@ const HarvestForecast: React.FC = () => {
         "Red Tilapia",
         "Bangus",
     ];
+
+    // Real-time validation whenever dates or species change
+    useEffect(() => {
+        const validation = validateDateRange();
+        if (!validation.isValid) {
+            setValidationError(validation.errorMessage);
+        } else {
+            setValidationError(null);
+        }
+    }, [formData.dateFrom, formData.dateTo, formData.species]);
 
     // Handle form input changes
     const handleInputChange = (field: keyof FormData, value: string) => {
@@ -409,18 +434,18 @@ const HarvestForecast: React.FC = () => {
             monthsDiff: monthsDiff
         });
 
-        // Check species-specific limits
-        if (formData.species === 'Red Tilapia' && monthsDiff > 5) {
+        // Check species-specific EXACT month requirements
+        if (formData.species === 'Red Tilapia' && monthsDiff !== 4) {
             return {
                 isValid: false,
-                errorMessage: `Red Tilapia forecast period cannot exceed 5 months. Current selection: ${monthsDiff} months. Please adjust your date range.`
+                errorMessage: `Error: Red Tilapia needs 4 months. Current selection: ${monthsDiff} months.`
             };
         }
 
-        if (formData.species === 'Bangus' && monthsDiff > 4) {
+        if (formData.species === 'Bangus' && monthsDiff !== 3) {
             return {
                 isValid: false,
-                errorMessage: `Bangus forecast period cannot exceed 4 months. Current selection: ${monthsDiff} months. Please adjust your date range.`
+                errorMessage: `Error: Bangus needs 3 months. Current selection: ${monthsDiff} months.`
             };
         }
 
@@ -700,11 +725,26 @@ const HarvestForecast: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* Validation Warning - Show above Generate Button */}
+                                {validationError && (
+                                    <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-4">
+                                        <div className="flex items-start gap-3">
+                                            <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            <div>
+                                                <h4 className="text-amber-800 font-semibold mb-1">Invalid Date Range</h4>
+                                                <p className="text-amber-700 text-sm">{validationError}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Generate Button */}
                                 <div className="flex justify-end">
                                     <button
                                         onClick={handleGenerateForecast}
-                                        disabled={isGenerating}
+                                        disabled={isGenerating || !!validationError}
                                         className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 flex items-center justify-center gap-2"
                                     >
                                         {isGenerating ? (
@@ -859,7 +899,7 @@ const HarvestForecast: React.FC = () => {
                                 {/* Forecast Charts */}
                                 <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast Trend</h3>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
                                         <div className="h-80">
                                             <ResponsiveContainer width="100%" height="100%">

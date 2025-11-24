@@ -214,12 +214,12 @@ const LoginPage: React.FC = () => {
                                 >
                                     Password
                                 </label>
-                                <Link
+                                {/* <Link
                                     href="/forgot-password"
                                     className="text-sm text-blue-600 hover:text-blue-800"
                                 >
                                     Forgot password?
-                                </Link>
+                                </Link> */}
                             </div>
                             <div className="relative">
                                 <input
@@ -312,7 +312,7 @@ const LoginPage: React.FC = () => {
                     <div className="space-y-6 text-lg text-white font-medium">
                         <div className="flex items-start">
                             <CircleCheck className="h-6 w-6 mr-3 mt-1" />
-                            <p>Fingerling counting</p>
+                            <p>Fingerling Count</p>
                         </div>
 
                         <div className="flex items-start">
@@ -327,7 +327,7 @@ const LoginPage: React.FC = () => {
 
                         <div className="flex items-start">
                             <CircleCheck className="h-6 w-6 mr-3 mt-1" />
-                            <p>Forecasting and Trends Analytics</p>
+                            <p>Forecasting and Trends Features</p>
                         </div>
                     </div>
                 </div>
