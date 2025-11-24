@@ -103,8 +103,8 @@ export async function GET(request: NextRequest) {
       raw: true,
     });
 
-    // Get unique user IDs to fetch contact numbers
-    const userIds = Array.from(
+    // Get unique user IDs to fetch contact numbers - Commented out for now
+    /* const userIds = Array.from(
       new Set(beneficiariesData.map((record: any) => record.userId))
     );
 
@@ -122,9 +122,9 @@ export async function GET(request: NextRequest) {
     // Create a map of userId to phoneNumber
     const userContactMap = new Map(
       staffProfiles.map((profile: any) => [profile.userId, profile.phoneNumber])
-    );
+    ); */
 
-    // Format the data with contact numbers
+    // Format the data without contact numbers (commented out)
     const formattedData = beneficiariesData.map((record: any) => {
       return {
         province: record.province,
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
         barangay: record.barangay || "N/A",
         beneficiaryName: record.beneficiaryName,
         species: record.species,
-        contactNumber: userContactMap.get(record.userId) || "N/A",
+        // contactNumber: userContactMap.get(record.userId) || "N/A", // Commented out
         totalFingerlings: parseInt(record.totalFingerlings) || 0,
         dateDistributed: record.dateDistributed,
       };

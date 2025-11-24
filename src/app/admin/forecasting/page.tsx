@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Users, TrendingUp, Calendar, MapPin, Fish, BarChart3 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Area, AreaChart } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Area, AreaChart, LineChart, Line } from "recharts";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
@@ -23,16 +23,25 @@ interface ModelInfo {
     version: string;
     last_trained: string;
     features_used: string[];
+    parameters?: {
+        survival_rate: number;
+        avg_body_weight: number;
+    };
 }
 
 interface PredictionMetadata {
     province: string;
     city: string;
+    barangay?: string;
     date_from: string;
     date_to: string;
     prediction_count: number;
+    total_distributions?: number;
+    total_fingerlings?: number;
+    total_predicted_harvest?: number;
     request_id: string;
     timestamp: string;
+    calculation_method?: string;
 }
 
 interface PredictionResponse {
@@ -101,8 +110,8 @@ const HarvestForecast: React.FC = () => {
 
     // Form state
     const [formData, setFormData] = useState<FormData>({
-        dateFrom: "2025-09-01",
-        dateTo: "2025-12-01",
+        dateFrom: "2025-11-01",
+        dateTo: "2026-02-01",
         species: "Red Tilapia",
         province: "all",
         city: "all",
@@ -112,19 +121,12 @@ const HarvestForecast: React.FC = () => {
 
     // Forecast data state
     const [forecastData, setForecastData] = useState<ForecastData[]>([]);
-    const [provinceTrendData, setProvinceTrendData] = useState<TrendData[]>([]);
-    const [cityTrendData, setCityTrendData] = useState<TrendData[]>([]);
-    const [barangayTrendData, setBarangayTrendData] = useState<TrendData[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [showResults, setShowResults] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [predictionResponse, setPredictionResponse] = useState<PredictionResponse | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
 
-    // Modal states
-    const [showModal, setShowModal] = useState(false);
-    const [modalLevel, setModalLevel] = useState<'province' | 'city' | 'barangay'>('province');
-    const [modalData, setModalData] = useState<BatchData[]>([]);
 
     // Davao Region locations data
     const locationData: LocationData = {
@@ -205,18 +207,8 @@ const HarvestForecast: React.FC = () => {
                 newData.barangay = 'all';
             }
 
-            // Adjust date range based on species selection
-            if (field === 'species') {
-                if (value === 'Red Tilapia') {
-                    // Set default dates for Tilapia: 09/01/2025 to 12/01/2025
-                    newData.dateFrom = '2025-09-01';
-                    newData.dateTo = '2025-12-01';
-                } else if (value === 'Bangus') {
-                    // Set default dates for Bangus: 09/01/2025 to 11/01/2025
-                    newData.dateFrom = '2025-09-01';
-                    newData.dateTo = '2025-11-01';
-                }
-            }
+            // Note: Removed automatic date adjustment when species changes
+            // Users can now freely select any date range up to 12 months
 
             return newData;
         });
@@ -237,82 +229,31 @@ const HarvestForecast: React.FC = () => {
         return dates;
     };
 
-    // Fetch real distribution data for details modal
-    const fetchDistributionDetails = async (level: 'province' | 'city' | 'barangay'): Promise<BatchData[]> => {
-        try {
-            const params = new URLSearchParams({
-                species: formData.species === "Red Tilapia" ? "Tilapia" : formData.species,
-                startDate: formData.dateFrom,
-                endDate: formData.dateTo,
-                limit: "1000"
-            });
 
-            if (level === 'province') {
-                params.append('province', formData.province);
-            } else if (level === 'city') {
-                params.append('province', formData.province);
-                params.append('municipality', formData.city);
-            } else if (level === 'barangay') {
-                params.append('province', formData.province);
-                params.append('municipality', formData.city);
-                // Add barangay filter if not "all"
-                if (formData.barangay && formData.barangay !== 'all' && formData.barangay !== 'All Barangays') {
-                    params.append('barangay', formData.barangay);
-                }
-            }
-
-            const response = await fetch(`/api/distributions-data?${params.toString()}`);
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch distribution details');
-            }
-
-            const result = await response.json();
-
-            if (!result.success || !result.data.distributions) {
-                throw new Error('Invalid response from distributions API');
-            }
-
-            const distributions = result.data.distributions;
-
-            // Transform distributions to BatchData format
-            const batchData: BatchData[] = distributions
-                .map((dist: any) => ({
-                    batchId: dist.batchId || `DIST-${dist.id}`,
-                    name: dist.beneficiaryName,
-                    city: level === 'province' ? dist.municipality : undefined,
-                    barangay: level === 'city' ? dist.barangay : undefined,
-                    fingerlingsCount: dist.fingerlings,
-                    harvestForecasted: Math.round(dist.forecastedHarvestKilos || 0)
-                }));
-
-            return batchData;
-        } catch (error) {
-            console.error(`Error fetching distribution details for ${level}:`, error);
-            return [];
-        }
-    };
-
-    // Handle view details modal
-    const handleViewDetails = async (level: 'province' | 'city' | 'barangay') => {
-        setModalLevel(level);
-        setShowModal(true);
-        setModalData([]); // Show loading state
-
-        const data = await fetchDistributionDetails(level);
-        setModalData(data);
-    };
-
-    // Close modal
-    const closeModal = () => {
-        setShowModal(false);
-        setModalData([]);
-    };
-
-    // Fetch real distribution data and aggregate by geographic level
+    /**
+     * Fetches and aggregates distribution data by geographic level
+     * 
+     * This function is the core of the geographic filtering system. It:
+     * 1. Queries the distributions API based on selected filters (province, city, barangay)
+     * 2. Aggregates the forecasted harvest data by month
+     * 3. Returns trend data for display in the charts
+     * 
+     * HOW FILTERING WORKS:
+     * - Province Level: Shows total forecast for ALL cities in the selected province
+     * - City Level: Shows total forecast for ALL barangays in the selected city
+     * - Barangay Level: Shows forecast for the SPECIFIC selected barangay
+     * 
+     * The filters cascade down:
+     * - If you select "Davao del Norte" and "Tagum City", it shows data for Tagum City only
+     * - If you select "Davao del Norte", "Tagum City", and "Apokon", it shows data for Apokon only
+     * 
+     * @param level - The geographic level to fetch data for ('province' | 'city' | 'barangay')
+     * @returns Promise<TrendData[]> - Array of monthly aggregated trend data
+     */
     const fetchTrendDataForLevel = async (level: 'province' | 'city' | 'barangay'): Promise<TrendData[]> => {
         try {
-            // Build query parameters based on level
+            // Step 1: Build base query parameters
+            // These parameters are always included regardless of the level
             const params = new URLSearchParams({
                 species: formData.species === "Red Tilapia" ? "Tilapia" : formData.species,
                 startDate: formData.dateFrom,
@@ -320,29 +261,54 @@ const HarvestForecast: React.FC = () => {
                 limit: "1000" // Get all records for aggregation
             });
 
-            // Add location filters based on level - only add if not "all"
+            // Step 2: Add location filters based on the selected level
+            // The filtering logic cascades down from province → city → barangay
+            
+            /**
+             * PROVINCE LEVEL FILTERING:
+             * - If user selects "Davao del Norte", it fetches ALL distributions in that province
+             * - This includes all cities (Tagum, Panabo, etc.) and all barangays within them
+             * - Example: "Davao del Norte" → Shows combined data from Tagum + Panabo + all other cities
+             */
             if (level === 'province' && formData.province !== 'all') {
                 params.append('province', formData.province);
-            } else if (level === 'city') {
+            } 
+            
+            /**
+             * CITY LEVEL FILTERING:
+             * - If user selects "Davao del Norte" + "Tagum City", it fetches distributions in Tagum City only
+             * - This includes ALL barangays within Tagum City (Apokon, Bincungan, etc.)
+             * - Example: "Tagum City" → Shows combined data from Apokon + Bincungan + all other barangays in Tagum
+             */
+            else if (level === 'city') {
                 if (formData.province !== 'all') {
                     params.append('province', formData.province);
                 }
                 if (formData.city !== 'all' && formData.city !== 'All Cities') {
                     params.append('municipality', formData.city);
                 }
-            } else if (level === 'barangay') {
+            } 
+            
+            /**
+             * BARANGAY LEVEL FILTERING:
+             * - If user selects "Davao del Norte" + "Tagum City" + "Apokon", it fetches distributions in Apokon only
+             * - This shows data for ONLY that specific barangay
+             * - Example: "Apokon" → Shows data only from Apokon barangay in Tagum City
+             */
+            else if (level === 'barangay') {
                 if (formData.province !== 'all') {
                     params.append('province', formData.province);
                 }
                 if (formData.city !== 'all' && formData.city !== 'All Cities') {
                     params.append('municipality', formData.city);
                 }
-                // Add barangay filter if not "all"
+                // Add barangay filter if a specific barangay is selected
                 if (formData.barangay && formData.barangay !== 'all' && formData.barangay !== 'All Barangays') {
                     params.append('barangay', formData.barangay);
                 }
             }
 
+            // Step 3: Fetch distribution data from the API
             console.log(`Fetching ${level} trend data with params:`, params.toString());
             const response = await fetch(`/api/distributions-data?${params.toString()}`);
 
@@ -358,20 +324,37 @@ const HarvestForecast: React.FC = () => {
 
             const distributions = result.data.distributions;
 
-            // Group distributions by month and aggregate harvest data
+            /**
+             * Step 4: AGGREGATE DATA BY MONTH
+             * 
+             * This is where the magic happens! The function takes all the distributions
+             * (based on your filters) and groups them by month, then sums up the forecasted harvest.
+             * 
+             * Example:
+             * If you selected "Davao del Norte" → "Tagum City", and there are:
+             * - 3 distributions in Apokon barangay in November with forecasts: 50kg, 75kg, 100kg
+             * - 2 distributions in Bincungan barangay in November with forecasts: 80kg, 120kg
+             * 
+             * The result for November would be: 50 + 75 + 100 + 80 + 120 = 425kg total
+             * 
+             * This happens for each month in your selected date range.
+             */
             const monthlyData = new Map<string, { total: number, count: number }>();
 
             distributions.forEach((dist: any) => {
                 const date = new Date(dist.dateDistributed);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
+                // Get the forecasted harvest value (was calculated when distribution was created)
                 const harvestValue = dist.forecastedHarvestKilos || 0;
 
                 if (monthlyData.has(monthKey)) {
+                    // Add to existing month's total
                     const existing = monthlyData.get(monthKey)!;
                     existing.total += harvestValue;
                     existing.count += 1;
                 } else {
+                    // Create new month entry
                     monthlyData.set(monthKey, { total: harvestValue, count: 1 });
                 }
             });
@@ -418,10 +401,18 @@ const HarvestForecast: React.FC = () => {
         }
     };
 
-    // Validate date range based on species
+    // Validate date range - maximum 1 year (12 months) for all species
     const validateDateRange = (): { isValid: boolean; errorMessage: string } => {
         const startDate = new Date(formData.dateFrom);
         const endDate = new Date(formData.dateTo);
+
+        // Check if end date is before start date
+        if (endDate < startDate) {
+            return {
+                isValid: false,
+                errorMessage: 'Error: End date must be after start date.'
+            };
+        }
 
         // Calculate the difference in months (inclusive of both start and end months)
         const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
@@ -434,18 +425,11 @@ const HarvestForecast: React.FC = () => {
             monthsDiff: monthsDiff
         });
 
-        // Check species-specific EXACT month requirements
-        if (formData.species === 'Red Tilapia' && monthsDiff !== 4) {
+        // Check maximum 12 months limit for all species
+        if (monthsDiff > 12) {
             return {
                 isValid: false,
-                errorMessage: `Error: Red Tilapia needs 4 months. Current selection: ${monthsDiff} months.`
-            };
-        }
-
-        if (formData.species === 'Bangus' && monthsDiff !== 3) {
-            return {
-                isValid: false,
-                errorMessage: `Error: Bangus needs 3 months. Current selection: ${monthsDiff} months.`
+                errorMessage: `Error: Date range cannot exceed 12 months. Current selection: ${monthsDiff} months.`
             };
         }
 
@@ -465,8 +449,8 @@ const HarvestForecast: React.FC = () => {
         setApiError(null);
 
         try {
-            // Call the forecast API
-            const response = await fetch('/api/predict', {
+            // Call the calculated forecast API (uses real database data)
+            const response = await fetch('/api/forecast/calculated', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -477,6 +461,7 @@ const HarvestForecast: React.FC = () => {
                     dateTo: formData.dateTo,
                     province: formData.province,
                     city: formData.city,
+                    barangay: formData.barangay,
                 }),
             });
 
@@ -500,8 +485,8 @@ const HarvestForecast: React.FC = () => {
                 const monthIndex = dateObj.getMonth();
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-                // Generate mock historical data for comparison (85-95% of predicted)
-                const historical = Math.round(pred.predicted_harvest * (0.85 + Math.random() * 0.1));
+                // Use actual harvest data from database if available
+                const historical = Math.round((pred as any).actual_harvest || 0);
 
                 // Calculate confidence percentage from confidence bounds
                 const confidenceRange = pred.confidence_upper - pred.confidence_lower;
@@ -519,17 +504,6 @@ const HarvestForecast: React.FC = () => {
             });
 
             setForecastData(transformedData);
-
-            // Fetch real trend data for different levels from distribution database
-            const [provinceTrend, cityTrend, barangayTrend] = await Promise.all([
-                fetchTrendDataForLevel('province'),
-                fetchTrendDataForLevel('city'),
-                fetchTrendDataForLevel('barangay')
-            ]);
-
-            setProvinceTrendData(provinceTrend);
-            setCityTrendData(cityTrend);
-            setBarangayTrendData(barangayTrend);
             setShowResults(true);
 
         } catch (error) {
@@ -559,7 +533,7 @@ const HarvestForecast: React.FC = () => {
 
     // Generate dynamic titles based on selected parameters
     const getParameterBasedTitle = () => {
-        return `${formData.species} - ${formData.city}, ${formData.province} (${formData.facilityType})`;
+        return `${formData.species}`;
     };
 
     if (isLoading) {
@@ -606,7 +580,7 @@ const HarvestForecast: React.FC = () => {
                         {/* Header */}
                         <div className="mb-8">
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">Forecasting</h1>
-                            <p className="text-gray-600">Generate harvest forecasts and analyze trends across different species and locations</p>
+                            <p className="text-gray-600">Generate Harvest Forecasts Actual vs Forecast Over Time</p>
                         </div>
 
                         {/* Forecasting Form Card */}
@@ -787,47 +761,14 @@ const HarvestForecast: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Results Section */}
+                        {/* ============================================
+                            RESULTS SECTION
+                            ============================================
+                            This section displays all forecast results after successful generation.
+                            Shows only when showResults is true and predictionResponse is available.
+                        */}
                         {showResults && predictionResponse && (
                             <>
-                                {/* API Model Information */}
-                                {/* <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-200 p-6 mb-6">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="bg-blue-600 rounded-lg p-2">
-                                            <BarChart3 className="h-5 w-5 text-white" />
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Prediction Model Information</h3>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-sm text-gray-600 mb-1">Model Type</p>
-                                            <p className="text-base font-semibold text-gray-900">
-                                                {predictionResponse.model_info.model_type || 'N/A'}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600 mb-1">Training Period</p>
-                                            <p className="text-base font-semibold text-gray-900">
-                                                {predictionResponse.model_info.training_period || 'N/A'}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600 mb-1">Prediction Count</p>
-                                            <p className="text-base font-semibold text-gray-900">
-                                                {predictionResponse.metadata.prediction_count || 0} months
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600 mb-1">Features Used</p>
-                                            <p className="text-base font-semibold text-gray-900">
-                                                {predictionResponse.model_info.features_used && predictionResponse.model_info.features_used.length > 0
-                                                    ? predictionResponse.model_info.features_used.join(', ')
-                                                    : 'N/A'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div> */}
-
                                 {/* Summary Statistics */}
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-5">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Forecast Summary</h3>
@@ -838,17 +779,17 @@ const HarvestForecast: React.FC = () => {
                                             </div>
                                             <div className="text-sm text-blue-800">Total Predicted Harvest</div>
                                         </div>
-                                        <div className="bg-green-50 rounded-lg p-4">
-                                            <div className="text-2xl font-bold text-green-600">
-                                                {Math.round(forecastData.reduce((sum, item) => sum + item.predicted, 0) / forecastData.length).toLocaleString()} kg
-                                            </div>
-                                            <div className="text-sm text-green-800">Avg Harvest/Month</div>
-                                        </div>
                                         <div className="bg-purple-50 rounded-lg p-4">
                                             <div className="text-2xl font-bold text-purple-600">
-                                                {Math.max(...forecastData.map(item => item.predicted)).toLocaleString()} kg
+                                                {predictionResponse.metadata.total_fingerlings?.toLocaleString() || 0}
                                             </div>
-                                            <div className="text-sm text-purple-800">Peak Harvest</div>
+                                            <div className="text-sm text-purple-800">Total Fingerlings</div>
+                                        </div>
+                                        <div className="bg-green-50 rounded-lg p-4">
+                                            <div className="text-2xl font-bold text-green-600">
+                                                {forecastData.reduce((sum, item) => sum + item.historical, 0).toLocaleString()} kg
+                                            </div>
+                                            <div className="text-sm text-green-800">Actual Harvest</div>
                                         </div>
                                         <div className="bg-orange-50 rounded-lg p-4">
                                             <div className="text-2xl font-bold text-orange-600">
@@ -899,19 +840,38 @@ const HarvestForecast: React.FC = () => {
                                 {/* Forecast Charts */}
                                 <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Harvest Forecast</h3>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Actual vs Forecast Over Time</h3>
                                         <p className="text-sm text-gray-600 mb-4">{getParameterBasedTitle()}</p>
                                         <div className="h-80">
                                             <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={forecastData}>
+                                                <LineChart data={forecastData}>
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis dataKey="month" />
                                                     <YAxis />
-                                                    <Tooltip />
+                                                    <Tooltip 
+                                                        formatter={(value) => [`${value?.toLocaleString()} kg`, '']}
+                                                        labelFormatter={(label) => `Month: ${label}`}
+                                                    />
                                                     <Legend />
-                                                    <Bar dataKey="predicted" fill="#3B82F6" name="Predicted" />
-                                                    <Bar dataKey="historical" fill="#10B981" name="Historical" />
-                                                </BarChart>
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="predicted" 
+                                                        stroke="#3B82F6" 
+                                                        strokeWidth={3}
+                                                        name="Forecast" 
+                                                        dot={{ r: 4 }}
+                                                        activeDot={{ r: 6 }}
+                                                    />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="historical" 
+                                                        stroke="#10B981" 
+                                                        strokeWidth={3}
+                                                        name="Actual" 
+                                                        dot={{ r: 4 }}
+                                                        activeDot={{ r: 6 }}
+                                                    />
+                                                </LineChart>
                                             </ResponsiveContainer>
                                         </div>
                                     </div>
@@ -932,314 +892,12 @@ const HarvestForecast: React.FC = () => {
                                         </div>
                                     </div> */}
                                 </div>
-
-                                {/* Trend Analysis Section - Dynamic Based on Selection */}
-                                <div className="mb-8">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <BarChart3 className="h-5 w-5 text-purple-600" />
-                                        <h3 className="text-xl font-semibold text-gray-900">Geographic Level Forecast Trend Analysis</h3>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-6">
-                                        Compare harvest trends across different geographic levels for {formData.species}
-                                    </p>
-
-                                    {/* Province Level Trend - Always show when province is selected */}
-                                    {formData.province !== 'all' && (
-                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-                                            <div className="p-6">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-lg font-semibold text-gray-900">Province Level Trend</h4>
-                                                    <button
-                                                        onClick={() => handleViewDetails('province')}
-                                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
-                                                    >
-                                                        <BarChart3 className="h-4 w-4" />
-                                                        View Details
-                                                    </button>
-                                                </div>
-                                                <p className="text-sm text-gray-600 mb-4">{formData.province} - Aggregated Provincial Data</p>
-                                                <div className="h-80">
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <AreaChart data={provinceTrendData}>
-                                                            <CartesianGrid strokeDasharray="3 3" />
-                                                            <XAxis dataKey="month" />
-                                                            <YAxis />
-                                                            <Tooltip
-                                                                formatter={(value) => [
-                                                                    value?.toLocaleString(),
-                                                                    'Harvest Volume (kg)'
-                                                                ]}
-                                                                labelFormatter={(label) => `Month: ${label}`}
-                                                            />
-                                                            <Area
-                                                                type="monotone"
-                                                                dataKey="value"
-                                                                stroke="#8B5CF6"
-                                                                fill="#8B5CF6"
-                                                                fillOpacity={0.3}
-                                                                strokeWidth={2}
-                                                            />
-                                                        </AreaChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* City/Municipality Level Trend - Show when city is selected */}
-                                    {formData.city !== 'all' && formData.city !== 'All Cities' && (
-                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-                                            <div className="p-6">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-lg font-semibold text-gray-900">City/Municipality Level Trend</h4>
-                                                    <button
-                                                        onClick={() => handleViewDetails('city')}
-                                                        className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors text-sm flex items-center gap-2"
-                                                    >
-                                                        <BarChart3 className="h-4 w-4" />
-                                                        View Details
-                                                    </button>
-                                                </div>
-                                                <p className="text-sm text-gray-600 mb-4">{formData.city}, {formData.province} - City-Level Data</p>
-                                                <div className="h-80">
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <AreaChart data={cityTrendData}>
-                                                            <CartesianGrid strokeDasharray="3 3" />
-                                                            <XAxis dataKey="month" />
-                                                            <YAxis />
-                                                            <Tooltip
-                                                                formatter={(value) => [
-                                                                    value?.toLocaleString(),
-                                                                    'Harvest Volume (kg)'
-                                                                ]}
-                                                                labelFormatter={(label) => `Month: ${label}`}
-                                                            />
-                                                            <Area
-                                                                type="monotone"
-                                                                dataKey="value"
-                                                                stroke="#06B6D4"
-                                                                fill="#06B6D4"
-                                                                fillOpacity={0.3}
-                                                                strokeWidth={2}
-                                                            />
-                                                        </AreaChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Barangay Level Trend - Show when specific barangay is selected */}
-                                    {formData.barangay !== 'all' && formData.barangay !== 'All Barangays' && (
-                                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-                                            <div className="p-6">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-lg font-semibold text-gray-900">Barangay Level Trend</h4>
-                                                    <button
-                                                        onClick={() => handleViewDetails('barangay')}
-                                                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
-                                                    >
-                                                        <BarChart3 className="h-4 w-4" />
-                                                        View Details
-                                                    </button>
-                                                </div>
-                                                <p className="text-sm text-gray-600 mb-4">{formData.barangay}, {formData.city}, {formData.province} - Barangay-Specific Data</p>
-                                                {barangayTrendData.length === 0 ? (
-                                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                                                        <p className="text-yellow-800 text-sm">
-                                                            No distribution data found for {formData.barangay}. This could mean:
-                                                            <br />• No distributions recorded for this barangay in the selected date range
-                                                            <br />• Barangay name spelling mismatch in the database
-                                                            <br />• Check the browser console for detailed logs
-                                                        </p>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                    </div>
-                                                )}
-
-                                                <div className="h-80">
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <AreaChart data={barangayTrendData}>
-                                                            <CartesianGrid strokeDasharray="3 3" />
-                                                            <XAxis dataKey="month" />
-                                                            <YAxis />
-                                                            <Tooltip
-                                                                formatter={(value) => [
-                                                                    value?.toLocaleString(),
-                                                                    'Harvest Volume (kg)'
-                                                                ]}
-                                                                labelFormatter={(label) => `Month: ${label}`}
-                                                            />
-                                                            <Area
-                                                                type="monotone"
-                                                                dataKey="value"
-                                                                stroke="#10B981"
-                                                                fill="#10B981"
-                                                                fillOpacity={0.3}
-                                                                strokeWidth={2}
-                                                            />
-                                                        </AreaChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
                             </>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Details Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                            <div>
-                                <h3 className="text-xl font-semibold text-gray-900">
-                                    {modalLevel === 'province' ? 'Province Level Details' :
-                                        modalLevel === 'city' ? 'City Level Details' :
-                                            'Barangay Level Details'}
-                                </h3>
-                                <p className="text-sm text-gray-600 mt-1">
-                                    {modalLevel === 'province' ? `${formData.province} - All Cities` :
-                                        modalLevel === 'city' ? `${formData.city}, ${formData.province} - All Barangays` :
-                                            `${formData.barangay}, ${formData.city}, ${formData.province}`}
-                                </p>
-                            </div>
-                            <button
-                                onClick={closeModal}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        {/* Modal Content */}
-                        <div className="p-6 overflow-y-auto max-h-[70vh]">
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <div className="bg-blue-50 rounded-lg p-4">
-                                    <div className="text-2xl font-bold text-blue-600">
-                                        {modalData.length}
-                                    </div>
-                                    <div className="text-sm text-blue-800">Total Batches</div>
-                                </div>
-                                <div className="bg-green-50 rounded-lg p-4">
-                                    <div className="text-2xl font-bold text-green-600">
-                                        {modalData.reduce((sum, batch) => sum + batch.fingerlingsCount, 0).toLocaleString()}
-                                    </div>
-                                    <div className="text-sm text-green-800">Total Fingerlings</div>
-                                </div>
-                                <div className="bg-purple-50 rounded-lg p-4">
-                                    <div className="text-2xl font-bold text-purple-600">
-                                        {modalData.reduce((sum, batch) => sum + batch.harvestForecasted, 0).toLocaleString()}
-                                    </div>
-                                    <div className="text-sm text-purple-800">Forecasted Harvest</div>
-                                </div>
-                            </div>
-
-                            {/* Data Table */}
-                            <div className="overflow-x-auto">
-                                <table className="w-full border-collapse border border-gray-300">
-                                    <thead>
-                                        <tr className="bg-gray-50">
-                                            {modalLevel === 'province' && (
-                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">City</th>
-                                            )}
-                                            {modalLevel === 'city' && (
-                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Barangay</th>
-                                            )}
-                                            {modalLevel === 'barangay' && (
-                                                <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900">Beneficiary Name</th>
-                                            )}
-                                            <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Fingerlings Count</th>
-                                            <th className="border border-gray-300 px-4 py-3 text-right font-semibold text-gray-900">Harvest Forecasted (kg)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {modalData.map((batch, index) => (
-                                            <tr key={batch.batchId} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                                {modalLevel === 'province' && batch.city && (
-                                                    <td className="border border-gray-300 px-4 py-3">{batch.city}</td>
-                                                )}
-                                                {modalLevel === 'city' && batch.barangay && (
-                                                    <td className="border border-gray-300 px-4 py-3">{batch.barangay}</td>
-                                                )}
-                                                {modalLevel === 'barangay' && (
-                                                    <td className="border border-gray-300 px-4 py-3">{batch.name}</td>
-                                                )}
-                                                <td className="border border-gray-300 px-4 py-3 text-right font-mono">
-                                                    {batch.fingerlingsCount.toLocaleString()}
-                                                </td>
-                                                <td className="border border-gray-300 px-4 py-3 text-right font-mono font-semibold text-green-700">
-                                                    {batch.harvestForecasted.toLocaleString()} kg
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
-                            <button
-                                onClick={closeModal}
-                                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                Close
-                            </button>
-                            <button
-                                onClick={() => {
-                                    // Build CSV headers based on modal level
-                                    const headers = ['Batch ID'];
-                                    if (modalLevel === 'province') {
-                                        headers.push('City');
-                                    } else if (modalLevel === 'city') {
-                                        headers.push('Barangay');
-                                    } else if (modalLevel === 'barangay') {
-                                        headers.push('Beneficiary Name');
-                                    }
-                                    headers.push('Fingerlings Count', 'Harvest Forecasted');
-
-                                    // Build CSV rows
-                                    const rows = modalData.map(batch => {
-                                        const row = [batch.batchId];
-                                        if (modalLevel === 'province') {
-                                            row.push(batch.city || '');
-                                        } else if (modalLevel === 'city') {
-                                            row.push(batch.barangay || '');
-                                        } else if (modalLevel === 'barangay') {
-                                            row.push(batch.name);
-                                        }
-                                        row.push(batch.fingerlingsCount.toString(), batch.harvestForecasted.toString());
-                                        return row;
-                                    });
-
-                                    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-
-                                    const blob = new Blob([csv], { type: 'text/csv' });
-                                    const url = window.URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `${modalLevel}_batch_details.csv`;
-                                    a.click();
-                                    window.URL.revokeObjectURL(url);
-                                }}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                                Export CSV
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 };

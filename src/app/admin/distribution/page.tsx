@@ -252,10 +252,11 @@ const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: ()
                             <span className="text-gray-500">Location:</span>
                             <p className="font-medium text-gray-900 mt-1">{distribution.location}</p>
                         </div>
-                        <div>
+                        {/* Phone number display - Commented out for now */}
+                        {/* <div>
                             <span className="text-gray-500">Phone:</span>
                             <p className="font-medium text-gray-900">{distribution.phoneNumber}</p>
-                        </div>
+                        </div> */}
                         {distribution.forecastedHarvestKilos && (
                             <div>
                                 <span className="text-gray-500">Forecasted Harvest:</span>
@@ -304,11 +305,28 @@ const DistributionFormModal: React.FC<{
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
     const [availableBatches, setAvailableBatches] = useState<Batch[]>(batches);
+    const [calculatedHarvestDate, setCalculatedHarvestDate] = useState<string>('');
 
     // Update available batches when batches prop changes
     useEffect(() => {
         setAvailableBatches(batches);
     }, [batches]);
+
+    // Calculate forecasted harvest date when distribution date and species are selected
+    useEffect(() => {
+        if (formData.date && formData.species) {
+            const date = new Date(formData.date);
+            const isTilapia = formData.species.toLowerCase().includes('tilapia');
+            const growthMonths = isTilapia ? 4 : 3;
+            
+            const forecastedDate = new Date(date);
+            forecastedDate.setMonth(date.getMonth() + growthMonths);
+            
+            setCalculatedHarvestDate(forecastedDate.toISOString().split('T')[0]);
+        } else {
+            setCalculatedHarvestDate('');
+        }
+    }, [formData.date, formData.species]);
 
     if (!isOpen) return null;
 
@@ -384,14 +402,14 @@ const DistributionFormModal: React.FC<{
             if (!formData.organizationName.trim()) newErrors.organizationName = 'Organization name is required';
         }
 
-        // Phone number validation: must be numbers only and at least 11 digits
-        if (!formData.phoneNumber.trim()) {
+        // Phone number validation - Commented out for now
+        /* if (!formData.phoneNumber.trim()) {
             newErrors.phoneNumber = 'Phone number is required';
         } else if (!/^\d+$/.test(formData.phoneNumber)) {
             newErrors.phoneNumber = 'Phone number must contain only numbers';
         } else if (formData.phoneNumber.length < 11) {
             newErrors.phoneNumber = 'Phone number must be at least 11 digits';
-        }
+        } */
         if (!formData.species) newErrors.species = 'Species is required';
         if (!formData.date) newErrors.date = 'Date is required';
         if (!formData.province) newErrors.province = 'Province is required';
@@ -460,7 +478,7 @@ const DistributionFormModal: React.FC<{
             };
 
             // Calculate forecasted harvest kilos
-            const dates = calculateDates(formData.date, formData.fingerlingsCount);
+            const dates = calculateDates(formData.date, formData.fingerlingsCount, formData.species);
 
             // Prepare data for API
             const distributionData = {
@@ -520,7 +538,7 @@ const DistributionFormModal: React.FC<{
                 }
 
                 // Transform the saved data back to Distribution format for display
-                const dates = calculateDates(formData.date, formData.fingerlingsCount);
+                const dates = calculateDates(formData.date, formData.fingerlingsCount, formData.species);
                 const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
 
                 const newDistribution: Distribution = {
@@ -796,7 +814,8 @@ const DistributionFormModal: React.FC<{
                                     </div>
                                 )}
 
-                                <div>
+                                {/* Phone Number field - Commented out for now */}
+                                {/* <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                                     <input
                                         type="tel"
@@ -833,7 +852,7 @@ const DistributionFormModal: React.FC<{
                                             </span>
                                         </div>
                                     )}
-                                </div>
+                                </div> */}
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Species</label>
@@ -1007,6 +1026,35 @@ const DistributionFormModal: React.FC<{
                                     </div>
                                 )}
                             </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <Calendar className="h-4 w-4" />
+                                    Forecasted Harvest Date (Auto-calculated)
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={calculatedHarvestDate ? new Date(calculatedHarvestDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                                        readOnly
+                                        placeholder={formData.species && formData.date ? "Calculating..." : "Select species and distribution date first"}
+                                        className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                    />
+                                    {calculatedHarvestDate && (
+                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                            <CheckCircle className="h-5 w-5 text-green-500" />
+                                        </div>
+                                    )}
+                                </div>
+                                {calculatedHarvestDate && formData.species && (
+                                    <div className="flex items-center gap-1 mt-2">
+                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                        <span className="text-sm text-green-600">
+                                            {formData.species.toLowerCase().includes('tilapia') ? 'Red Tilapia: 4 months growth period' : 'Bangus: 3 months growth period'}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Details */}
@@ -1094,13 +1142,13 @@ const DetailModal: React.FC<{
         // Calculate months difference
         const monthsDiff = (actualDate.getTime() - distributionDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
 
-        if (monthsDiff < 3) {
+        if (monthsDiff < 4) {
             if (actualDate < forecastedDate) {
                 setPromptMessage("Harvest is earlier than forecasted date. Please verify the actual harvest date and update forecasted harvest kilos if needed.");
                 setShowPrompt(true);
             }
-        } else if (monthsDiff > 3) {
-            setPromptMessage("Harvest is more than 3 months from distribution date. Please update the actual harvest date and forecasted harvest kilos.");
+        } else if (monthsDiff > 4) {
+            setPromptMessage("Harvest is more than 4 months from distribution date. Please update the actual harvest date and forecasted harvest kilos.");
             setShowPrompt(true);
         }
     };
@@ -1215,10 +1263,11 @@ const DetailModal: React.FC<{
                                     <span className="text-blue-600 font-medium">Name:</span>
                                     <p className="text-blue-800">{distribution.beneficiary}</p>
                                 </div>
-                                <div>
+                                {/* Phone number display - Commented out for now */}
+                                {/* <div>
                                     <span className="text-blue-600 font-medium">Phone:</span>
                                     <p className="text-blue-800">{distribution.phoneNumber}</p>
-                                </div>
+                                </div> */}
                                 <div>
                                     <span className="text-blue-600 font-medium">Species:</span>
                                     <p className="text-blue-800">{distribution.species}</p>

@@ -964,7 +964,7 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
 
             row["Beneficiary Name"] = beneficiary.beneficiaryName;
             row["Species"] = beneficiary.species;
-            row["Contact Number"] = beneficiary.contactNumber;
+            // row["Phone Number"] = beneficiary.phoneNumber; // Commented out
             row["Total Fingerlings"] = beneficiary.totalFingerlings;
             row["Date Distributed"] = new Date(beneficiary.dateDistributed).toLocaleDateString();
 
@@ -1023,7 +1023,7 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
                                 )}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th>
+                                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th> */}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Distributed</th>
                             </tr>
@@ -1042,7 +1042,7 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
                                     )}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.species}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.contactNumber}</td>
+                                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.contactNumber}</td> */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {new Date(beneficiary.dateDistributed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
