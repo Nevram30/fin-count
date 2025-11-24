@@ -191,6 +191,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Calculate forecasted harvest date based on species
+    // Bangus: 3 months, Tilapia: 4 months
+    const distributionDate = new Date(body.dateDistributed);
+    const forecastedHarvestDate = new Date(distributionDate);
+    const monthsToAdd = body.species === "Bangus" ? 3 : 4;
+    forecastedHarvestDate.setMonth(distributionDate.getMonth() + monthsToAdd);
+
     // Create new distribution
     const newDistribution = await Distribution.create({
       dateDistributed: new Date(body.dateDistributed),
@@ -202,6 +209,7 @@ export async function POST(request: NextRequest) {
       species: body.species,
       userId: body.userId,
       batchId: body.batchId || null,
+      forecastedHarvestDate: forecastedHarvestDate,
       forecastedHarvestKilos: body.forecastedHarvestKilos || null,
       actualHarvestKilos: body.actualHarvestKilos || null,
       actualHarvestDate: body.actualHarvestDate

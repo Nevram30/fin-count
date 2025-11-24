@@ -409,22 +409,27 @@ const DistributionFormModal: React.FC<{
         return Object.keys(newErrors).length === 0;
     };
 
-    // Calculate forecast and harvest dates
+    // Calculate forecast and harvest dates based on species
     const calculateDates = (distributionDate: string, fingerlingsCount: number) => {
         const date = new Date(distributionDate);
+
+        // Determine if species is Tilapia or Bangus
+        const isTilapia = formData.species.toLowerCase().includes('tilapia');
+
+        // Forecasted Harvest Date: Bangus = 3 months, Tilapia = 4 months
+        const forecastedHarvestDate = new Date(date);
+        const monthsToHarvest = isTilapia ? 4 : 3;
+        forecastedHarvestDate.setMonth(date.getMonth() + monthsToHarvest);
+
         const forecastDate = new Date(date);
         forecastDate.setMonth(date.getMonth() + 3); // 3 months for forecast
 
         const harvestDate = new Date(date);
         harvestDate.setMonth(date.getMonth() + 6); // 6 months for harvest
 
-        const forecastedHarvestDate = new Date(date);
-        forecastedHarvestDate.setMonth(date.getMonth() + 5); // 5 months for forecasted harvest
-
         // Calculate forecasted harvest based on species-specific growth parameters
         // Red Tilapia: 0.3 kg after 4 months, 78% survival rate
         // Bangus: 0.39 kg after 3 months, 93.5% survival rate
-        const isTilapia = formData.species.toLowerCase().includes('tilapia');
         const expectedWeightAfterGrowth = isTilapia ? 0.3 : 0.39;
         const survivalRate = isTilapia ? 0.78 : 0.935;
         const forecastedHarvestKilos = Math.round(fingerlingsCount * survivalRate * expectedWeightAfterGrowth);
