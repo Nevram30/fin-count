@@ -100,15 +100,15 @@ const StatisticsOverview: React.FC = () => {
                 const distributionsStatsResponse = await fetch('/api/distributions-data/stats');
                 const distributionsStatsData = await distributionsStatsResponse.json();
 
-                // Fetch all users (staff members)
-                const usersResponse = await fetch('/api/user?userType=staff&limit=1000');
+                // Fetch all users (admin members)
+                const usersResponse = await fetch('/api/user?userType=admin&limit=1000');
                 const usersData = await usersResponse.json();
 
                 // Process sessions data
                 const sessions = sessionsData.success && sessionsData.data?.sessions ? sessionsData.data.sessions : [];
 
                 const activeSessions = sessions.length; // All sessions from the API are considered active
-                const totalStaff = usersData.data?.pagination?.totalUsers || 0;
+                const totalAdmins = usersData.data?.pagination?.totalUsers || 0;
 
                 // Get total fingerlings from distributions (this will update dynamically when distributions are added/deleted)
                 const totalFingerlings = distributionsStatsData.success
@@ -136,7 +136,7 @@ const StatisticsOverview: React.FC = () => {
 
                     {
                         title: "Admin Members",
-                        value: totalStaff.toString(),
+                        value: totalAdmins.toString(),
                         description: "Total number of admin members",
                         icon: UserCheck,
                         bgColor: "bg-cyan-50",
