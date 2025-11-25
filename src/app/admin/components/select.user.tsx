@@ -35,7 +35,6 @@ const UserSelectPage = () => {
                                     >
                                         <option value="">-- Add users role --</option>
                                         <option value="admin">admin</option>
-                                        <option value="staff">staff</option>
                                     </select>
 
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 pt-6">

@@ -49,16 +49,18 @@ export async function GET(request: NextRequest) {
           "totalFingerlings",
         ],
         [
-          models.sequelize.fn("SUM", models.sequelize.col("harvestKilo")),
+          models.sequelize.fn(
+            "SUM",
+            models.sequelize.col("actualHarvestKilos")
+          ),
           "totalHarvest",
         ],
         [
-          models.sequelize.fn("AVG", models.sequelize.col("survivalRate")),
-          "avgSurvivalRate",
-        ],
-        [
-          models.sequelize.fn("AVG", models.sequelize.col("avgWeight")),
-          "avgWeight",
+          models.sequelize.fn(
+            "SUM",
+            models.sequelize.col("forecastedHarvestKilos")
+          ),
+          "totalForecastedHarvest",
         ],
       ],
       where: whereClause,
@@ -77,7 +79,10 @@ export async function GET(request: NextRequest) {
           "totalFingerlings",
         ],
         [
-          models.sequelize.fn("SUM", models.sequelize.col("harvestKilo")),
+          models.sequelize.fn(
+            "SUM",
+            models.sequelize.col("actualHarvestKilos")
+          ),
           "totalHarvest",
         ],
       ],
@@ -100,7 +105,10 @@ export async function GET(request: NextRequest) {
           "totalFingerlings",
         ],
         [
-          models.sequelize.fn("SUM", models.sequelize.col("harvestKilo")),
+          models.sequelize.fn(
+            "SUM",
+            models.sequelize.col("actualHarvestKilos")
+          ),
           "totalHarvest",
         ],
       ],
@@ -131,7 +139,10 @@ export async function GET(request: NextRequest) {
           "totalFingerlings",
         ],
         [
-          models.sequelize.fn("SUM", models.sequelize.col("harvestKilo")),
+          models.sequelize.fn(
+            "SUM",
+            models.sequelize.col("actualHarvestKilos")
+          ),
           "totalHarvest",
         ],
       ],
