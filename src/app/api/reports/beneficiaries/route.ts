@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Op } from "sequelize";
 import models from "@/server/database/models";
 
-const { Distribution, StaffProfile, sequelize } = models;
+const { Distribution, Beneficiary, sequelize } = models;
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     // Determine grouping based on filters
     const groupByFields: string[] = [];
     const selectFields: any[] = [
+      "beneficiaryId",
       "beneficiaryName",
       "species",
       "dateDistributed",
@@ -79,6 +80,7 @@ export async function GET(request: NextRequest) {
 
     // Add beneficiary-specific grouping
     groupByFields.push(
+      "beneficiaryId",
       "beneficiaryName",
       "species",
       "dateDistributed",
@@ -95,6 +97,7 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       group: groupByFields,
       order: [
+        ["dateDistributed", "DESC"],
         ["province", "ASC"],
         ["municipality", "ASC"],
         ["barangay", "ASC"],
@@ -103,36 +106,51 @@ export async function GET(request: NextRequest) {
       raw: true,
     });
 
-    // Get unique user IDs to fetch contact numbers - Commented out for now
-    /* const userIds = Array.from(
-      new Set(beneficiariesData.map((record: any) => record.userId))
+    const beneficiaryIds = Array.from(
+      new Set(
+        beneficiariesData
+          .map((record: any) => record.beneficiaryId)
+          .filter((id: any) => id !== null && id !== undefined)
+      )
     );
 
-    // Fetch phone numbers from StaffProfile for all users
-    const staffProfiles = await StaffProfile.findAll({
-      where: {
-        userId: {
-          [Op.in]: userIds,
+    const beneficiaryContactMap = new Map<string, string | null>();
+    if (beneficiaryIds.length > 0) {
+      const beneficiaries = await Beneficiary.findAll({
+        where: {
+          id: {
+            [Op.in]: beneficiaryIds,
+          },
         },
-      },
-      attributes: ["userId", "phoneNumber"],
-      raw: true,
-    });
+        attributes: ["id", "contactNumber"],
+        raw: true,
+      });
 
-    // Create a map of userId to phoneNumber
-    const userContactMap = new Map(
-      staffProfiles.map((profile: any) => [profile.userId, profile.phoneNumber])
-    ); */
+      for (const beneficiary of beneficiaries as any[]) {
+        beneficiaryContactMap.set(
+          String(beneficiary.id),
+          beneficiary.contactNumber
+        );
+      }
+    }
 
-    // Format the data without contact numbers (commented out)
     const formattedData = beneficiariesData.map((record: any) => {
+      const beneficiaryIdKey =
+        record.beneficiaryId !== null && record.beneficiaryId !== undefined
+          ? String(record.beneficiaryId)
+          : null;
+
+      const contactNumber = beneficiaryIdKey
+        ? beneficiaryContactMap.get(beneficiaryIdKey) || "N/A"
+        : "N/A";
+
       return {
         province: record.province,
         municipality: record.municipality,
         barangay: record.barangay || "N/A",
         beneficiaryName: record.beneficiaryName,
         species: record.species,
-        // contactNumber: userContactMap.get(record.userId) || "N/A", // Commented out
+        contactNumber,
         totalFingerlings: parseInt(record.totalFingerlings) || 0,
         dateDistributed: record.dateDistributed,
       };

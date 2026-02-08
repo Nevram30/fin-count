@@ -8,12 +8,7 @@ import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
-
-interface LocationData {
-    provinces: string[];
-    cities: { [key: string]: string[] };
-    barangays: { [key: string]: string[] };
-}
+import { getCitiesForProvinceWithBarangays, locationData } from "@/app/components/data/location.data";
 
 interface HarvestData {
     location: string;
@@ -82,42 +77,6 @@ interface LeaderboardState {
     data: BeneficiaryData[];
     isLoading: boolean;
 }
-
-// Davao Region locations data (including Caraga Region provinces)
-const locationData: LocationData = {
-    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur", "Bukidnon", "Compostela Valley", "Cotabato"],
-    cities: {
-        "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
-        "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
-        "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
-        "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
-        "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"],
-        "Agusan del Sur": ["Bayugan City", "Bunawan", "Esperanza", "La Paz", "Loreto", "Prosperidad", "Rosario", "San Francisco", "San Luis", "Santa Josefa", "Sibagat", "Talacogon", "Trento", "Veruela"],
-        "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"],
-        "Bukidnon": ["Malaybalay City", "Valencia City", "Baungon", "Cabanglasan", "Damulog", "Dangcagan", "Don Carlos", "Impasugong", "Kadingilan", "Kalilangan", "Kibawe", "Kitaotao", "Lantapan", "Libona", "Malitbog", "Manolo Fortich", "Maramag", "Pangantucan", "Quezon", "San Fernando", "Sumilao"],
-        "Compostela Valley": ["Nabunturan", "Mabini", "Montevista", "New Bataan", "Pantukan", "Laak", "Maco", "Maragusan", "Mawab", "Monkayo", "Compostela"],
-        "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
-    },
-    barangays: {
-        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Busaon", "Liboganon"],
-        "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
-        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
-        "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
-        "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
-        "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
-        "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
-        "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
-        "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
-        "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
-        "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
-        "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
-        "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
-        "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
-        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
-        "Kidapawan": ["Amas"],
-        "North Cotabato": ["Balogo"]
-    }
-};
 
 const FullScreenLoader = () => (
     <div className="flex items-center justify-center">
@@ -392,17 +351,18 @@ const DataVisualization: React.FC = () => {
     // Get available cities based on selected province
     const getAvailableCities = (province: string) => {
         if (province === 'all' || !locationData.cities[province]) {
-            return ["All Cities"];
+            return [];
         }
-        return ["All Cities", ...locationData.cities[province]];
+        return getCitiesForProvinceWithBarangays(province);
     };
 
     // Get available barangays based on selected city
-    const getAvailableBarangays = (city: string) => {
-        if (city === 'all' || !locationData.barangays[city]) {
-            return ["All Barangays"];
+    const getAvailableBarangays = (province: string, city: string) => {
+        const availableBarangays = locationData.barangays[province]?.[city];
+        if (province === 'all' || city === 'all' || city === 'All Cities' || !availableBarangays) {
+            return [];
         }
-        return ["All Barangays", ...locationData.barangays[city]];
+        return availableBarangays;
     };
 
     // Fetch real beneficiary data from distribution API
@@ -1102,6 +1062,7 @@ const DataVisualization: React.FC = () => {
                                                 onChange={(e) => handleCityChange(e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
+                                                <option value="all">All Cities</option>
                                                 {getAvailableCities(fingerlingsState.selectedProvince).map(city => (
                                                     <option key={city} value={city}>{city}</option>
                                                 ))}
@@ -1249,7 +1210,8 @@ const DataVisualization: React.FC = () => {
                                                 }}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                {getAvailableBarangays(fingerlingsState.selectedCity).map(barangay => (
+                                                <option value="all">All Barangays</option>
+                                                {getAvailableBarangays(fingerlingsState.selectedProvince, fingerlingsState.selectedCity).map(barangay => (
                                                     <option key={barangay} value={barangay}>{barangay}</option>
                                                 ))}
                                             </select>
@@ -1411,6 +1373,7 @@ const DataVisualization: React.FC = () => {
                                                 onChange={(e) => handleHarvestCityChange(e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
+                                                <option value="all">All Cities</option>
                                                 {getAvailableCities(harvestState.selectedProvince).map(city => (
                                                     <option key={city} value={city}>{city}</option>
                                                 ))}
@@ -1442,7 +1405,8 @@ const DataVisualization: React.FC = () => {
                                                 }}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                {getAvailableBarangays(harvestState.selectedCity).map(barangay => (
+                                                <option value="all">All Barangays</option>
+                                                {getAvailableBarangays(harvestState.selectedProvince, harvestState.selectedCity).map(barangay => (
                                                     <option key={barangay} value={barangay}>{barangay}</option>
                                                 ))}
                                             </select>

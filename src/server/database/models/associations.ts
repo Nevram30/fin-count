@@ -6,6 +6,7 @@ import AdminProfile from "./admin.profile";
 import Batch from "./batch";
 import Session from "./session";
 import Distribution from "./distribution";
+import Beneficiary from "./beneficiary";
 
 // Define associations AFTER all models are imported
 User.hasMany(StaffProfile, {
@@ -38,6 +39,12 @@ Batch.hasMany(Session, {
   as: "sessions",
 });
 
+Beneficiary.hasMany(Distribution, {
+  sourceKey: "id",
+  foreignKey: "beneficiaryId",
+  as: "distributions",
+});
+
 // Define inverse associations (belongsTo)
 StaffProfile.belongsTo(User, {
   targetKey: "id",
@@ -63,6 +70,12 @@ Distribution.belongsTo(User, {
   as: "user",
 });
 
+Distribution.belongsTo(Beneficiary, {
+  targetKey: "id",
+  foreignKey: "beneficiaryId",
+  as: "beneficiaryProfile",
+});
+
 Session.belongsTo(Batch, {
   targetKey: "id",
   foreignKey: "batchId",
@@ -78,6 +91,7 @@ const models = {
   Batch,
   Session,
   Distribution,
+  Beneficiary,
 };
 
 export default models;

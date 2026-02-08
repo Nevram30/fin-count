@@ -10,7 +10,8 @@
     "db:create": "npx sequelize-cli db:create",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed": "npx sequelize-cli db:seed:all",
-    "lint": "next lint"
+    "lint": "next lint",
+    "validate:locations": "npx tsc scripts/validate-location-data.ts --outDir .tmp --module commonjs --target ES2020 --esModuleInterop --skipLibCheck && node .tmp/scripts/validate-location-data.js"
   },
   "dependencies": {
     "axios": "^1.9.0",

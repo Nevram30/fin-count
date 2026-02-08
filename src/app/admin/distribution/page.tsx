@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, ChevronDown, ChevronUp, Plus, Edit3, Trash2 } from "lucide-react";
+import { Users, User, Calendar, MapPin, Building2, FileText, Save, AlertCircle, CheckCircle, X, Fish, Eye, ChevronDown, ChevronUp, Plus, Edit3, Trash2, RotateCcw } from "lucide-react";
 import AsideNavigation from "../components/aside.navigation";
 import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
 import { Batch, Distribution } from "@/app/components/types/data.types";
+import { getCitiesForProvinceWithBarangays, locationData } from "@/app/components/data/location.data";
 
 const FullScreenLoader = () => (
     <div className="flex items-center justify-center">
@@ -18,6 +19,7 @@ const FullScreenLoader = () => (
 // Types
 interface DistributionForm {
     beneficiaryType: 'Individual' | 'Organization' | '';
+    beneficiaryId: number | null;
     firstname: string;
     lastname: string;
     organizationName: string;
@@ -148,55 +150,15 @@ const speciesOptions = [
     "Bangus"
 ];
 
-// Define type for locations
-interface LocationData {
-    provinces: string[];
-    cities: { [key: string]: string[] };
-    barangays: { [key: string]: string[] };
-}
-
-// Davao Region locations data (including Caraga Region provinces)
-const locationData: LocationData = {
-    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur", "Bukidnon", "Compostela Valley", "Cotabato"],
-    cities: {
-        "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
-        "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
-        "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
-        "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
-        "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"],
-        "Agusan del Sur": ["Bayugan City", "Bunawan", "Esperanza", "La Paz", "Loreto", "Prosperidad", "Rosario", "San Francisco", "San Luis", "Santa Josefa", "Sibagat", "Talacogon", "Trento", "Veruela"],
-        "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"],
-        "Bukidnon": ["Malaybalay City", "Valencia City", "Baungon", "Cabanglasan", "Damulog", "Dangcagan", "Don Carlos", "Impasugong", "Kadingilan", "Kalilangan", "Kibawe", "Kitaotao", "Lantapan", "Libona", "Malitbog", "Manolo Fortich", "Maramag", "Pangantucan", "Quezon", "San Fernando", "Sumilao"],
-        "Compostela Valley": ["Nabunturan", "Mabini", "Montevista", "New Bataan", "Pantukan", "Laak", "Maco", "Maragusan", "Mawab", "Monkayo", "Compostela"],
-        "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
-    },
-    barangays: {
-        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Busaon", "Liboganon"],
-        "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
-        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
-        "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
-        "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
-        "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
-        "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
-        "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
-        "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
-        "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
-        "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
-        "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
-        "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
-        "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
-        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
-        "Kidapawan": ["Amas"],
-        "North Cotabato": ["Balogo"]
-    }
-};
-
 // Mobile Card Component for Distribution
-const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: () => void }> = ({
-    distribution,
-    onViewDetails
-}) => {
+const DistributionCard: React.FC<{
+    distribution: Distribution;
+    onViewDetails: () => void;
+    onDelete: () => void;
+    onRestore: () => void;
+}> = ({ distribution, onViewDetails, onDelete, onRestore }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const normalizedRemarks = (distribution.remarks as string) === 'Pending' ? '' : distribution.remarks;
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm">
@@ -209,11 +171,29 @@ const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: ()
                 <div className="flex items-center gap-2">
                     <button
                         onClick={onViewDetails}
-                        className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
-                        title="View Details"
+                        disabled={distribution.isDeleted}
+                        className={distribution.isDeleted ? "bg-gray-100 text-gray-400 p-2 rounded-lg cursor-not-allowed opacity-50" : "bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"}
+                        title={distribution.isDeleted ? "View disabled for deleted records" : "View Details"}
                     >
                         <Eye className="h-4 w-4" />
                     </button>
+                    {distribution.isDeleted ? (
+                        <button
+                            onClick={onRestore}
+                            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg transition-colors"
+                            title="Restore"
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={onDelete}
+                            className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-colors"
+                            title="Delete"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </button>
+                    )}
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-lg transition-colors"
@@ -239,9 +219,13 @@ const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: ()
                 </div>
                 <div>
                     <span className="text-gray-500">Status:</span>
-                    <p className={`font-medium ${distribution.remarks ? 'text-green-600' : 'text-amber-600'}`}>
-                        {distribution.remarks || 'Pending'}
-                    </p>
+                    {distribution.isDeleted ? (
+                        <p className="font-medium text-gray-600">Deleted</p>
+                    ) : (
+                        <p className={`font-medium ${normalizedRemarks ? 'text-green-600' : 'text-amber-600'}`}>
+                            {normalizedRemarks || 'Distributed'}
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -275,6 +259,641 @@ const DistributionCard: React.FC<{ distribution: Distribution; onViewDetails: ()
         </div>
     );
 };
+// BeneficiaryProfileForm interface 
+interface BeneficiaryProfileForm {
+    beneficiaryType: 'Individual' | 'Organization' | '';
+    firstname: string;
+    lastname: string;
+    organizationName: string;
+    contactNumber: string;
+    province: string;
+    city: string;
+    barangay: string;
+    street: string;
+}
+
+const NewBeneficiaryPromptModal: React.FC<{
+    isOpen: boolean;
+    onYes: () => void;
+    onNo: () => void;
+    onClose: () => void;
+}> = ({ isOpen, onYes, onNo, onClose }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                            <Users className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900">New Beneficiary?</h3>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <p className="text-gray-600 mb-6">
+                    If yes, you’ll profile the beneficiary first, then continue to the new distribution form.
+                </p>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onNo}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg transition-colors font-medium"
+                    >
+                        No
+                    </button>
+                    <button
+                        onClick={onYes}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors font-medium"
+                    >
+                        Yes
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const BeneficiaryProfilingModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onSaved: (beneficiary: any) => void;
+}> = ({ isOpen, onClose, onSaved }) => {
+    const [formData, setFormData] = useState<BeneficiaryProfileForm>({
+        beneficiaryType: '',
+        firstname: '',
+        lastname: '',
+        organizationName: '',
+        contactNumber: '',
+        province: '',
+        city: '',
+        barangay: '',
+        street: ''
+    });
+
+    const [errors, setErrors] = useState<FormErrors>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const getAvailableCities = () => {
+        if (!formData.province || formData.province === 'all' || !locationData.cities[formData.province]) {
+            return ["All Cities"];
+        }
+        return ["All Cities", ...getCitiesForProvinceWithBarangays(formData.province)];
+    };
+
+    const getAvailableBarangays = () => {
+        const availableBarangays = locationData.barangays[formData.province]?.[formData.city];
+        if (!formData.city || formData.city === 'all' || formData.city === 'All Cities' || !availableBarangays) {
+            return ["All Barangays"];
+        }
+        return ["All Barangays", ...availableBarangays];
+    };
+
+    const handleInputChange = (field: keyof BeneficiaryProfileForm, value: string) => {
+        setFormData(prev => {
+            const newData = { ...prev, [field]: value };
+            if (field === 'province') {
+                newData.city = '';
+                newData.barangay = '';
+            } else if (field === 'city') {
+                newData.barangay = '';
+            } else if (field === 'beneficiaryType') {
+                newData.firstname = '';
+                newData.lastname = '';
+                newData.organizationName = '';
+            }
+            return newData;
+        });
+
+        if (errors[field]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
+    };
+
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
+
+        if (!formData.beneficiaryType) newErrors.beneficiaryType = 'Beneficiary type is required';
+
+        if (formData.beneficiaryType === 'Individual') {
+            if (!formData.firstname.trim()) newErrors.firstname = 'Firstname is required';
+            if (!formData.lastname.trim()) newErrors.lastname = 'Lastname is required';
+        } else if (formData.beneficiaryType === 'Organization') {
+            if (!formData.organizationName.trim()) newErrors.organizationName = 'Organization name is required';
+        }
+
+        if (!formData.province) newErrors.province = 'Province is required';
+        if (!formData.city) newErrors.city = 'City is required';
+        if (!formData.barangay) newErrors.barangay = 'Barangay is required';
+        if (!formData.street.trim()) newErrors.street = 'Street/Purok is required';
+
+        const contactNumber = formData.contactNumber.trim();
+        if (!contactNumber) {
+            newErrors.contactNumber = 'Contact number is required';
+        } else if (!/^\d{11}$/.test(contactNumber)) {
+            newErrors.contactNumber = 'Contact number must be exactly 11 digits';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async () => {
+        if (!validateForm()) return;
+        setIsSubmitting(true);
+
+        try {
+            const payload = {
+                beneficiaryType: formData.beneficiaryType,
+                firstname: formData.beneficiaryType === 'Individual' ? formData.firstname : undefined,
+                lastname: formData.beneficiaryType === 'Individual' ? formData.lastname : undefined,
+                organizationName: formData.beneficiaryType === 'Organization' ? formData.organizationName : undefined,
+                contactNumber: formData.contactNumber,
+                province: formData.province,
+                municipality: formData.city,
+                barangay: formData.barangay || undefined,
+                street: formData.street
+            };
+
+            const response = await fetch('/api/beneficiaries', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                onSaved(result.data);
+                setFormData({
+                    beneficiaryType: '',
+                    firstname: '',
+                    lastname: '',
+                    organizationName: '',
+                    contactNumber: '',
+                    province: '',
+                    city: '',
+                    barangay: '',
+                    street: ''
+                });
+                setErrors({});
+            } else {
+                alert(`Failed to save beneficiary: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error saving beneficiary:', error);
+            alert('An error occurred while saving the beneficiary. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                <Users className="h-5 w-5 text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900">Beneficiary Profiling</h2>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                    </div>
+
+                    <div className="space-y-8">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <User className="h-5 w-5" />
+                                Basic Information
+                            </h3>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-3">Beneficiary Type</label>
+                                <div className="flex gap-6">
+                                    {['Individual', 'Organization'].map(type => (
+                                        <label key={type} className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="beneficiaryType"
+                                                value={type}
+                                                checked={formData.beneficiaryType === type}
+                                                onChange={(e) => handleInputChange('beneficiaryType', e.target.value)}
+                                                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700">{type}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                {errors.beneficiaryType && (
+                                    <div className="flex items-center gap-1 mt-2">
+                                        <AlertCircle className="h-4 w-4 text-red-500" />
+                                        <span className="text-sm text-red-600">{errors.beneficiaryType}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {formData.beneficiaryType === 'Individual' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Firstname</label>
+                                            <input
+                                                type="text"
+                                                value={formData.firstname}
+                                                onChange={(e) => handleInputChange('firstname', e.target.value)}
+                                                placeholder="Enter firstname"
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.firstname ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    }`}
+                                            />
+                                            {errors.firstname && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                    <span className="text-sm text-red-600">{errors.firstname}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Lastname</label>
+                                            <input
+                                                type="text"
+                                                value={formData.lastname}
+                                                onChange={(e) => handleInputChange('lastname', e.target.value)}
+                                                placeholder="Enter lastname"
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.lastname ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    }`}
+                                            />
+                                            {errors.lastname && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                    <span className="text-sm text-red-600">{errors.lastname}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                                {formData.beneficiaryType === 'Organization' && (
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={formData.organizationName}
+                                                onChange={(e) => handleInputChange('organizationName', e.target.value)}
+                                                placeholder="Enter organization name"
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.organizationName ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                                    }`}
+                                            />
+                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                <Building2 className="h-4 w-4 text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.organizationName && (
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <AlertCircle className="h-4 w-4 text-red-500" />
+                                                <span className="text-sm text-red-600">{errors.organizationName}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact</label>
+                                    <input
+                                        type="tel"
+                                        inputMode="numeric"
+                                        maxLength={11}
+                                        value={formData.contactNumber}
+                                        onChange={(e) => {
+                                            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                            handleInputChange('contactNumber', digitsOnly);
+                                        }}
+                                        placeholder="Enter contact number"
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.contactNumber ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.contactNumber && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.contactNumber}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <MapPin className="h-5 w-5" />
+                                Location Details
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
+                                    <select
+                                        value={formData.province}
+                                        onChange={(e) => handleInputChange('province', e.target.value)}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.province ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    >
+                                        <option value="">Select Province</option>
+                                        {locationData.provinces.map((province) => (
+                                            <option key={province} value={province}>
+                                                {province}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.province && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.province}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">City/Municipality</label>
+                                    <select
+                                        value={formData.city}
+                                        onChange={(e) => handleInputChange('city', e.target.value)}
+                                        disabled={!formData.province}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            } ${!formData.province ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        <option value="">Select City</option>
+                                        {getAvailableCities()
+                                            .filter(c => c !== 'All Cities')
+                                            .map((city) => (
+                                                <option key={city} value={city}>
+                                                    {city}
+                                                </option>
+                                            ))}
+                                    </select>
+                                    {errors.city && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.city}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Barangay</label>
+                                    <select
+                                        value={formData.barangay}
+                                        onChange={(e) => handleInputChange('barangay', e.target.value)}
+                                        disabled={!formData.city || formData.city === 'All Cities'}
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.barangay ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            } ${!formData.city || formData.city === 'All Cities' ? 'cursor-not-allowed' : ''}`}
+                                    >
+                                        <option value="">Select Barangay</option>
+                                        {getAvailableBarangays()
+                                            .filter(b => b !== 'All Barangays')
+                                            .map((barangay) => (
+                                                <option key={barangay} value={barangay}>
+                                                    {barangay}
+                                                </option>
+                                            ))}
+                                    </select>
+                                    {errors.barangay && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.barangay}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Street/Purok</label>
+                                    <input
+                                        type="text"
+                                        value={formData.street}
+                                        onChange={(e) => handleInputChange('street', e.target.value)}
+                                        placeholder="Enter street/purok"
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.street ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {errors.street && (
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <AlertCircle className="h-4 w-4 text-red-500" />
+                                            <span className="text-sm text-red-600">{errors.street}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-8">
+                        <button
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors font-medium disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSubmit}
+                            disabled={isSubmitting}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="h-4 w-4" />
+                                    Save & Continue
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const BeneficiarySelectionModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onBack: () => void;
+    beneficiaries: any[];
+    isLoading: boolean;
+    search: string;
+    onSearchChange: (value: string) => void;
+    page: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    onSelect: (beneficiary: any) => void;
+}> = ({
+    isOpen,
+    onClose,
+    onBack,
+    beneficiaries,
+    isLoading,
+    search,
+    onSearchChange,
+    page,
+    totalPages,
+    onPageChange,
+    onSelect
+}) => {
+    if (!isOpen) return null;
+
+    const getBeneficiaryName = (beneficiary: any) => {
+        if (beneficiary?.beneficiaryType === 'Organization') {
+            return (beneficiary.organizationName || '').toString().trim();
+        }
+        return `${beneficiary?.firstname || ''} ${beneficiary?.lastname || ''}`.trim();
+    };
+
+    const getBeneficiaryLocation = (beneficiary: any) => {
+        const street = (beneficiary?.street || '').toString().trim();
+        const barangay = (beneficiary?.barangay || '').toString().trim();
+        const municipality = (beneficiary?.municipality || '').toString().trim();
+        const province = (beneficiary?.province || '').toString().trim();
+        return `${street}${barangay ? `, ${barangay}` : ''}, ${municipality}, ${province}`;
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                <Users className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Select Beneficiary</h2>
+                                <p className="text-sm text-gray-500">Most recent to oldest</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                            placeholder="Search by beneficiary name..."
+                            className="flex-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button
+                            onClick={onBack}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition-colors font-medium"
+                        >
+                            Back
+                        </button>
+                    </div>
+
+                    {isLoading ? (
+                        <div className="text-center py-12">
+                            <FullScreenLoader />
+                            <h3 className="text-lg font-semibold text-gray-600 mb-2 mt-4">Loading beneficiaries...</h3>
+                            <p className="text-gray-500">Please wait</p>
+                        </div>
+                    ) : beneficiaries.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-600 mb-2">No beneficiaries found</h3>
+                            <p className="text-gray-500 mb-6">Try another name or go back and choose “Yes” to add a new beneficiary</p>
+                            <button
+                                onClick={onBack}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
+                            >
+                                Back to Question
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                <div className="divide-y divide-gray-200">
+                                    {beneficiaries.map((beneficiary: any) => (
+                                        <div
+                                            key={beneficiary.id}
+                                            className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50"
+                                        >
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-gray-900 truncate">{getBeneficiaryName(beneficiary)}</p>
+                                                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm">
+                                                    <span className="text-gray-600">{beneficiary.beneficiaryType}</span>
+                                                    <span className="text-gray-500 truncate">{getBeneficiaryLocation(beneficiary)}</span>
+                                                    {beneficiary.contactNumber && (
+                                                        <span className="text-gray-500">{beneficiary.contactNumber}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => onSelect(beneficiary)}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition-colors font-medium whitespace-nowrap"
+                                            >
+                                                Select
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-6">
+                                <button
+                                    onClick={() => onPageChange(page - 1)}
+                                    disabled={page <= 1}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Previous
+                                </button>
+                                <div className="text-sm text-gray-600">
+                                    Page <span className="font-semibold">{page}</span> of <span className="font-semibold">{totalPages}</span>
+                                </div>
+                                <button
+                                    onClick={() => onPageChange(page + 1)}
+                                    disabled={page >= totalPages}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // Distribution Form Modal Component
 const DistributionFormModal: React.FC<{
@@ -282,9 +901,26 @@ const DistributionFormModal: React.FC<{
     onClose: () => void;
     onSave: (distribution: Distribution) => void;
     batches: Batch[];
-}> = ({ isOpen, onClose, onSave, batches }) => {
+    currentUserId?: number;
+    prefill?: Partial<
+        Pick<
+            DistributionForm,
+            | 'beneficiaryId'
+            | 'beneficiaryType'
+            | 'firstname'
+            | 'lastname'
+            | 'organizationName'
+            | 'phoneNumber'
+            | 'province'
+            | 'city'
+            | 'barangay'
+            | 'street'
+        >
+    >;
+}> = ({ isOpen, onClose, onSave, batches, currentUserId, prefill }) => {
     const [formData, setFormData] = useState<DistributionForm>({
         beneficiaryType: '',
+        beneficiaryId: null,
         firstname: '',
         lastname: '',
         organizationName: '',
@@ -318,15 +954,23 @@ const DistributionFormModal: React.FC<{
             const date = new Date(formData.date);
             const isTilapia = formData.species.toLowerCase().includes('tilapia');
             const growthMonths = isTilapia ? 4 : 3;
-            
+
             const forecastedDate = new Date(date);
             forecastedDate.setMonth(date.getMonth() + growthMonths);
-            
+
             setCalculatedHarvestDate(forecastedDate.toISOString().split('T')[0]);
         } else {
             setCalculatedHarvestDate('');
         }
     }, [formData.date, formData.species]);
+
+    useEffect(() => {
+        if (!isOpen || !prefill) return;
+        setFormData(prev => ({
+            ...prev,
+            ...prefill
+        }));
+    }, [isOpen, prefill]);
 
     if (!isOpen) return null;
 
@@ -335,15 +979,16 @@ const DistributionFormModal: React.FC<{
         if (!formData.province || formData.province === 'all' || !locationData.cities[formData.province]) {
             return ["All Cities"];
         }
-        return ["All Cities", ...locationData.cities[formData.province]];
+        return ["All Cities", ...getCitiesForProvinceWithBarangays(formData.province)];
     };
 
     // Get available barangays based on selected city
     const getAvailableBarangays = () => {
-        if (!formData.city || formData.city === 'all' || formData.city === 'All Cities' || !locationData.barangays[formData.city]) {
+        const availableBarangays = locationData.barangays[formData.province]?.[formData.city];
+        if (!formData.city || formData.city === 'all' || formData.city === 'All Cities' || !availableBarangays) {
             return ["All Barangays"];
         }
-        return ["All Barangays", ...locationData.barangays[formData.city]];
+        return ["All Barangays", ...availableBarangays];
     };
 
     // Handle input changes
@@ -362,6 +1007,10 @@ const DistributionFormModal: React.FC<{
                 newData.firstname = '';
                 newData.lastname = '';
                 newData.organizationName = '';
+            }
+
+            if (field === 'beneficiaryType' || field === 'firstname' || field === 'lastname' || field === 'organizationName') {
+                newData.beneficiaryId = null;
             }
 
             return newData;
@@ -383,9 +1032,20 @@ const DistributionFormModal: React.FC<{
         setSelectedBatch(batch || null);
         handleInputChange('batchId', batchId);
 
+        const normalizeBatchSpecies = (value: string): 'Tilapia' | 'Bangus' | '' => {
+            const normalized = (value || '').toString().trim().toLowerCase();
+            if (!normalized) return '';
+            if (normalized.includes('tilapia')) return 'Tilapia';
+            if (normalized.includes('bangus')) return 'Bangus';
+            return '';
+        };
+
         if (batch) {
             // Auto-fill fingerlings count from the selected batch
             handleInputChange('fingerlingsCount', batch.fingerlingsCount);
+            handleInputChange('species', normalizeBatchSpecies(batch.species));
+        } else {
+            handleInputChange('species', '');
         }
     };
 
@@ -410,7 +1070,7 @@ const DistributionFormModal: React.FC<{
         } else if (formData.phoneNumber.length < 11) {
             newErrors.phoneNumber = 'Phone number must be at least 11 digits';
         } */
-        if (!formData.species) newErrors.species = 'Species is required';
+        if (!formData.species) newErrors.species = 'Species is auto-filled from batch';
         if (!formData.date) newErrors.date = 'Date is required';
         if (!formData.province) newErrors.province = 'Province is required';
         if (!formData.city) newErrors.city = 'City is required';
@@ -463,6 +1123,10 @@ const DistributionFormModal: React.FC<{
     // Handle form submission
     const handleSubmit = async () => {
         if (!validateForm()) return;
+        if (!currentUserId) {
+            alert('No authenticated user found. Please sign in again.');
+            return;
+        }
 
         setIsSubmitting(true);
 
@@ -474,25 +1138,34 @@ const DistributionFormModal: React.FC<{
             // Map species to match database enum
             const speciesMapping: { [key: string]: 'Tilapia' | 'Bangus' } = {
                 'Red Tilapia': 'Tilapia',
+                'Tilapia': 'Tilapia',
                 'Bangus': 'Bangus'
             };
 
+            const dbSpecies = speciesMapping[formData.species];
+            if (!dbSpecies) {
+                setErrors(prev => ({ ...prev, species: 'Invalid species from selected batch' }));
+                setIsSubmitting(false);
+                return;
+            }
+
             // Calculate forecasted harvest kilos
-            const dates = calculateDates(formData.date, formData.fingerlingsCount, formData.species);
+            const dates = calculateDates(formData.date, formData.fingerlingsCount);
 
             // Prepare data for API
             const distributionData = {
                 dateDistributed: formData.date,
                 beneficiaryName: beneficiaryName,
+                beneficiaryId: formData.beneficiaryId,
                 barangay: formData.barangay,
                 municipality: formData.city,
                 province: formData.province,
                 fingerlings: formData.fingerlingsCount,
-                species: speciesMapping[formData.species] || 'Tilapia',
+                species: dbSpecies,
                 survivalRate: 0.78, // Default survival rate
                 avgWeight: 0.5, // Default average weight
                 harvestKilo: Math.round(formData.fingerlingsCount * 0.5 * 0.78), // Calculate based on fingerlings
-                userId: 1, // Hardcoded userId for new distributions
+                userId: currentUserId,
                 batchId: formData.batchId,
                 forecastedHarvestKilos: dates.forecastedHarvestKilos // Add forecasted harvest kilos
             };
@@ -538,7 +1211,7 @@ const DistributionFormModal: React.FC<{
                 }
 
                 // Transform the saved data back to Distribution format for display
-                const dates = calculateDates(formData.date, formData.fingerlingsCount, formData.species);
+                const dates = calculateDates(formData.date, formData.fingerlingsCount);
                 const location = `${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.province}`;
 
                 const newDistribution: Distribution = {
@@ -566,7 +1239,11 @@ const DistributionFormModal: React.FC<{
 
                 // Reset form
                 setFormData({
-                    beneficiaryType: '', firstname: '', lastname: '', organizationName: '',
+                    beneficiaryType: '',
+                    beneficiaryId: null,
+                    firstname: '',
+                    lastname: '',
+                    organizationName: '',
                     phoneNumber: '', species: '', date: '', province: '', city: '',
                     barangay: '', street: '', facilityType: '', details: '',
                     batchId: '', fingerlingsCount: 0
@@ -856,19 +1533,15 @@ const DistributionFormModal: React.FC<{
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Species</label>
-                                    <select
-                                        value={formData.species}
-                                        onChange={(e) => handleInputChange('species', e.target.value)}
-                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.species ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                    <input
+                                        type="text"
+                                        value={formData.species || ''}
+                                        readOnly
+                                        disabled
+                                        placeholder="Select a batch to auto-fill species"
+                                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${errors.species ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                             }`}
-                                    >
-                                        <option value="">Select Species</option>
-                                        {speciesOptions.map((species) => (
-                                            <option key={species} value={species}>
-                                                {species}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
                                     {errors.species && (
                                         <div className="flex items-center gap-1 mt-1">
                                             <AlertCircle className="h-4 w-4 text-red-500" />
@@ -1124,12 +1797,23 @@ const DetailModal: React.FC<{
         actualHarvestDate: distribution.actualHarvestDate || '',
         forecastedHarvestKilos: distribution.forecastedHarvestKilos || 0,
         actualHarvestKilos: distribution.actualHarvestKilos || 0,
-        remarks: distribution.remarks || '',
+        remarks: (distribution.remarks as string) === 'Pending' ? '' : (distribution.remarks || ''),
         customRemarks: distribution.customRemarks || ''
     });
 
     const [showPrompt, setShowPrompt] = useState(false);
     const [promptMessage, setPromptMessage] = useState('');
+    const distributionRemarks = (distribution.remarks as string) === 'Pending' ? '' : distribution.remarks;
+
+    const remarks = editData.remarks;
+    const isHarvested = remarks === 'Harvested';
+    const hideActualInputs =
+        remarks === 'Not Harvested' ||
+        remarks === 'Ongoing' ||
+        remarks === '' ||
+        remarks === 'Other';
+    const disableActualInputs = remarks === 'Damaged' || remarks === 'Disaster';
+    const showActualInputs = !hideActualInputs;
 
     // Check harvest date conditions
     const checkHarvestConditions = () => {
@@ -1144,11 +1828,11 @@ const DetailModal: React.FC<{
 
         if (monthsDiff < 4) {
             if (actualDate < forecastedDate) {
-                setPromptMessage("Harvest is earlier than forecasted date. Please verify the actual harvest date and update forecasted harvest kilos if needed.");
+                setPromptMessage("Harvest is earlier than forecasted date. Please verify the actual harvest date.");
                 setShowPrompt(true);
             }
         } else if (monthsDiff > 4) {
-            setPromptMessage("Harvest is more than 4 months from distribution date. Please update the actual harvest date and forecasted harvest kilos.");
+            setPromptMessage("Harvest is more than 4 months from distribution date. Please update the actual harvest date.");
             setShowPrompt(true);
         }
     };
@@ -1157,26 +1841,52 @@ const DetailModal: React.FC<{
         setIsSaving(true);
 
         try {
+            if (remarks === 'Harvested') {
+                if (!editData.actualHarvestDate) {
+                    alert('Actual Harvest Date is required when remarks is Harvested.');
+                    setIsSaving(false);
+                    return;
+                }
+
+                if (!editData.actualHarvestKilos || editData.actualHarvestKilos <= 0) {
+                    alert('Actual Harvest Weight (kg) must be greater than 0 when remarks is Harvested.');
+                    setIsSaving(false);
+                    return;
+                }
+            }
+
+            if (remarks === 'Other' && !editData.customRemarks.trim()) {
+                alert('Please specify other remarks.');
+                setIsSaving(false);
+                return;
+            }
+
+            const shouldPersistActual = remarks === 'Harvested';
+            const normalizedActualHarvestDate = shouldPersistActual ? (editData.actualHarvestDate || null) : null;
+            const normalizedActualHarvestKilos = shouldPersistActual ? (editData.actualHarvestKilos || null) : null;
+            const normalizedCustomRemarks = remarks === 'Other' ? editData.customRemarks.trim() : null;
+
+            const effectiveActualHarvestKilos = shouldPersistActual ? editData.actualHarvestKilos : 0;
+
             // Calculate survival rate (as decimal 0-1) and average weight based on actual harvest
-            const survivalRate = editData.actualHarvestKilos && distribution.fingerlingsCount
-                ? Math.min((editData.actualHarvestKilos / (distribution.fingerlingsCount * 0.5)), 1.0)
+            const survivalRate = effectiveActualHarvestKilos && distribution.fingerlingsCount
+                ? Math.min((effectiveActualHarvestKilos / (distribution.fingerlingsCount * 0.5)), 1.0)
                 : 0.78;
 
-            const avgWeight = editData.actualHarvestKilos && distribution.fingerlingsCount
-                ? (editData.actualHarvestKilos / distribution.fingerlingsCount)
+            const avgWeight = effectiveActualHarvestKilos && distribution.fingerlingsCount
+                ? (effectiveActualHarvestKilos / distribution.fingerlingsCount)
                 : 0.5;
 
             // Prepare data for API update
             const updateData = {
-                harvestKilo: editData.actualHarvestKilos || editData.forecastedHarvestKilos || distribution.forecastedHarvestKilos,
+                harvestKilo: normalizedActualHarvestKilos || distribution.forecastedHarvestKilos,
                 survivalRate: parseFloat(survivalRate.toFixed(4)), // Ensure it's within DECIMAL(5,4) range
                 avgWeight: parseFloat(avgWeight.toFixed(2)),
                 forecastedHarvestDate: editData.forecastedHarvestDate || null,
-                actualHarvestDate: editData.actualHarvestDate || null,
-                forecastedHarvestKilos: editData.forecastedHarvestKilos || null,
-                actualHarvestKilos: editData.actualHarvestKilos || null,
+                actualHarvestDate: normalizedActualHarvestDate,
+                actualHarvestKilos: normalizedActualHarvestKilos,
                 remarks: editData.remarks || null,
-                customRemarks: editData.remarks === 'Other' ? editData.customRemarks : null
+                customRemarks: normalizedCustomRemarks
             };
 
             // Call API to update distribution in database
@@ -1195,11 +1905,11 @@ const DetailModal: React.FC<{
                 const updatedDistribution: Distribution = {
                     ...distribution,
                     forecastedHarvestDate: editData.forecastedHarvestDate,
-                    actualHarvestDate: editData.actualHarvestDate,
-                    forecastedHarvestKilos: editData.forecastedHarvestKilos,
-                    actualHarvestKilos: editData.actualHarvestKilos,
+                    actualHarvestDate: normalizedActualHarvestDate ?? '',
+                    forecastedHarvestKilos: distribution.forecastedHarvestKilos,
+                    actualHarvestKilos: normalizedActualHarvestKilos ?? 0,
                     remarks: editData.remarks as any,
-                    customRemarks: editData.remarks === 'Other' ? editData.customRemarks : ''
+                    customRemarks: remarks === 'Other' ? (normalizedCustomRemarks || '') : ''
                 };
 
                 onUpdate(updatedDistribution);
@@ -1223,7 +1933,7 @@ const DetailModal: React.FC<{
             actualHarvestDate: distribution.actualHarvestDate || '',
             forecastedHarvestKilos: distribution.forecastedHarvestKilos || 0,
             actualHarvestKilos: distribution.actualHarvestKilos || 0,
-            remarks: distribution.remarks || '',
+            remarks: (distribution.remarks as string) === 'Pending' ? '' : (distribution.remarks || ''),
             customRemarks: distribution.customRemarks || ''
         });
         setIsEditing(false);
@@ -1273,8 +1983,10 @@ const DetailModal: React.FC<{
                                     <p className="text-blue-800">{distribution.species}</p>
                                 </div>
                                 <div>
-                                    <span className="text-blue-600 font-medium">Facility Type:</span>
-                                    <p className="text-blue-800">{distribution.facilityType}</p>
+                                    <span className="text-blue-600 font-medium">Contact Number:</span>
+                                    <p className="text-blue-800">
+                                        {distribution.phoneNumber && distribution.phoneNumber !== '-' ? distribution.phoneNumber : 'Not provided'}
+                                    </p>
                                 </div>
                                 <div className="md:col-span-2">
                                     <span className="text-blue-600 font-medium">Location:</span>
@@ -1364,7 +2076,9 @@ const DetailModal: React.FC<{
                                             <p className="text-purple-800">
                                                 {distribution.remarks === 'Other' && distribution.customRemarks
                                                     ? distribution.customRemarks
-                                                    : distribution.remarks || 'No remarks'
+                                                    : distributionRemarks
+                                                        ? distributionRemarks
+                                                        : 'Distributed'
                                                 }
                                             </p>
                                         </div>
@@ -1395,48 +2109,59 @@ const DetailModal: React.FC<{
                                                 className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                             />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-purple-700 mb-2">
-                                                Actual Harvest Date
-                                            </label>
-                                            <input
-                                                type="date"
-                                                value={editData.actualHarvestDate}
-                                                onChange={(e) => {
-                                                    setEditData(prev => ({ ...prev, actualHarvestDate: e.target.value }));
-                                                }}
-                                                onBlur={checkHarvestConditions}
-                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            />
-                                        </div>
+                                        {showActualInputs && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-purple-700 mb-2">
+                                                    Actual Harvest Date
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    value={editData.actualHarvestDate}
+                                                    disabled={disableActualInputs}
+                                                    onChange={(e) => {
+                                                        setEditData(prev => ({ ...prev, actualHarvestDate: e.target.value }));
+                                                    }}
+                                                    onBlur={() => {
+                                                        if (isHarvested) checkHarvestConditions();
+                                                    }}
+                                                    className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-80"
+                                                />
+                                            </div>
+                                        )}
                                         <div>
                                             <label className="block text-sm font-medium text-purple-700 mb-2">
                                                 Forecasted Harvest (kg)
                                             </label>
                                             <input
-                                                type="number"
-                                                step="0.1"
-                                                min="0"
-                                                value={editData.forecastedHarvestKilos || ''}
-                                                onChange={(e) => setEditData(prev => ({ ...prev, forecastedHarvestKilos: parseFloat(e.target.value) || 0 }))}
-                                                placeholder="Enter forecasted harvest weight in kg"
-                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                                type="text"
+                                                value={
+                                                    editData.forecastedHarvestKilos
+                                                        ? `${editData.forecastedHarvestKilos.toLocaleString()} kg`
+                                                        : ''
+                                                }
+                                                readOnly
+                                                disabled
+                                                placeholder="Auto-calculated"
+                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-80"
                                             />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-purple-700 mb-2">
-                                                Actual Harvest Weight (kg)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                step="0.1"
-                                                min="0"
-                                                value={editData.actualHarvestKilos || ''}
-                                                onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestKilos: parseFloat(e.target.value) || 0 }))}
-                                                placeholder="Enter actual harvested weight in kg"
-                                                className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            />
-                                        </div>
+                                        {showActualInputs && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-purple-700 mb-2">
+                                                    Actual Harvest Weight (kg)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    value={editData.actualHarvestKilos || ''}
+                                                    disabled={disableActualInputs}
+                                                    onChange={(e) => setEditData(prev => ({ ...prev, actualHarvestKilos: parseFloat(e.target.value) || 0 }))}
+                                                    placeholder="Enter actual harvested weight in kg"
+                                                    className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-80"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Remarks Section */}
@@ -1446,7 +2171,29 @@ const DetailModal: React.FC<{
                                         </label>
                                         <select
                                             value={editData.remarks}
-                                            onChange={(e) => setEditData(prev => ({ ...prev, remarks: e.target.value }))}
+                                            onChange={(e) => {
+                                                const nextRemarks = e.target.value as NonNullable<Distribution['remarks']>;
+                                                setEditData(prev => {
+                                                    const next = { ...prev, remarks: nextRemarks };
+
+                                                    if (nextRemarks !== 'Other') {
+                                                        next.customRemarks = '';
+                                                    }
+
+                                                    if (
+                                                        nextRemarks === '' ||
+                                                        nextRemarks === 'Not Harvested' ||
+                                                        nextRemarks === 'Ongoing' ||
+                                                        nextRemarks === 'Damaged' ||
+                                                        nextRemarks === 'Disaster'
+                                                    ) {
+                                                        next.actualHarvestDate = '';
+                                                        next.actualHarvestKilos = 0;
+                                                    }
+
+                                                    return next;
+                                                });
+                                            }}
                                             className="w-full p-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 mb-3"
                                         >
                                             <option value="">Select status</option>
@@ -1524,10 +2271,39 @@ const DistributionForm: React.FC = () => {
     const [distributions, setDistributions] = useState<Distribution[]>([]);
     const [batches, setBatches] = useState<Batch[]>([]);
     const [showFormModal, setShowFormModal] = useState(false);
+    const [showNewBeneficiaryPrompt, setShowNewBeneficiaryPrompt] = useState(false);
+    const [showBeneficiaryProfilingModal, setShowBeneficiaryProfilingModal] = useState(false);
+    const [showBeneficiarySelectionModal, setShowBeneficiarySelectionModal] = useState(false);
+    const [beneficiaryPrefill, setBeneficiaryPrefill] = useState<Partial<
+        Pick<
+            DistributionForm,
+            | 'beneficiaryId'
+            | 'beneficiaryType'
+            | 'firstname'
+            | 'lastname'
+            | 'organizationName'
+            | 'phoneNumber'
+            | 'province'
+            | 'city'
+            | 'barangay'
+            | 'street'
+        >
+    > | null>(null);
+    const [beneficiarySearch, setBeneficiarySearch] = useState('');
+    const [beneficiaryPage, setBeneficiaryPage] = useState(1);
+    const [beneficiaryLimit] = useState(10);
+    const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
+    const [beneficiaryTotalPages, setBeneficiaryTotalPages] = useState(1);
+    const [isLoadingBeneficiaries, setIsLoadingBeneficiaries] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedDistribution, setSelectedDistribution] = useState<Distribution | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string>('');
     const [isLoadingData, setIsLoadingData] = useState(true);
+    const [includeDeleted, setIncludeDeleted] = useState(false);
+    const [distributionsError, setDistributionsError] = useState<string>('');
+    const [distributionsActiveCount, setDistributionsActiveCount] = useState(0);
+    const [distributionsDeletedCount, setDistributionsDeletedCount] = useState(0);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -1545,16 +2321,19 @@ const DistributionForm: React.FC = () => {
     // Fetch distributions from API (database seeded data) with pagination
     const fetchDistributions = async (page: number = 1, limit: number = 10) => {
         try {
-            const response = await fetch(`/api/distributions-data?page=${page}&limit=${limit}`);
+            const response = await fetch(`/api/distributions-data?page=${page}&limit=${limit}&includeDeleted=${includeDeleted ? 'true' : 'false'}`, { cache: 'no-store' });
             const data = await response.json();
 
             if (data.success) {
+                setDistributionsError('');
+                setDistributionsActiveCount(data.data?.counts?.active ?? 0);
+                setDistributionsDeletedCount(data.data?.counts?.deleted ?? 0);
                 // Transform the database data to match the Distribution interface
                 const transformedData = data.data.distributions.map((dist: any) => ({
                     id: dist.id.toString(),
                     beneficiaryType: 'Individual' as const,
                     beneficiary: dist.beneficiaryName,
-                    phoneNumber: '-',
+                    phoneNumber: dist.beneficiaryProfile?.contactNumber ?? '-',
                     species: dist.species,
                     batchId: dist.batchId || '-',
                     fingerlingsCount: dist.fingerlings,
@@ -1563,6 +2342,8 @@ const DistributionForm: React.FC = () => {
                     date: new Date(dist.dateDistributed).toISOString().split('T')[0],
                     forecast: '',
                     harvestDate: '',
+                    deletedAt: dist.deletedAt ?? null,
+                    isDeleted: Boolean(dist.deletedAt),
                     forecastedHarvestDate: dist.forecastedHarvestDate ? new Date(dist.forecastedHarvestDate).toISOString().split('T')[0] : '',
                     actualHarvestDate: dist.actualHarvestDate ? new Date(dist.actualHarvestDate).toISOString().split('T')[0] : '',
                     forecastedHarvestKilos: dist.forecastedHarvestKilos || 0,
@@ -1578,10 +2359,43 @@ const DistributionForm: React.FC = () => {
                 setTotalDistributions(data.data.pagination.totalDistributions);
                 setCurrentPage(data.data.pagination.currentPage);
             } else {
-                console.error('Failed to fetch distributions:', data.error);
+                setDistributions([]);
+                setTotalPages(1);
+                setTotalDistributions(0);
+                setDistributionsError(data.error || 'Failed to fetch distributions');
             }
         } catch (error) {
-            console.error('Error fetching distributions:', error);
+            setDistributions([]);
+            setTotalPages(1);
+            setTotalDistributions(0);
+            setDistributionsError(error instanceof Error ? error.message : 'Error fetching distributions');
+        }
+    };
+
+    const fetchBeneficiaries = async (page: number = 1) => {
+        setIsLoadingBeneficiaries(true);
+        try {
+            const response = await fetch(
+                `/api/beneficiaries?search=${encodeURIComponent(beneficiarySearch)}&page=${page}&limit=${beneficiaryLimit}`,
+                { cache: 'no-store' }
+            );
+            const data = await response.json();
+
+            if (data.success) {
+                setBeneficiaries(data.data.beneficiaries || []);
+                setBeneficiaryTotalPages(data.data.pagination?.totalPages || 1);
+                setBeneficiaryPage(data.data.pagination?.currentPage || page);
+            } else {
+                console.error('Failed to fetch beneficiaries:', data.error);
+                setBeneficiaries([]);
+                setBeneficiaryTotalPages(1);
+            }
+        } catch (error) {
+            console.error('Error fetching beneficiaries:', error);
+            setBeneficiaries([]);
+            setBeneficiaryTotalPages(1);
+        } finally {
+            setIsLoadingBeneficiaries(false);
         }
     };
 
@@ -1641,7 +2455,20 @@ const DistributionForm: React.FC = () => {
         if (isAuthenticated) {
             loadData();
         }
-    }, [isAuthenticated, currentPage, itemsPerPage]);
+    }, [isAuthenticated, currentPage, itemsPerPage, includeDeleted]);
+
+    useEffect(() => {
+        if (!showBeneficiarySelectionModal) return;
+        const timer = setTimeout(() => {
+            fetchBeneficiaries(beneficiaryPage);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [showBeneficiarySelectionModal, beneficiarySearch, beneficiaryPage, beneficiaryLimit]);
+
+    useEffect(() => {
+        if (!showBeneficiarySelectionModal) return;
+        setBeneficiaryPage(1);
+    }, [beneficiarySearch, showBeneficiarySelectionModal]);
 
     // Handle page change
     const handlePageChange = (newPage: number) => {
@@ -1692,8 +2519,10 @@ const DistributionForm: React.FC = () => {
 
     // Handle saving new distribution
     const handleSaveDistribution = (newDistribution: Distribution) => {
-        setDistributions(prev => [...prev, newDistribution]);
+        setSuccessMessage('Distribution saved successfully!');
         setShowSuccess(true);
+        setCurrentPage(1);
+        fetchDistributions(1, itemsPerPage);
 
         setTimeout(() => {
             setShowSuccess(false);
@@ -1702,6 +2531,7 @@ const DistributionForm: React.FC = () => {
 
     // Handle updating distribution
     const handleUpdateDistribution = (updatedDistribution: Distribution) => {
+        setSuccessMessage('Distribution updated successfully!');
         setDistributions(prev =>
             prev.map(dist =>
                 dist.id === updatedDistribution.id ? updatedDistribution : dist
@@ -1717,6 +2547,7 @@ const DistributionForm: React.FC = () => {
 
     // Open detail modal
     const openDetailModal = (distribution: Distribution) => {
+        if (distribution.isDeleted) return;
         setSelectedDistribution(distribution);
         setShowDetailModal(true);
     };
@@ -1755,37 +2586,64 @@ const DistributionForm: React.FC = () => {
         setIsDeleting(true);
 
         try {
+            if (!user?.id) {
+                alert('No authenticated user found. Please sign in again.');
+                return;
+            }
+
             const idsToDelete = deleteTarget === 'single' && singleDeleteId
                 ? [singleDeleteId]
-                : selectedIds;
+                : selectedIds.filter((id) => {
+                    const dist = distributions.find(d => d.id === id);
+                    return dist ? !dist.isDeleted : false;
+                });
+
+            if (idsToDelete.length === 0) {
+                setIsDeleting(false);
+                setShowDeleteConfirm(false);
+                setSingleDeleteId(null);
+                return;
+            }
 
             const response = await fetch('/api/distributions-data', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ ids: idsToDelete }),
+                cache: 'no-store',
+                body: JSON.stringify({ ids: idsToDelete, actor: { id: user.id, userType: user.userType } }),
             });
 
             const data = await response.json();
 
             if (data.success) {
-                // Remove deleted items from state
-                setDistributions(prev =>
-                    prev.filter(dist => !idsToDelete.includes(dist.id))
-                );
                 setSelectedIds([]);
+                setSuccessMessage(`Deleted ${data.deletedCount ?? 0} distribution(s)`);
                 setShowSuccess(true);
+
+                const details = [
+                    (data.notFoundIds?.length ? `Not found: ${data.notFoundIds.join(', ')}` : null),
+                    (data.unauthorizedIds?.length ? `Unauthorized: ${data.unauthorizedIds.join(', ')}` : null),
+                    (data.alreadyDeletedIds?.length ? `Already deleted: ${data.alreadyDeletedIds.join(', ')}` : null),
+                ].filter(Boolean).join('\n');
+                if (details) alert(details);
 
                 // Refresh data to update pagination
                 await fetchDistributions(currentPage, itemsPerPage);
+                if (showBeneficiarySelectionModal) {
+                    await fetchBeneficiaries(beneficiaryPage);
+                }
 
                 setTimeout(() => {
                     setShowSuccess(false);
                 }, 3000);
             } else {
                 console.error('Failed to delete distributions:', data.error);
-                alert('Failed to delete distributions. Please try again.');
+                alert(`Failed to delete distributions: ${data.error || 'Unknown error'}`);
+                await fetchDistributions(currentPage, itemsPerPage);
+                if (showBeneficiarySelectionModal) {
+                    await fetchBeneficiaries(beneficiaryPage);
+                }
             }
         } catch (error) {
             console.error('Error deleting distributions:', error);
@@ -1797,6 +2655,67 @@ const DistributionForm: React.FC = () => {
         }
     };
 
+    const handleRestore = async (ids: string[]) => {
+        if (ids.length === 0) return;
+        setIsDeleting(true);
+        try {
+            if (!user?.id) {
+                alert('No authenticated user found. Please sign in again.');
+                return;
+            }
+
+            const response = await fetch('/api/distributions-data/restore', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                cache: 'no-store',
+                body: JSON.stringify({ ids, actor: { id: user.id, userType: user.userType } }),
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setSelectedIds([]);
+                setSuccessMessage(`Restored ${data.restoredCount ?? 0} distribution(s)`);
+                setShowSuccess(true);
+
+                const details = [
+                    (data.notFoundIds?.length ? `Not found: ${data.notFoundIds.join(', ')}` : null),
+                    (data.unauthorizedIds?.length ? `Unauthorized: ${data.unauthorizedIds.join(', ')}` : null),
+                    (data.alreadyActiveIds?.length ? `Already active: ${data.alreadyActiveIds.join(', ')}` : null),
+                ].filter(Boolean).join('\n');
+                if (details) alert(details);
+
+                await fetchDistributions(currentPage, itemsPerPage);
+                if (showBeneficiarySelectionModal) {
+                    await fetchBeneficiaries(beneficiaryPage);
+                }
+                setTimeout(() => setShowSuccess(false), 3000);
+            } else {
+                alert(`Failed to restore distributions: ${data.error || 'Unknown error'}`);
+                await fetchDistributions(currentPage, itemsPerPage);
+                if (showBeneficiarySelectionModal) {
+                    await fetchBeneficiaries(beneficiaryPage);
+                }
+            }
+        } catch (error) {
+            console.error('Error restoring distributions:', error);
+            alert('An error occurred while restoring. Please try again.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const selectedActiveIds = selectedIds.filter((id) => {
+        const dist = distributions.find(d => d.id === id);
+        return dist ? !dist.isDeleted : false;
+    });
+
+    const selectedDeletedIds = selectedIds.filter((id) => {
+        const dist = distributions.find(d => d.id === id);
+        return dist ? Boolean(dist.isDeleted) : false;
+    });
+
     return (
         <>
             <AsideNavigation onLogout={logout} unreadNotificationCount={unreadCount} />
@@ -1807,7 +2726,7 @@ const DistributionForm: React.FC = () => {
                     {showSuccess && (
                         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
                             <CheckCircle className="h-5 w-5 text-green-600" />
-                            <p className="text-green-800 font-medium">Distribution saved successfully!</p>
+                            <p className="text-green-800 font-medium">{successMessage || 'Success!'}</p>
                         </div>
                     )}
 
@@ -1821,13 +2740,28 @@ const DistributionForm: React.FC = () => {
                                     </div>
                                     <h1 className="text-2xl font-bold text-gray-900">Fingerling Distributions</h1>
                                 </div>
-                                <button
-                                    onClick={() => setShowFormModal(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-300 flex items-center gap-2 font-semibold"
-                                >
-                                    <Plus className="h-5 w-5" />
-                                    Add New Distribution
-                                </button>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                                    <label className="inline-flex items-center gap-2 bg-gray-100 px-4 py-3 rounded-lg text-sm font-medium text-gray-800">
+                                        <input
+                                            type="checkbox"
+                                            checked={includeDeleted}
+                                            onChange={(e) => {
+                                                setIncludeDeleted(e.target.checked);
+                                                setSelectedIds([]);
+                                                setCurrentPage(1);
+                                            }}
+                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        />
+                                        Show deleted
+                                    </label>
+                                    <button
+                                        onClick={() => setShowNewBeneficiaryPrompt(true)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors duration-300 flex items-center gap-2 font-semibold"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                        Add New Distribution
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Distribution Table/List */}
@@ -1837,27 +2771,56 @@ const DistributionForm: React.FC = () => {
                                     <h3 className="text-lg font-semibold text-gray-600 mb-2 mt-4">Loading Distributions...</h3>
                                     <p className="text-gray-500">Please wait while we fetch the data</p>
                                 </div>
+                            ) : distributionsError ? (
+                                <div className="text-center py-12">
+                                    <AlertCircle className="h-16 w-16 text-red-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Failed to load distributions</h3>
+                                    <p className="text-gray-600 mb-2">{distributionsError}</p>
+                                    <p className="text-gray-500">Check your database connection and migrations, then refresh.</p>
+                                </div>
                             ) : distributions.length === 0 ? (
                                 <div className="text-center py-12">
                                     <Fish className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Distributions Yet</h3>
-                                    <p className="text-gray-500 mb-6">Start by adding your first fingerling distribution</p>
+                                    {!includeDeleted && distributionsDeletedCount > 0 ? (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-gray-600 mb-2">No Active Distributions</h3>
+                                            <p className="text-gray-500 mb-6">You have {distributionsDeletedCount} deleted distribution(s). Turn on “Show deleted” to view them.</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-gray-600 mb-2">No Distributions Yet</h3>
+                                            <p className="text-gray-500 mb-6">Start by adding your first fingerling distribution</p>
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <>
-                                    {/* Delete Selected Button */}
+                                    {/* Bulk Actions */}
                                     {selectedIds.length > 0 && (
                                         <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4">
                                             <span className="text-sm font-medium text-blue-900">
                                                 {selectedIds.length} item(s) selected
                                             </span>
-                                            <button
-                                                onClick={() => confirmDelete()}
-                                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                                Delete Selected
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {selectedDeletedIds.length > 0 && (
+                                                    <button
+                                                        onClick={() => handleRestore(selectedDeletedIds)}
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                                                    >
+                                                        <RotateCcw className="h-4 w-4" />
+                                                        Restore Selected
+                                                    </button>
+                                                )}
+                                                {selectedActiveIds.length > 0 && (
+                                                    <button
+                                                        onClick={() => confirmDelete()}
+                                                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                        Delete Selected
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
 
@@ -1888,8 +2851,11 @@ const DistributionForm: React.FC = () => {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-200">
-                                                {distributions.map((dist) => (
-                                                    <tr key={dist.id} className="hover:bg-gray-50">
+                                                {distributions.map((dist) => {
+                                                    const normalizedRemarks = (dist.remarks as string) === 'Pending' ? '' : dist.remarks;
+                                                    const rowClassName = dist.isDeleted ? 'bg-gray-50 opacity-75' : 'hover:bg-gray-50';
+                                                    return (
+                                                    <tr key={dist.id} className={rowClassName}>
                                                         <td className="px-4 py-3 text-center">
                                                             <input
                                                                 type="checkbox"
@@ -1924,24 +2890,28 @@ const DistributionForm: React.FC = () => {
                                                             )}
                                                         </td>
                                                         <td className="px-4 py-3 text-sm">
-                                                            {dist.remarks ? (
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${dist.remarks === 'Harvested' ? 'bg-green-100 text-green-800' :
-                                                                    dist.remarks === 'Not Harvested' ? 'bg-yellow-100 text-yellow-800' :
-                                                                        dist.remarks === 'Damaged' ? 'bg-red-100 text-red-800' :
-                                                                            dist.remarks === 'Ongoing' ? 'bg-blue-100 text-blue-800' :
-                                                                                dist.remarks === 'Disaster' ? 'bg-red-100 text-red-800' :
+                                                            {dist.isDeleted ? (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                                                                    Deleted
+                                                                </span>
+                                                            ) : normalizedRemarks ? (
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${normalizedRemarks === 'Harvested' ? 'bg-green-100 text-green-800' :
+                                                                    normalizedRemarks === 'Not Harvested' ? 'bg-yellow-100 text-yellow-800' :
+                                                                        normalizedRemarks === 'Damaged' ? 'bg-red-100 text-red-800' :
+                                                                            normalizedRemarks === 'Ongoing' ? 'bg-blue-100 text-blue-800' :
+                                                                                normalizedRemarks === 'Disaster' ? 'bg-red-100 text-red-800' :
                                                                                     'bg-gray-100 text-gray-800'
                                                                     }`}>
-                                                                    {dist.remarks === 'Other' && dist.customRemarks
+                                                                    {normalizedRemarks === 'Other' && dist.customRemarks
                                                                         ? dist.customRemarks.length > 15
                                                                             ? `${dist.customRemarks.substring(0, 15)}...`
                                                                             : dist.customRemarks
-                                                                        : dist.remarks
+                                                                        : normalizedRemarks
                                                                     }
                                                                 </span>
                                                             ) : (
                                                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                                                    Pending
+                                                                    Distributed
                                                                 </span>
                                                             )}
                                                         </td>
@@ -1949,22 +2919,34 @@ const DistributionForm: React.FC = () => {
                                                             <div className="flex items-center justify-center gap-2">
                                                                 <button
                                                                     onClick={() => openDetailModal(dist)}
-                                                                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
-                                                                    title="View Details"
+                                                                    disabled={dist.isDeleted}
+                                                                    className={dist.isDeleted ? "bg-gray-100 text-gray-400 p-2 rounded-lg cursor-not-allowed opacity-50" : "bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"}
+                                                                    title={dist.isDeleted ? "View disabled for deleted records" : "View Details"}
                                                                 >
                                                                     <Eye className="h-4 w-4" />
                                                                 </button>
-                                                                <button
-                                                                    onClick={() => confirmDelete(dist.id)}
-                                                                    className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-colors"
-                                                                    title="Delete"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
+                                                                {dist.isDeleted ? (
+                                                                    <button
+                                                                        onClick={() => handleRestore([dist.id])}
+                                                                        className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg transition-colors"
+                                                                        title="Restore"
+                                                                    >
+                                                                        <RotateCcw className="h-4 w-4" />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => confirmDelete(dist.id)}
+                                                                        className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-colors"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
@@ -1984,38 +2966,66 @@ const DistributionForm: React.FC = () => {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-200">
-                                                {distributions.map((dist) => (
-                                                    <tr key={dist.id} className="hover:bg-gray-50">
+                                                {distributions.map((dist) => {
+                                                    const normalizedRemarks = (dist.remarks as string) === 'Pending' ? '' : dist.remarks;
+                                                    const rowClassName = dist.isDeleted ? 'bg-gray-50 opacity-75' : 'hover:bg-gray-50';
+                                                    return (
+                                                    <tr key={dist.id} className={rowClassName}>
                                                         <td className="px-3 py-3 text-sm text-gray-900 font-medium">{dist.beneficiary}</td>
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.species}</td>
                                                         <td className="px-3 py-3 text-sm text-blue-600 font-mono">{dist.batchId}</td>
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.fingerlingsCount.toLocaleString()}</td>
                                                         <td className="px-3 py-3 text-sm text-gray-900">{dist.date}</td>
                                                         <td className="px-3 py-3 text-sm">
-                                                            {dist.remarks ? (
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${dist.remarks === 'Harvested' ? 'bg-green-100 text-green-800' :
-                                                                    dist.remarks === 'Not Harvested' ? 'bg-yellow-100 text-yellow-800' :
+                                                            {dist.isDeleted ? (
+                                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                                                                    Deleted
+                                                                </span>
+                                                            ) : normalizedRemarks ? (
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${normalizedRemarks === 'Harvested' ? 'bg-green-100 text-green-800' :
+                                                                    normalizedRemarks === 'Not Harvested' ? 'bg-yellow-100 text-yellow-800' :
                                                                         'bg-gray-100 text-gray-800'
                                                                     }`}>
-                                                                    {dist.remarks}
+                                                                    {normalizedRemarks}
                                                                 </span>
                                                             ) : (
                                                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                                                    Pending
+                                                                    Distributed
                                                                 </span>
                                                             )}
                                                         </td>
                                                         <td className="px-3 py-3 text-center">
-                                                            <button
-                                                                onClick={() => openDetailModal(dist)}
-                                                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
-                                                                title="View Details"
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                            </button>
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => openDetailModal(dist)}
+                                                                    disabled={dist.isDeleted}
+                                                                    className={dist.isDeleted ? "bg-gray-100 text-gray-400 p-2 rounded-lg cursor-not-allowed opacity-50" : "bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"}
+                                                                    title={dist.isDeleted ? "View disabled for deleted records" : "View Details"}
+                                                                >
+                                                                    <Eye className="h-4 w-4" />
+                                                                </button>
+                                                                {dist.isDeleted ? (
+                                                                    <button
+                                                                        onClick={() => handleRestore([dist.id])}
+                                                                        className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg transition-colors"
+                                                                        title="Restore"
+                                                                    >
+                                                                        <RotateCcw className="h-4 w-4" />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => confirmDelete(dist.id)}
+                                                                        className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-colors"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
@@ -2027,6 +3037,8 @@ const DistributionForm: React.FC = () => {
                                                 key={dist.id}
                                                 distribution={dist}
                                                 onViewDetails={() => openDetailModal(dist)}
+                                                onDelete={() => confirmDelete(dist.id)}
+                                                onRestore={() => handleRestore([dist.id])}
                                             />
                                         ))}
                                     </div>
@@ -2108,12 +3120,92 @@ const DistributionForm: React.FC = () => {
                         </div>
                     </div>
 
+                    <NewBeneficiaryPromptModal
+                        isOpen={showNewBeneficiaryPrompt}
+                        onClose={() => setShowNewBeneficiaryPrompt(false)}
+                        onNo={() => {
+                            setShowNewBeneficiaryPrompt(false);
+                            setBeneficiaryPrefill(null);
+                            setBeneficiarySearch('');
+                            setBeneficiaryPage(1);
+                            setShowBeneficiarySelectionModal(true);
+                        }}
+                        onYes={() => {
+                            setShowNewBeneficiaryPrompt(false);
+                            setShowBeneficiaryProfilingModal(true);
+                        }}
+                    />
+
+                    <BeneficiarySelectionModal
+                        isOpen={showBeneficiarySelectionModal}
+                        onClose={() => {
+                            setShowBeneficiarySelectionModal(false);
+                            setShowNewBeneficiaryPrompt(true);
+                        }}
+                        onBack={() => {
+                            setShowBeneficiarySelectionModal(false);
+                            setShowNewBeneficiaryPrompt(true);
+                        }}
+                        beneficiaries={beneficiaries}
+                        isLoading={isLoadingBeneficiaries}
+                        search={beneficiarySearch}
+                        onSearchChange={setBeneficiarySearch}
+                        page={beneficiaryPage}
+                        totalPages={beneficiaryTotalPages}
+                        onPageChange={(page) => setBeneficiaryPage(page)}
+                        onSelect={(beneficiary) => {
+                            setShowBeneficiarySelectionModal(false);
+                            setBeneficiaryPrefill({
+                                beneficiaryId: typeof beneficiary.id === 'number' ? beneficiary.id : null,
+                                beneficiaryType: beneficiary.beneficiaryType,
+                                firstname: beneficiary.firstname || '',
+                                lastname: beneficiary.lastname || '',
+                                organizationName: beneficiary.organizationName || '',
+                                phoneNumber: beneficiary.contactNumber || '',
+                                province: beneficiary.province || '',
+                                city: beneficiary.municipality || '',
+                                barangay: beneficiary.barangay || '',
+                                street: beneficiary.street || '',
+                            });
+                            setShowFormModal(true);
+                        }}
+                    />
+
+                    <BeneficiaryProfilingModal
+                        isOpen={showBeneficiaryProfilingModal}
+                        onClose={() => {
+                            setShowBeneficiaryProfilingModal(false);
+                            setShowNewBeneficiaryPrompt(true);
+                        }}
+                        onSaved={(beneficiary) => {
+                            setShowBeneficiaryProfilingModal(false);
+                            setBeneficiaryPrefill({
+                                beneficiaryId: typeof beneficiary.id === 'number' ? beneficiary.id : null,
+                                beneficiaryType: beneficiary.beneficiaryType,
+                                firstname: beneficiary.firstname || '',
+                                lastname: beneficiary.lastname || '',
+                                organizationName: beneficiary.organizationName || '',
+                                phoneNumber: beneficiary.contactNumber || '',
+                                province: beneficiary.province || '',
+                                city: beneficiary.municipality || '',
+                                barangay: beneficiary.barangay || '',
+                                street: beneficiary.street || '',
+                            });
+                            setShowFormModal(true);
+                        }}
+                    />
+
                     {/* Form Modal */}
                     <DistributionFormModal
                         isOpen={showFormModal}
-                        onClose={() => setShowFormModal(false)}
+                        onClose={() => {
+                            setShowFormModal(false);
+                            setBeneficiaryPrefill(null);
+                        }}
                         onSave={handleSaveDistribution}
                         batches={batches}
+                        currentUserId={user?.id}
+                        prefill={beneficiaryPrefill || undefined}
                     />
 
                     {/* Detail Modal */}

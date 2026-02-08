@@ -76,6 +76,8 @@ export interface Distribution {
   date: string;
   forecast: string;
   harvestDate: string;
+  deletedAt?: string | null;
+  isDeleted?: boolean;
   // Updated harvest tracking fields
   expectedHarvestDate?: string;
   forecastedHarvestDate?: string;

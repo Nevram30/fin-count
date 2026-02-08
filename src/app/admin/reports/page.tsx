@@ -7,52 +7,7 @@ import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
-
-// Location Data
-interface LocationData {
-    provinces: string[];
-    cities: {
-        [key: string]: string[];
-    };
-    barangays: {
-        [key: string]: string[];
-    };
-}
-
-const locationData: LocationData = {
-    provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur", "Bukidnon", "Compostela Valley", "Cotabato"],
-    cities: {
-        "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
-        "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
-        "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
-        "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
-        "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"],
-        "Agusan del Sur": ["Bayugan City", "Bunawan", "Esperanza", "La Paz", "Loreto", "Prosperidad", "Rosario", "San Francisco", "San Luis", "Santa Josefa", "Sibagat", "Talacogon", "Trento", "Veruela"],
-        "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"],
-        "Bukidnon": ["Malaybalay City", "Valencia City", "Baungon", "Cabanglasan", "Damulog", "Dangcagan", "Don Carlos", "Impasugong", "Kadingilan", "Kalilangan", "Kibawe", "Kitaotao", "Lantapan", "Libona", "Malitbog", "Manolo Fortich", "Maramag", "Pangantucan", "Quezon", "San Fernando", "Sumilao"],
-        "Compostela Valley": ["Nabunturan", "Mabini", "Montevista", "New Bataan", "Pantukan", "Laak", "Maco", "Maragusan", "Mawab", "Monkayo", "Compostela"],
-        "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
-    },
-    barangays: {
-        "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Busaon", "Liboganon"],
-        "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
-        "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
-        "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
-        "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
-        "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
-        "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
-        "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
-        "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
-        "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
-        "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
-        "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
-        "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
-        "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
-        "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
-        "Kidapawan": ["Amas"],
-        "North Cotabato": ["Balogo"]
-    }
-};
+import { getCitiesForProvinceWithBarangays, locationData } from "@/app/components/data/location.data";
 
 // TypeScript interfaces
 interface ReportFilters {
@@ -156,38 +111,55 @@ const exportToCSV = (data: any[], filename: string) => {
     document.body.removeChild(link);
 };
 
+const toLocalISODate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
 // Report Filters Component
-const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, filters: ReportFilters) => void }> = ({ onApplyFilters }) => {
+const ReportFiltersComponent: React.FC<{
+    onReportTypeChange: (reportType: string, filters: ReportFilters) => void;
+    onApplyFilters: (reportType: string, filters: ReportFilters) => void;
+}> = ({ onReportTypeChange, onApplyFilters }) => {
     const [isExpanded, setIsExpanded] = useState<boolean>(true);
-    const [filters, setFilters] = useState<ReportFilters>({
+    const [filters, setFilters] = useState<ReportFilters>(() => ({
         reportType: "Fingerling Count",
         species: "All Species",
         startDate: "2023-01-01",
-        endDate: "2025-12-30",
+        endDate: toLocalISODate(new Date()),
         province: "All Provinces",
         city: "All Cities",
         barangay: "All Barangays"
-    });
+    }));
 
     // Get available cities based on selected province
     const getAvailableCities = (): string[] => {
         if (!filters.province || filters.province === "All Provinces") {
             return [];
         }
-        return locationData.cities[filters.province] || [];
+        return getCitiesForProvinceWithBarangays(filters.province);
     };
 
     // Get available barangays based on selected city
     const getAvailableBarangays = (): string[] => {
-        if (!filters.city || filters.city === "All Cities") {
+        if (!filters.province || filters.province === "All Provinces" || !filters.city || filters.city === "All Cities") {
             return [];
         }
-        return locationData.barangays[filters.city] || [];
+        return locationData.barangays[filters.province]?.[filters.city] || [];
     };
 
     const handleFilterChange = (field: keyof ReportFilters, value: string) => {
         // Handle cascading updates for location filters
-        if (field === 'province') {
+        if (field === 'reportType') {
+            const nextFilters = {
+                ...filters,
+                reportType: value,
+            };
+            setFilters(nextFilters);
+            onReportTypeChange(nextFilters.reportType, nextFilters);
+        } else if (field === 'province') {
             setFilters(prev => ({
                 ...prev,
                 province: value,
@@ -218,13 +190,13 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
             reportType: "Fingerling Count",
             species: "All Species",
             startDate: "2025-04-30",
-            endDate: "2025-05-30",
+            endDate: toLocalISODate(new Date()),
             province: "All Provinces",
             city: "All Cities",
             barangay: "All Barangays"
         };
         setFilters(resetFilters);
-        onApplyFilters("Fingerling Count", resetFilters);
+        onReportTypeChange("Fingerling Count", resetFilters);
     };
 
     const showLocationFilters = filters.reportType === "Beneficiaries Report";
@@ -430,27 +402,39 @@ const ReportFiltersComponent: React.FC<{ onApplyFilters: (reportType: string, fi
 };
 
 // Fingerling Count Report Component
-const FingerlingsCountReportView: React.FC<{ filters: ReportFilters }> = ({ filters }) => {
+const FingerlingsCountReportView: React.FC<{ filters: ReportFilters; isApplied: boolean }> = ({ filters, isApplied }) => {
     const [data, setData] = React.useState<any[]>([]);
     const [summary, setSummary] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const [itemsPerPage] = React.useState(10);
 
     React.useEffect(() => {
         fetchData();
-    }, [filters]);
+        setCurrentPage(1);
+    }, [filters, isApplied]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({
-                startDate: filters.startDate,
-                endDate: filters.endDate,
-                species: filters.species,
-            });
+            const params = new URLSearchParams();
+            if (!isApplied) {
+                params.append("mode", "overview");
+                params.append("limit", "5");
+            } else {
+                params.append("startDate", filters.startDate);
+                params.append("endDate", filters.endDate);
+                params.append("species", filters.species);
+            }
             const response = await fetch(`/api/reports/fingerling-count?${params}`);
             const result = await response.json();
             if (result.success) {
-                setData(result.data);
+                const sorted = [...(result.data || [])].sort((a: any, b: any) => {
+                    const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+                    if (dateDiff !== 0) return dateDiff;
+                    return String(a.species || "").localeCompare(String(b.species || ""));
+                });
+                setData(sorted);
                 setSummary(result.summary);
             }
         } catch (error) {
@@ -459,6 +443,11 @@ const FingerlingsCountReportView: React.FC<{ filters: ReportFilters }> = ({ filt
             setLoading(false);
         }
     };
+
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentData = isApplied ? data.slice(startIndex, endIndex) : data;
 
     const handleExportCSV = () => {
         const csvData = data.map(item => ({
@@ -497,7 +486,11 @@ const FingerlingsCountReportView: React.FC<{ filters: ReportFilters }> = ({ filt
                     <h3 className="text-lg font-semibold text-gray-800">Fingerling Count Report</h3>
                     <div className="flex items-center text-sm text-gray-600 mt-1">
                         <Calendar className="h-4 w-4 mr-1" />
-                        <span>{new Date(filters.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(filters.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        {isApplied ? (
+                            <span>{new Date(filters.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(filters.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        ) : (
+                            <span>Recent Distributions (last 5)</span>
+                        )}
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -517,41 +510,83 @@ const FingerlingsCountReportView: React.FC<{ filters: ReportFilters }> = ({ filt
             {/* Report Content */}
             <div className="overflow-x-auto">
                 {data.length > 0 ? (
-                    <table className="w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Count</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {data.map((item, index) => (
-                                <tr key={index} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.species}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.totalFingerlings.toLocaleString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.distributionCount}</td>
+                    <>
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribution Count</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                        <tfoot className="bg-blue-50 border-t-2 border-blue-200">
-                            <tr>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" colSpan={2}>
-                                    Overall Total
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-700">
-                                    {summary?.grandTotal ? summary.grandTotal.toLocaleString() : '0'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-700">
-                                    {summary?.totalDistributions ? summary.totalDistributions.toLocaleString() : '0'}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {currentData.map((item, index) => (
+                                    <tr key={index} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.species}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.totalFingerlings.toLocaleString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.distributionCount}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot className="bg-blue-50 border-t-2 border-blue-200">
+                                <tr>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" colSpan={2}>
+                                        Overall Total
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-700">
+                                        {summary?.grandTotal ? summary.grandTotal.toLocaleString() : '0'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-700">
+                                        {summary?.totalDistributions ? summary.totalDistributions.toLocaleString() : '0'}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        {isApplied && totalPages > 1 && (
+                            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                                <div className="text-sm text-gray-700">
+                                    Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(endIndex, data.length)}</span> of{' '}
+                                    <span className="font-medium">{data.length}</span> results
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Previous
+                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-700">Page</span>
+                                        <select
+                                            value={currentPage}
+                                            onChange={(e) => setCurrentPage(Number(e.target.value))}
+                                            className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                        >
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                                <option key={page} value={page}>
+                                                    {page}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <span className="text-sm text-gray-700">of {totalPages}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="text-center py-16">
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
@@ -746,12 +781,17 @@ const DistributedBatchesReportView: React.FC<{ filters: ReportFilters }> = ({ fi
                         batchId: batch.batchNumber,
                         beneficiaryName: dist.beneficiaryName,
                         species: batch.species,
-                        totalCount: batch.batchTotalCount || 0,
+                        totalCount: batch.batchTotalCount || batch.distributedQuantity || 0,
+                        dateDistributed: batch.dateDistributed,
                     });
                 });
             }
         });
-        return flattened;
+        return flattened.sort((a, b) => {
+            const aDate = a.dateDistributed ? new Date(a.dateDistributed).getTime() : 0;
+            const bDate = b.dateDistributed ? new Date(b.dateDistributed).getTime() : 0;
+            return bDate - aDate;
+        });
     }, [data]);
 
     // Calculate pagination
@@ -889,6 +929,8 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
     const [data, setData] = React.useState<any[]>([]);
     const [summary, setSummary] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const [itemsPerPage] = React.useState(10);
     const [filterConfig, setFilterConfig] = React.useState<any>({
         hasProvince: true,
         hasCity: true,
@@ -897,6 +939,7 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
 
     React.useEffect(() => {
         fetchData();
+        setCurrentPage(1);
     }, [filters]);
 
     const fetchData = async () => {
@@ -925,7 +968,12 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
             const response = await fetch(`/api/reports/beneficiaries?${params}`);
             const result = await response.json();
             if (result.success) {
-                setData(result.data);
+                const sorted = [...(result.data || [])].sort((a: any, b: any) => {
+                    const dateDiff = new Date(b.dateDistributed).getTime() - new Date(a.dateDistributed).getTime();
+                    if (dateDiff !== 0) return dateDiff;
+                    return String(a.province || "").localeCompare(String(b.province || ""));
+                });
+                setData(sorted);
                 setSummary(result.summary);
                 setFilterConfig(result.filters);
             }
@@ -936,40 +984,20 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
         }
     };
 
-    // Determine which columns to show based on filter selection
-    const showProvince = filters.province === "All Provinces";
-    const showMunicipality = filters.province !== "All Provinces" && filters.city === "All Cities";
-    const showBarangay = filters.city !== "All Cities" && filters.barangay === "All Barangays";
-    const showAllLocations = filters.barangay !== "All Barangays";
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentData = data.slice(startIndex, endIndex);
 
     const handleExportCSV = () => {
-        const csvData = data.map(beneficiary => {
-            const row: any = {};
-
-            // Add columns based on filter selection
-            if (showProvince) {
-                row["Province"] = beneficiary.province;
-            } else if (showMunicipality) {
-                row["Province"] = beneficiary.province;
-                row["Municipality"] = beneficiary.municipality;
-            } else if (showBarangay) {
-                row["Province"] = beneficiary.province;
-                row["Municipality"] = beneficiary.municipality;
-                row["Barangay"] = beneficiary.barangay;
-            } else if (showAllLocations) {
-                row["Province"] = beneficiary.province;
-                row["Municipality"] = beneficiary.municipality;
-                row["Barangay"] = beneficiary.barangay;
-            }
-
-            row["Beneficiary Name"] = beneficiary.beneficiaryName;
-            row["Species"] = beneficiary.species;
-            // row["Phone Number"] = beneficiary.phoneNumber; // Commented out
-            row["Total Fingerlings"] = beneficiary.totalFingerlings;
-            row["Date Distributed"] = new Date(beneficiary.dateDistributed).toLocaleDateString();
-
-            return row;
-        });
+        const csvData = data.map(beneficiary => ({
+            Province: beneficiary.province,
+            "Beneficiary Name": beneficiary.beneficiaryName,
+            Species: beneficiary.species,
+            "Total Fingerlings": beneficiary.totalFingerlings,
+            "Contact Number": beneficiary.contactNumber || "N/A",
+            "Date Distributed": new Date(beneficiary.dateDistributed).toLocaleDateString(),
+        }));
         exportToCSV(csvData, "beneficiaries_report");
     };
 
@@ -989,7 +1017,7 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
                     <h3 className="text-lg font-semibold text-gray-800">Beneficiaries Report</h3>
                     <div className="flex items-center text-sm text-gray-600 mt-1">
                         <MapPin className="h-4 w-4 mr-1" />
-                        <span>Beneficiaries per Province, City, and Barangay</span>
+                        <span>Distribution-driven beneficiaries</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1009,48 +1037,74 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
             {/* Report Content */}
             <div className="overflow-x-auto">
                 {data.length > 0 ? (
-                    <table className="w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                {showProvince && (
+                    <>
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
-                                )}
-                                {(showMunicipality || showBarangay || showAllLocations) && (
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Municipality</th>
-                                )}
-                                {(showBarangay || showAllLocations) && (
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barangay</th>
-                                )}
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th> */}
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Distributed</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {data.map((beneficiary, index) => (
-                                <tr key={beneficiary.id || index} className="hover:bg-gray-50">
-                                    {showProvince && (
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.province}</td>
-                                    )}
-                                    {(showMunicipality || showBarangay || showAllLocations) && (
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.municipality}</td>
-                                    )}
-                                    {(showBarangay || showAllLocations) && (
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.barangay}</td>
-                                    )}
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.species}</td>
-                                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.contactNumber}</td> */}
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Date(beneficiary.dateDistributed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                    </td>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiary Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fingerlings</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Distributed</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {currentData.map((beneficiary, index) => (
+                                    <tr key={beneficiary.id || index} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.province}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{beneficiary.beneficiaryName}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.species}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.totalFingerlings.toLocaleString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{beneficiary.contactNumber || "N/A"}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {new Date(beneficiary.dateDistributed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {totalPages > 1 && (
+                            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                                <div className="text-sm text-gray-700">
+                                    Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(endIndex, data.length)}</span> of{' '}
+                                    <span className="font-medium">{data.length}</span> results
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Previous
+                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-700">Page</span>
+                                        <select
+                                            value={currentPage}
+                                            onChange={(e) => setCurrentPage(Number(e.target.value))}
+                                            className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                        >
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                                <option key={page} value={page}>
+                                                    {page}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <span className="text-sm text-gray-700">of {totalPages}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="text-center py-16">
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
@@ -1066,10 +1120,10 @@ const BeneficiariesReportView: React.FC<{ filters: ReportFilters }> = ({ filters
 };
 
 // Main Report Display Component
-const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters }> = ({ reportType, filters }) => {
+const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters; isFingerlingCountApplied: boolean }> = ({ reportType, filters, isFingerlingCountApplied }) => {
     switch (reportType) {
         case "Fingerling Count":
-            return <FingerlingsCountReportView filters={filters} />;
+            return <FingerlingsCountReportView filters={filters} isApplied={isFingerlingCountApplied} />;
         case "Undistributed Batches":
             return <UndistributedBatchesReportView filters={filters} />;
         case "Distributed Batches":
@@ -1077,7 +1131,7 @@ const ReportDisplay: React.FC<{ reportType: string; filters: ReportFilters }> = 
         case "Beneficiaries Report":
             return <BeneficiariesReportView filters={filters} />;
         default:
-            return <FingerlingsCountReportView filters={filters} />;
+            return <FingerlingsCountReportView filters={filters} isApplied={isFingerlingCountApplied} />;
     }
 };
 
@@ -1089,15 +1143,16 @@ const Reports: React.FC = () => {
 
     const { unreadCount } = useNotification();
     const [currentReportType, setCurrentReportType] = useState<string>("Fingerling Count");
-    const [currentFilters, setCurrentFilters] = useState<ReportFilters>({
+    const [currentFilters, setCurrentFilters] = useState<ReportFilters>(() => ({
         reportType: "Fingerling Count",
         species: "All Species",
         startDate: "2025-04-30",
-        endDate: "2025-05-30",
+        endDate: toLocalISODate(new Date()),
         province: "All Provinces",
         city: "All Cities",
         barangay: "All Barangays"
-    });
+    }));
+    const [isFingerlingCountApplied, setIsFingerlingCountApplied] = useState(false);
     const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
     // Update current date and time every second
@@ -1109,10 +1164,18 @@ const Reports: React.FC = () => {
         return () => clearInterval(timer);
     }, []);
 
-    const handleApplyFilters = (reportType: string, filters: ReportFilters) => {
-        console.log("handleApplyFilters called with:", reportType, filters);
+    const handleReportTypeChange = (reportType: string, filters: ReportFilters) => {
         setCurrentReportType(reportType);
         setCurrentFilters(filters);
+        setIsFingerlingCountApplied(reportType !== "Fingerling Count");
+    };
+
+    const handleApplyFilters = (reportType: string, filters: ReportFilters) => {
+        setCurrentReportType(reportType);
+        setCurrentFilters(filters);
+        if (reportType === "Fingerling Count") {
+            setIsFingerlingCountApplied(true);
+        }
     };
 
     if (isLoading) {
@@ -1189,10 +1252,10 @@ const Reports: React.FC = () => {
                         </div>
 
                         {/* Report Filters */}
-                        <ReportFiltersComponent onApplyFilters={handleApplyFilters} />
+                        <ReportFiltersComponent onReportTypeChange={handleReportTypeChange} onApplyFilters={handleApplyFilters} />
 
                         {/* Report Display */}
-                        <ReportDisplay reportType={currentReportType} filters={currentFilters} />
+                        <ReportDisplay reportType={currentReportType} filters={currentFilters} isFingerlingCountApplied={isFingerlingCountApplied} />
                     </div>
                 </div>
             </div>

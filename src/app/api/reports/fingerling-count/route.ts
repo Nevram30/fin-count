@@ -9,6 +9,12 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const species = searchParams.get("species");
+    const mode = searchParams.get("mode");
+    const limitParam = searchParams.get("limit");
+    const limit =
+      limitParam && !Number.isNaN(Number(limitParam))
+        ? Math.max(1, Math.min(20, Number(limitParam)))
+        : 5;
 
     // Build where clause
     const whereClause: any = {};
@@ -39,18 +45,36 @@ export async function GET(request: NextRequest) {
         "species",
       ],
       order: [[sequelize.fn("DATE", sequelize.col("dateDistributed")), "DESC"]],
+      ...(mode === "overview" ? { limit } : {}),
       raw: true,
     });
 
-    // Calculate summary statistics
-    const summary = (await Distribution.findOne({
-      attributes: [
-        [sequelize.fn("SUM", sequelize.col("fingerlings")), "grandTotal"],
-        [sequelize.fn("COUNT", sequelize.col("id")), "totalDistributions"],
-      ],
-      where: whereClause,
-      raw: true,
-    })) as { grandTotal: number; totalDistributions: number } | null;
+    let summary:
+      | { grandTotal: number; totalDistributions: number }
+      | null = null;
+    if (mode === "overview") {
+      const overviewTotals = (fingerlingsData as any[]).reduce(
+        (acc, row) => {
+          const totalFingerlings = Number(row.totalFingerlings) || 0;
+          const distributionCount = Number(row.distributionCount) || 0;
+          return {
+            grandTotal: acc.grandTotal + totalFingerlings,
+            totalDistributions: acc.totalDistributions + distributionCount,
+          };
+        },
+        { grandTotal: 0, totalDistributions: 0 }
+      );
+      summary = overviewTotals;
+    } else {
+      summary = (await Distribution.findOne({
+        attributes: [
+          [sequelize.fn("SUM", sequelize.col("fingerlings")), "grandTotal"],
+          [sequelize.fn("COUNT", sequelize.col("id")), "totalDistributions"],
+        ],
+        where: whereClause,
+        raw: true,
+      })) as { grandTotal: number; totalDistributions: number } | null;
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Distribution from "@/server/database/models/distribution";
 import models from "@/server/database/models";
+import { softDeleteDistributions } from "@/server/services/distribution.service";
 
 // Helper function for JSON responses
 function jsonResponse(data: any, status: number = 200) {
@@ -14,8 +15,11 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const includeDeleted = searchParams.get("includeDeleted") === "true";
 
     const distribution = await Distribution.findByPk(id, {
+      paranoid: !includeDeleted ? true : false,
       include: [
         {
           model: models.User,
@@ -113,8 +117,6 @@ export async function PUT(
       actualHarvestDate: body.actualHarvestDate
         ? new Date(body.actualHarvestDate)
         : distribution.actualHarvestDate,
-      forecastedHarvestKilos:
-        body.forecastedHarvestKilos ?? distribution.forecastedHarvestKilos,
       actualHarvestKilos:
         body.actualHarvestKilos ?? distribution.actualHarvestKilos,
       remarks: body.remarks ?? distribution.remarks,
@@ -156,26 +158,31 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-
-    // Find the distribution
-    const distribution = await Distribution.findByPk(id);
-
-    if (!distribution) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "Distribution not found",
-        },
-        404
-      );
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
     }
 
-    // Delete the distribution
-    await distribution.destroy();
+    const result = await softDeleteDistributions({
+      ids: [id],
+      actor: body?.actor,
+    });
+
+    if (!result.success) {
+      const isNotFoundOnly =
+        result.notFoundIds.length > 0 && result.affectedCount === 0;
+      return jsonResponse(result, isNotFoundOnly ? 404 : 400);
+    }
 
     return jsonResponse({
       success: true,
       message: "Distribution deleted successfully",
+      deletedIds: result.affectedIds,
+      notFoundIds: result.notFoundIds,
+      unauthorizedIds: result.unauthorizedIds,
+      alreadyDeletedIds: result.skippedIds,
     });
   } catch (error) {
     console.error("Distribution DELETE API Error:", error);

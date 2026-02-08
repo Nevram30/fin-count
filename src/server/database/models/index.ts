@@ -5,6 +5,7 @@ import User from "./user";
 import Batch from "./batch";
 import Session from "./session";
 import Distribution from "./distribution";
+import Beneficiary from "./beneficiary";
 
 // Import associations to ensure they are loaded
 import "./associations";
@@ -23,4 +24,5 @@ export default {
   Batch,
   Session,
   Distribution,
+  Beneficiary,
 };

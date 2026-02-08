@@ -23,6 +23,7 @@ class Distribution extends Model<
 
   declare dateDistributed: Date;
   declare beneficiaryName: string;
+  declare beneficiaryId: number | null;
   declare barangay: string | null;
   declare municipality: string;
   declare province: string;
@@ -46,6 +47,7 @@ class Distribution extends Model<
 
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
+  declare readonly deletedAt: CreationOptional<Date | null>;
 
   // association methods
   declare getUser: () => Promise<User | null>;
@@ -66,6 +68,10 @@ Distribution.init(
     beneficiaryName: {
       allowNull: false,
       type: DataTypes.STRING,
+    },
+    beneficiaryId: {
+      allowNull: true,
+      type: DataTypes.INTEGER,
     },
     barangay: {
       allowNull: true,
@@ -141,14 +147,24 @@ Distribution.init(
       allowNull: false,
       type: DataTypes.DATE,
     },
+    deletedAt: {
+      allowNull: true,
+      type: DataTypes.DATE,
+    },
   },
   {
     sequelize,
     modelName: "Distributions",
+    paranoid: true,
+    deletedAt: "deletedAt",
     indexes: [
       {
         name: "distributions_user_id_index",
         fields: ["userId"],
+      },
+      {
+        name: "distributions_beneficiary_id_index",
+        fields: ["beneficiaryId"],
       },
       {
         name: "distributions_species_index",

@@ -7,6 +7,7 @@ import { LogoutModal } from "@/app/components/logout.modal";
 import { LogoutProvider } from "@/app/context/logout";
 import { useNotification } from "@/app/context/notification";
 import { withAuth } from "@/server/with.auth";
+import { getCitiesForProvinceWithBarangays, locationData } from "@/app/components/data/location.data";
 
 // Types
 interface PredictionItem {
@@ -88,12 +89,6 @@ interface FormData {
     facilityType: string;
 }
 
-interface LocationData {
-    provinces: string[];
-    cities: { [key: string]: string[] };
-    barangays: { [key: string]: string[] };
-}
-
 const FullScreenLoader: React.FC = () => (
     <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -126,57 +121,6 @@ const HarvestForecast: React.FC = () => {
     const [apiError, setApiError] = useState<string | null>(null);
     const [predictionResponse, setPredictionResponse] = useState<PredictionResponse | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
-
-
-    // Davao Region locations data
-    const locationData: LocationData = {
-        provinces: ["Davao del Sur", "Davao del Norte", "Davao de Oro", "Davao Oriental", "Davao Occidental", "Agusan del Sur", "Surigao del Sur", "Bukidnon", "Compostela Valley", "Cotabato"],
-        cities: {
-            "Davao del Norte": ["Tagum City", "Panabo City", "Samal City", "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod"],
-            "Davao del Sur": ["Davao City", "Digos City", "Bansalan", "Hagonoy", "Kiblawan", "Magsaysay", "Malalag", "Matanao", "Padada", "Santa Cruz", "Sulop"],
-            "Davao de Oro": ["Nabunturan", "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "New Bataan", "Pantukan"],
-            "Davao Oriental": ["Mati City", "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"],
-            "Davao Occidental": ["Malita", "Don Marcelino", "Jose Abad Santos", "Santa Maria"],
-            "Agusan del Sur": ["Bayugan City", "Bunawan", "Esperanza", "La Paz", "Loreto", "Prosperidad", "Rosario", "San Francisco", "San Luis", "Santa Josefa", "Sibagat", "Talacogon", "Trento", "Veruela"],
-            "Surigao del Sur": ["Bislig City", "Tandag City", "Barobo", "Bayabas", "Cagwait", "Cantilan", "Carmen", "Carrascal", "Cortes", "Hinatuan", "Lanuza", "Lianga", "Lingig", "Madrid", "Marihatag", "San Agustin", "San Miguel", "Tagbina", "Tago"],
-            "Bukidnon": ["Malaybalay City", "Valencia City", "Baungon", "Cabanglasan", "Damulog", "Dangcagan", "Don Carlos", "Impasugong", "Kadingilan", "Kalilangan", "Kibawe", "Kitaotao", "Lantapan", "Libona", "Malitbog", "Manolo Fortich", "Maramag", "Pangantucan", "Quezon", "San Fernando", "Sumilao"],
-            "Compostela Valley": ["Nabunturan", "Mabini", "Montevista", "New Bataan", "Pantukan", "Laak", "Maco", "Maragusan", "Mawab", "Monkayo", "Compostela"],
-            "Cotabato": ["Kidapawan", "North Cotabato", "M'lang", "Makilala", "Magpet", "President Roxas", "Tulunan", "Antipas", "Arakan", "Banisilan", "Carmen", "Kabacan", "Libungan", "Matalam", "Pigcawayan", "Pikit", "Aleosan", "Carmen", "Kabacan"]
-        },
-        barangays: {
-            "Tagum City": ["Apokon", "Bincungan", "La Filipina", "Magugpo East", "Magugpo North", "Magugpo Poblacion", "Magugpo South", "Mankilam", "Nueva Fuerza", "Pagsabangan", "San Agustin", "San Miguel", "Visayan Village", "Busaon", "Liboganon"],
-            "Panabo City": ["A.O. Floirendo", "Cagangohan", "Datu Abdul Dadia", "Gredu", "J.P. Laurel", "Kasilak", "Kauswagan", "Little Panay", "Mabunao", "Malativas", "Nanyo", "New Malaga", "New Malitbog", "New Pandan", "Quezon", "San Francisco", "San Nicolas", "San Pedro", "San Roque", "San Vicente", "Santo Niño", "Waterfall"],
-            "Samal City": ["Adecor", "Anonang", "Aumbay", "Babak", "Caliclic", "Camudmud", "Cawag", "Cogon", "Dadiangas", "Guilon", "Kanaan", "Kinawitnon", "Licoan", "Limao", "Miranda", "Pangubatan", "Penaplata", "Poblacion", "San Isidro", "San Miguel", "San Remigio", "Sion", "Tagbaobo", "Tagpopongan", "Tambo", "Tokawal"],
-            "Davao City": ["Agdao", "Alambre", "Atan-awe", "Bago Aplaya", "Bago Gallera", "Baliok", "Biao Escuela", "Biao Guianga", "Biao Joaquin", "Binugao", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Calinan", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catitipan", "Central Business District", "Daliao", "Dumoy", "Eden", "Fatima", "Indangan", "Lamanan", "Lampianao", "Leon Garcia", "Ma-a", "Maa", "Magsaysay", "Mahayag", "Malabog", "Manambulan", "Mandug", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Mintal", "Mulig", "New Carmen", "New Valencia", "Pampanga", "Panacan", "Paquibato", "Paradise Embac", "Riverside", "Salapawan", "San Antonio", "Sirawan", "Sirao", "Tacunan", "Tagluno", "Tagurano", "Talomo", "Tamayong", "Tamugan", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Toril", "Tugbok", "Waan", "Wines"],
-            "Digos City": ["Aplaya", "Balabag", "Biao", "Binaton", "Cogon", "Colorado", "Dulangan", "Goma", "Igpit", "Kapatagan", "Kiagot", "Mahayahay", "Matti", "Meta", "Palili", "Poblacion", "San Agustin", "San Jose", "San Miguel", "Sinawilan", "Soong", "Tres de Mayo", "Zone I", "Zone II", "Zone III"],
-            "Mati City": ["Badas", "Bobon", "Buso", "Central", "Dahican", "Danao", "Don Enrique Lopez", "Don Martin Marundan", "Langka", "Lawigan", "Libudon", "Lupon", "Matiao", "Mayo", "Sainz", "Taguibo", "Tagum"],
-            "Nabunturan": ["Anislagan", "Antequera", "Basak", "Cabidianan", "Katipunan", "Magading", "Magsaysay", "Nabunturan", "Pandasan", "Poblacion", "San Vicente"],
-            "Malita": ["Bolitoc", "Bolontoy", "Culaman", "Dapitan", "Don Narciso Ramos", "Happy Valley", "Kiokong", "Lawa-an", "Little Baguio", "Poblacion", "Sarmiento"],
-            "Asuncion": ["Bapa", "Candiis", "Concepcion", "New Corella", "Poblacion", "San Vicente", "Sonlon", "Tubalan"],
-            "Braulio E. Dujali": ["Cabidianan", "Datu Balong", "Magsaysay", "New Katipunan", "Poblacion", "Tanglaw", "Tibal-og", "Tres de Mayo"],
-            "Cagwait": ["Bagsac", "Basyagan", "Bolod", "East Cabagtas", "East Tupa", "La Purisima", "Magroyong", "Pili", "Tan-awan", "Tupaz "],
-            "Carmen": ["Alejal", "Asuncion", "Bincungan", "Carmen", "Ising", "Mabuhay", "Mabini", "Poblacion", "San Agustin"],
-            "Bansalan": ["Anonang", "Bitaug", "Darapuay", "Dolo", "Kinuskusan", "Libertad", "Linawan", "Mabini", "Mabunga", "Managa", "Marber", "New Clarin", "Poblacion", "Siblag", "Tinongcop"],
-            "Compostela": ["Bagongsilang", "Gabi", "Lagab", "Mangayon", "Mapaca", "Ngan", "New Leyte", "New Panay", "Osmeña", "Poblacion", "Siocon"],
-            "Mabini": ["Anitapan", "Cabuyan", "Cuambog", "Del Pilar", "Golden Valley", "Libodon", "Pangibiran", "Pindasan", "San Antonio", "Tagnanan"],
-            "Kiblawan": ["Abnate","Bagong Negros","Bagong Silang","Bagumbayan","Balasiao","Bonifacio","Bunot","Cogon-Bacaca","Dapok","Ihan","Kibongbong","Kimlawis","Kisulan","Lati-an","Manual","Maraga-a","Molopolo","New Sibonga","Panaglib","Pasig","Poblacion","Pocaleel","San Isidro","San Jose","San Pedro","Santo Niño","Tacub","Tacul","Waterfall","Bulol-Salo"],
-            "Magsaysay": ["Poblacion","Bacungan","Balnate","Barayong","Blocon","Dalawinon","Dalumay","Glamang","Kanapolo","Kasuga","Lower Bala","Mabini","Malawanit","Malongon","New Ilocos","New Opon","San Isidro","San Miguel","Tacul","Tagaytay","Upper Bala","Maibo"],
-            "Malalag": ["Bagumbayan","Baybay","Bolton","Bulacan","Caputian","Ibo","Kiblagon","Lapu-Lapu","Mabini","New Baclayon","Pitu","Poblacion","Rizal","San Isidro","Tagansule"],
-            "Matanao": ["Asbang","Asinan","Bagumbayan","Bangkal","Buas","Buri","Cabligan (Managa)","Camanchiles","Ceboza","Colonsabak","Dongan-Pekong","Kabasagan","Kapok","Kauswagan","Kibao","La Suerte","Langa-an","Lower Marber","Manga","New Katipunan","New Murcia","New Visayas","Poblacion","Saub","San Jose","San Miguel","San Vicente","Savoy","Sinaragan","Sinawilan","Tamlangon","Tibongbong","Towak"],
-            "Padada": ["Almendras (Poblacion)","Don Sergio Osmeña, Sr.","Harada Butai","Lower Katipunan","Lower Limonzo","Lower Malinao","N C Ordaneza (Poblacion)","Northern Paligue","Palili","Piape","Punta Piape","Quirino (Poblacion)","San Isidro","Southern Paligue","Tulugan","Upper Limonzo","Upper Malinao"],
-            "Santa Cruz": ["Astorga","Bato","Coronon","Darong","Inawayan","Jose Rizal","Matutungan","Melilia","Zone I (Poblacion)","Zone II (Poblacion)","Zone III (Poblacion)","Zone IV (Poblacion)","Sibulan","Sinoron","Tagabuli","Tibolo","Tuban","Saliducon"],
-            "Sulop": ["Balasinon","Buguis","Carre","Clib","Harada Butai","Katipunan","Kiblagon","Labon","Laperas","Lapla","Litos","Luparan","McKinley","New Cebu","Osmeña","Palili","Parame","Poblacion","Roxas","Solongvale","Tagolilong","Tala-o","Talas","Tanwalang","Waterfall"],
-            "Kapalong": ["Semong", "Florida", "Gabuyan", "Gupitan", "Capungagan", "Katipunan", "Luna", "Mabantao", "Mamacao", "Pag-asa", "Maniki (Poblacion)", "Sampao", "Sua-on", "Tiburcia"],
-            "New Corella": ["Cabidianan", "Carcor", "Del Monte", "Del Pilar", "El Salvador", "Limba-an", "Macgum", "Mambing", "Mesaoy", "New Bohol", "New Cortez", "New Sambog", "Patrocenio", "Poblacion", "San Roque", "Santa Cruz", "Santa Fe", "Santo Niño", "Suawon", "San Jose"],
-            "San Isidro": ["Dacudao", "Datu Balong", "Igangon", "Kipalili", "Libuton", "Linao", "Mamangan", "Monte Dujali", "Pinamuno", "Sabangan", "San Miguel", "Santo Niño", "Sawata (Poblacion)"],
-            "Santo Tomas": ["Balagunan", "Bobongon", "Casig-Ang", "Esperanza", "Kimamon", "Kinamayan", "La Libertad", "Lungaog", "Magwawa", "New Katipunan", "New Visayas", "Pantaron", "Salvacion", "San Jose", "San Miguel", "San Vicente", "Talomo", "Tibal-og", "Tulalian"],
-            "Talaingod": ["Dagohoy", "Palma Gil", "Santo Niño"],
-            "Baganga": ["Banaybanay", "Batawan", "Bobonao", "Campawan", "Caraga", "Dapnan", "Lambajon", "Poblacion", "Tokoton"],
-            "Don Marcelino": ["Balasinon", "Dulian", "Kinanga", "New Katipunan", "Poblacion", "San Miguel", "Santa Rosa"],
-            "Kidapawan": ["Amas"],
-            "North Cotabato": ["Balogo"]
-        }
-    };
 
     // Options for dropdowns
     const speciesOptions = [
@@ -518,22 +462,168 @@ const HarvestForecast: React.FC = () => {
     // Get available cities based on selected province
     const getAvailableCities = () => {
         if (formData.province === 'all' || !locationData.cities[formData.province]) {
-            return ["All Cities"];
+            return [];
         }
-        return ["All Cities", ...locationData.cities[formData.province]];
+        return getCitiesForProvinceWithBarangays(formData.province);
     };
 
     // Get available barangays based on selected city
     const getAvailableBarangays = () => {
-        if (formData.city === 'all' || formData.city === 'All Cities' || !locationData.barangays[formData.city]) {
-            return ["All Barangays"];
+        const availableBarangays = locationData.barangays[formData.province]?.[formData.city];
+        if (formData.province === 'all' || formData.city === 'all' || !availableBarangays) {
+            return [];
         }
-        return ["All Barangays", ...locationData.barangays[formData.city]];
+        return availableBarangays;
     };
 
     // Generate dynamic titles based on selected parameters
     const getParameterBasedTitle = () => {
         return `${formData.species}`;
+    };
+
+    const getKeyObservations = (data: ForecastData[]): string[] => {
+        const points = [...data].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        if (points.length === 0) return [];
+
+        const actualPoints = points.filter((p) => p.historical > 0 && p.predicted > 0);
+        const hasActual = actualPoints.length >= 1;
+
+        const getPeakMonth = (items: ForecastData[], key: "predicted" | "historical") => {
+            return items.reduce((best, cur) => (cur[key] > best[key] ? cur : best), items[0])
+                .month;
+        };
+
+        const getLargestGap = (items: ForecastData[]) => {
+            let best = items[0];
+            let bestAbs = Math.abs(items[0].predicted - items[0].historical);
+            for (const p of items) {
+                const abs = Math.abs(p.predicted - p.historical);
+                if (abs > bestAbs) {
+                    best = p;
+                    bestAbs = abs;
+                }
+            }
+            return {
+                month: best.month,
+                diff: best.predicted - best.historical,
+            };
+        };
+
+        const getOverallTrend = (items: ForecastData[]) => {
+            if (items.length < 2) return "steady";
+            const start = items[0].predicted;
+            const end = items[items.length - 1].predicted;
+            if (start <= 0) return end > 0 ? "rising" : "steady";
+            const ratio = end / start;
+            if (ratio >= 1.1) return "rising";
+            if (ratio <= 0.9) return "falling";
+            return "steady";
+        };
+
+        const getLargestJump = (items: ForecastData[]) => {
+            if (items.length < 2) return null;
+            let bestIndex = 1;
+            let bestAbs = Math.abs(items[1].predicted - items[0].predicted);
+            for (let i = 2; i < items.length; i++) {
+                const abs = Math.abs(items[i].predicted - items[i - 1].predicted);
+                if (abs > bestAbs) {
+                    bestAbs = abs;
+                    bestIndex = i;
+                }
+            }
+            return {
+                from: items[bestIndex - 1].month,
+                to: items[bestIndex].month,
+                direction: items[bestIndex].predicted >= items[bestIndex - 1].predicted ? "up" : "down",
+            } as const;
+        };
+
+        const observations: string[] = [];
+
+        if (hasActual && actualPoints.length >= 3) {
+            const sign = (n: number) => (n > 0 ? 1 : n < 0 ? -1 : 0);
+            let considered = 0;
+            let matches = 0;
+            for (let i = 1; i < actualPoints.length; i++) {
+                const prev = actualPoints[i - 1];
+                const cur = actualPoints[i];
+                const dPred = cur.predicted - prev.predicted;
+                const dAct = cur.historical - prev.historical;
+
+                const sPred = sign(Math.abs(dPred) < prev.predicted * 0.03 ? 0 : dPred);
+                const sAct = sign(Math.abs(dAct) < prev.historical * 0.03 ? 0 : dAct);
+                if (sPred === 0 || sAct === 0) continue;
+                considered++;
+                if (sPred === sAct) matches++;
+            }
+
+            if (considered >= 2) {
+                const ratio = matches / considered;
+                observations.push(
+                    ratio >= 0.7
+                        ? "Forecast and actual move together in most months."
+                        : "Forecast follows the general pattern, with a few months diverging."
+                );
+            }
+        }
+
+        if (hasActual) {
+            const gap = getLargestGap(actualPoints);
+            observations.push(
+                gap.diff >= 0
+                    ? `Biggest gap appears around ${gap.month}, where forecast sits above actual.`
+                    : `Biggest gap appears around ${gap.month}, where actual rises above forecast.`
+            );
+
+            const peakForecast = getPeakMonth(points, "predicted");
+            const peakActual = getPeakMonth(actualPoints, "historical");
+            observations.push(
+                peakForecast === peakActual
+                    ? `Both lines peak around ${peakForecast}.`
+                    : `Forecast peaks around ${peakForecast}, while actual peaks around ${peakActual}.`
+            );
+
+            const sumPred = actualPoints.reduce((s, p) => s + p.predicted, 0);
+            const sumAct = actualPoints.reduce((s, p) => s + p.historical, 0);
+            if (sumAct > 0) {
+                const ratio = sumPred / sumAct;
+                observations.push(
+                    ratio >= 0.9 && ratio <= 1.1
+                        ? "Overall levels stay close across the selected months."
+                        : ratio > 1.1
+                            ? "Overall, the forecast runs higher than the actual line."
+                            : "Overall, the forecast runs lower than the actual line."
+                );
+            }
+        } else {
+            const trend = getOverallTrend(points);
+            observations.push(
+                trend === "rising"
+                    ? "The forecast line rises toward the later months."
+                    : trend === "falling"
+                        ? "The forecast line eases down toward the later months."
+                        : "The forecast line stays fairly steady across the period."
+            );
+
+            const peakForecast = getPeakMonth(points, "predicted");
+            observations.push(`The forecast reaches its high point around ${peakForecast}.`);
+            observations.push("The actual line stays low across the selected months.");
+        }
+
+        const jump = getLargestJump(points);
+        if (jump) {
+            observations.push(
+                jump.direction === "up"
+                    ? `A noticeable lift happens from ${jump.from} to ${jump.to}.`
+                    : `A noticeable dip happens from ${jump.from} to ${jump.to}.`
+            );
+        }
+
+        const unique = Array.from(new Set(observations));
+        return unique.slice(0, Math.max(3, Math.min(5, unique.length)));
     };
 
     if (isLoading) {
@@ -569,6 +659,8 @@ const HarvestForecast: React.FC = () => {
             </div>
         );
     }
+
+    const keyObservations = getKeyObservations(forecastData);
 
     return (
         <>
@@ -672,6 +764,7 @@ const HarvestForecast: React.FC = () => {
                                             onChange={(e) => handleInputChange('city', e.target.value)}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         >
+                                            <option value="all">All Cities</option>
                                             {getAvailableCities().map(city => (
                                                 <option key={city} value={city}>{city}</option>
                                             ))}
@@ -688,6 +781,7 @@ const HarvestForecast: React.FC = () => {
                                             onChange={(e) => handleInputChange('barangay', e.target.value)}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         >
+                                            <option value="all">All Barangays</option>
                                             {getAvailableBarangays().length > 0 ? (
                                                 getAvailableBarangays().map(barangay => (
                                                     <option key={barangay} value={barangay}>{barangay}</option>
@@ -874,6 +968,16 @@ const HarvestForecast: React.FC = () => {
                                                 </LineChart>
                                             </ResponsiveContainer>
                                         </div>
+                                        {keyObservations.length > 0 && (
+                                            <div className="mt-6 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                                                <div className="text-[15px] font-semibold text-gray-900 mb-2">Key Observations</div>
+                                                <ul className="list-disc pl-5 space-y-1.5 text-[13px] font-normal leading-relaxed text-gray-700 marker:text-gray-400">
+                                                    {keyObservations.map((text, idx) => (
+                                                        <li key={idx}>{text}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
                                     {/* 
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

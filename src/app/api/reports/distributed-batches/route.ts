@@ -107,7 +107,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert map to array
-    const distributedBatches = Array.from(batchMap.values());
+    const distributedBatches = Array.from(batchMap.values()).map((batch: any) => {
+      const batchTotalCount =
+        Number(batch.batchTotalCount) > 0
+          ? Number(batch.batchTotalCount)
+          : Number(batch.distributedQuantity) > 0
+            ? Number(batch.distributedQuantity)
+            : 0;
+      return {
+        ...batch,
+        batchTotalCount,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -115,7 +126,7 @@ export async function GET(request: NextRequest) {
       summary: {
         totalBatches: distributedBatches.length,
         totalFingerlings: distributedBatches.reduce(
-          (sum, b) => sum + b.quantity,
+          (sum, b) => sum + (Number(b.distributedQuantity) || 0),
           0
         ),
         totalDistributions: distributions.length,

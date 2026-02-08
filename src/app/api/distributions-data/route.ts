@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Distribution from "@/server/database/models/distribution";
 import models from "@/server/database/models";
 import { Op } from "sequelize";
+import { softDeleteDistributions } from "@/server/services/distribution.service";
 
 // Helper function for JSON responses
 function jsonResponse(data: any, status: number = 200) {
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
+    const includeDeleted = searchParams.get("includeDeleted") === "true";
 
     // Build where clause
     const whereClause: any = {};
@@ -90,10 +92,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get total count for pagination
-    const totalDistributions = await Distribution.count({
+    const activeCount = await Distribution.count({
       where: whereClause,
+      paranoid: true,
     });
+    const totalCount = await Distribution.count({
+      where: whereClause,
+      paranoid: false,
+    });
+    const deletedCount = Math.max(totalCount - activeCount, 0);
+    const totalDistributions = includeDeleted ? totalCount : activeCount;
 
     // Calculate pagination
     const totalPages = Math.ceil(totalDistributions / limit);
@@ -102,23 +110,33 @@ export async function GET(request: NextRequest) {
     // Fetch distributions with pagination
     const distributions = await Distribution.findAll({
       where: whereClause,
+      paranoid: !includeDeleted ? true : false,
       include: [
         {
           model: models.User,
           as: "user",
           attributes: ["id", "email", "userType"],
         },
+        {
+          model: models.Beneficiary,
+          as: "beneficiaryProfile",
+          attributes: ["id", "contactNumber"],
+        },
       ],
       order: [["dateDistributed", "DESC"]],
       limit,
       offset,
     });
-    console.log("🚀 ~ GET ~ distributions:", distributions);
 
     return jsonResponse({
       success: true,
       data: {
         distributions,
+        counts: {
+          active: activeCount,
+          deleted: deletedCount,
+          total: totalCount,
+        },
         pagination: {
           currentPage: page,
           totalPages,
@@ -198,10 +216,36 @@ export async function POST(request: NextRequest) {
     const monthsToAdd = body.species === "Bangus" ? 3 : 4;
     forecastedHarvestDate.setMonth(distributionDate.getMonth() + monthsToAdd);
 
+    if (typeof body.batchId === "string" && body.batchId.trim()) {
+      const batchId = body.batchId.trim();
+      const existingBatch = await models.Batch.findByPk(batchId);
+
+      if (!existingBatch) {
+        await models.Batch.create({
+          id: batchId,
+          name: batchId,
+          description: null,
+          userId: body.userId,
+          totalCount: body.fingerlings,
+          isActive: true,
+        });
+      } else if (
+        (existingBatch.totalCount === 0 || existingBatch.totalCount === null) &&
+        typeof body.fingerlings === "number" &&
+        body.fingerlings > 0
+      ) {
+        await existingBatch.update({
+          totalCount: body.fingerlings,
+        });
+      }
+    }
+
     // Create new distribution
     const newDistribution = await Distribution.create({
       dateDistributed: new Date(body.dateDistributed),
       beneficiaryName: body.beneficiaryName,
+      beneficiaryId:
+        typeof body.beneficiaryId === "number" ? body.beneficiaryId : null,
       barangay: body.barangay || null,
       municipality: body.municipality,
       province: body.province,
@@ -257,32 +301,22 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ids } = body;
+    const { ids, actor } = body;
 
-    // Validate ids array
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "ids must be a non-empty array",
-        },
-        400
-      );
+    const result = await softDeleteDistributions({ ids, actor });
+    if (!result.success) {
+      return jsonResponse(result, 400);
     }
-
-    // Delete distributions
-    const deletedCount = await Distribution.destroy({
-      where: {
-        id: {
-          [Op.in]: ids,
-        },
-      },
-    });
 
     return jsonResponse({
       success: true,
-      message: `Successfully deleted ${deletedCount} distribution(s)`,
-      deletedCount,
+      message: `Successfully deleted ${result.affectedCount} distribution(s)`,
+      deletedCount: result.affectedCount,
+      requestedCount: result.requestedCount,
+      deletedIds: result.affectedIds,
+      notFoundIds: result.notFoundIds,
+      unauthorizedIds: result.unauthorizedIds,
+      alreadyDeletedIds: result.skippedIds,
     });
   } catch (error) {
     console.error("Distributions Data DELETE API Error:", error);
